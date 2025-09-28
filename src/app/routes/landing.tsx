@@ -81,7 +81,7 @@ const LandingRoute = () => {
           className="flex flex-col items-center gap-4 md:flex-row"
         >
           <Button asChild>
-            <Link to={{ hash: 'waitlist' }}>Start training</Link>
+            <Link to={{ hash: 'waitlist' }}>Sign up for the waitlist</Link>
           </Button>
           <Button variant="ghost" asChild>
             <Link to={{ hash: 'features' }}>

@@ -66,12 +66,12 @@ export const faqs: FAQ[] = [
     answer:
       'Your inputs are compared against expert-labeled cases. The system highlights salient visual features and explains decision boundaries in plain language.',
   },
-  {
-    id: 3,
-    question: 'Will you offer CME/CPD credits?',
-    answer:
-      "Yes — accreditation is planned. Join the waitlist to be notified as soon as it's live.",
-  },
+  // {
+  //   id: 3,
+  //   question: 'Will you offer CME/CPD credits?',
+  //   answer:
+  //     "Yes — accreditation is planned. Join the waitlist to be notified as soon as it's live.",
+  // },
   {
     id: 4,
     question: 'Is my data safe?',

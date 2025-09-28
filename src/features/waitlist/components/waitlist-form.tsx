@@ -31,7 +31,10 @@ const WaitlistForm = ({ className, ...props }: ComponentProps<'div'>) => {
   const onSubmit = (data: z.infer<typeof waitlistSchema>) => {
     register(data, {
       onSuccess: () => {
-        toast.success('Waitlist success. Thank you for signing up!');
+        toast.success(
+          `Hi, ${data.name}. Thank you for signing up for the waitlist!`,
+        );
+        form.reset();
       },
     });
   };
@@ -40,7 +43,7 @@ const WaitlistForm = ({ className, ...props }: ComponentProps<'div'>) => {
     <div className={cn('flex flex-col gap-6', className)} {...props}>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="md:grid grid-cols-2 gap-5">
+          <div className="flex flex-col md:grid grid-cols-2 gap-5">
             <FormField
               control={form.control}
               name="name"
