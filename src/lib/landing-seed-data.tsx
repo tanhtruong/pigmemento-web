@@ -34,7 +34,7 @@ export const stats: Stat[] = [
   {
     id: 1,
     label: 'Practice cases',
-    value: '5k+',
+    value: '1k+',
   },
   {
     id: 2,
