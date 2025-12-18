@@ -59,7 +59,7 @@ const LandingRoute = () => {
           transition={{ duration: 0.6 }}
           className="mx-auto max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl"
         >
-          Train your eye for melanoma.
+          Train your eye for melanoma.{" "}
           <span className="bg-gradient-to-r from-neutral-900 to-neutral-600 bg-clip-text text-transparent">
             Case by case.
           </span>
