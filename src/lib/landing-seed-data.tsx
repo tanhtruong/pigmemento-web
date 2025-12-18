@@ -6,25 +6,25 @@ import { Brain, LineChart, Shield, Sparkles } from 'lucide-react';
 export const features: Feature[] = [
   {
     icon: <Brain />,
-    title: 'Case-based training',
+    title: 'Case-Based Training',
     description:
       'Instant, case-by-case guidance on your differential and malignancy risk estimation.',
   },
   {
     icon: <Sparkles />,
-    title: 'Realistic case library',
+    title: 'Realistic Case Library',
     description:
       'Diverse dermoscopic and clinical images curated with domain experts.',
   },
   {
     icon: <LineChart />,
-    title: 'Progress & benchmarks',
+    title: 'Progress & Benchmarks',
     description:
       'Track accuracy, sensitivity/specificity, and compare with peer cohorts.',
   },
   {
     icon: <Shield />,
-    title: 'Privacy & compliance',
+    title: 'Privacy & Compliance',
     description:
       'De-identified data, GDPR-friendly workflows, and role-based access.',
   },
@@ -38,7 +38,7 @@ export const stats: Stat[] = [
   },
   {
     id: 2,
-    label: 'Avg. session length',
+    label: 'Average session length',
     value: '8-10 min',
   },
   {

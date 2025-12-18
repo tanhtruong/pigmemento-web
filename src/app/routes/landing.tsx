@@ -59,9 +59,9 @@ const LandingRoute = () => {
           transition={{ duration: 0.6 }}
           className="mx-auto max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl"
         >
-          Train your eye for melanoma.{' '}
+          Train your eye for melanoma.
           <span className="bg-gradient-to-r from-neutral-900 to-neutral-600 bg-clip-text text-transparent">
-            case by case.
+            Case by case.
           </span>
         </motion.h1>
         <motion.p
@@ -71,7 +71,7 @@ const LandingRoute = () => {
           className="mx-auto max-w-2xl text-balance text-base text-neutral-600 md:text-lg"
         >
           Short quizzes with real lesion images, guided feedback, and teaching
-          points. Educational use only
+          points. Educational use only.
         </motion.p>
         <motion.div
           initial={{ opacity: 0 }}
@@ -207,7 +207,7 @@ const LandingRoute = () => {
               />
             </CardContent>
             <CardFooter className="text-sm justify-center">
-              Pigmemento demo
+              Pigmemento Demo
             </CardFooter>
           </Card>
         </div>
@@ -231,7 +231,7 @@ const LandingRoute = () => {
 
       {/* FAQ */}
       <section id="faq" className="mx-auto w-full max-w-6xl px-6 pb-20">
-        <h2 className="mb-6 text-3xl font-bold md:text-4xl">FAQ</h2>
+        <h2 className="mb-6 text-3xl font-bold md:text-4xl">FAQs</h2>
         <Accordion type="multiple">
           {faqs.map((faq) => (
             <AccordionItem key={faq.id.toString()} value={faq.id.toString()}>
