@@ -14,7 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
 import {
   Accordion,
   AccordionContent,
@@ -60,9 +59,9 @@ const LandingRoute = () => {
           transition={{ duration: 0.6 }}
           className="mx-auto max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl"
         >
-          Train your eye.{' '}
+          Train your eye for melanoma.{' '}
           <span className="bg-gradient-to-r from-neutral-900 to-neutral-600 bg-clip-text text-transparent">
-            Save more lives.
+            case by case.
           </span>
         </motion.h1>
         <motion.p
@@ -71,8 +70,8 @@ const LandingRoute = () => {
           transition={{ delay: 0.1, duration: 0.6 }}
           className="mx-auto max-w-2xl text-balance text-base text-neutral-600 md:text-lg"
         >
-          Interactive, AI-powered melanoma recognition practice for GPs and
-          dermatology trainees — on mobile and web.
+          Short quizzes with real lesion images, guided feedback, and teaching
+          points. Educational use only
         </motion.p>
         <motion.div
           initial={{ opacity: 0 }}
@@ -85,7 +84,7 @@ const LandingRoute = () => {
           </Button>
           <Button variant="ghost" asChild>
             <Link to={{ hash: 'features' }}>
-              Explore features <ArrowRight />
+              See how it works <ArrowRight />
             </Link>
           </Button>
         </motion.div>
@@ -100,24 +99,18 @@ const LandingRoute = () => {
           <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-6 md:grid-cols-2">
             <Card>
               <CardContent>
-                <AspectRatio
-                  ratio={4 / 3}
-                  className="bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-2xl"
-                ></AspectRatio>
+                <img src="/dashboard-drill-mock.png" className="rounded-lg" />
               </CardContent>
               <CardFooter className="text-sm justify-center">
-                Screenshot placeholder — dashboard
+                Dashboard & Drill Attempt
               </CardFooter>
             </Card>
             <Card>
               <CardContent>
-                <AspectRatio
-                  ratio={4 / 3}
-                  className="bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-2xl"
-                ></AspectRatio>
+                <img src="/library-review-mock.png" className="rounded-lg" />
               </CardContent>
               <CardFooter className="text-sm justify-center">
-                Screenshot placeholder — case view
+                Case Library & Case Review
               </CardFooter>
             </Card>
           </div>
@@ -126,7 +119,7 @@ const LandingRoute = () => {
 
       {/* Stats */}
       <section className="border-y bg-neutral-50/60 py-10">
-        <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-6 px-6 md:grid-cols-4">
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-6 px-6 md:grid-cols-3">
           {stats.map((stat) => (
             <Card key={stat.label}>
               <CardContent className="text-center my-auto">
@@ -203,13 +196,18 @@ const LandingRoute = () => {
           </div>
           <Card>
             <CardContent>
-              <AspectRatio
-                ratio={4 / 3}
-                className="bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-2xl"
-              ></AspectRatio>
+              <img
+                src="/pigmemento-showcase-1.gif"
+                alt="pigmemento showcase 1"
+                className="w-full max-w-[220px] mx-auto h-auto rounded-xl shadow-sm border"
+                loading="lazy"
+                decoding="async"
+                width={440}
+                height={956}
+              />
             </CardContent>
             <CardFooter className="text-sm justify-center">
-              Short demo placeholder - replace with an embedded video or GIF.
+              Pigmemento demo
             </CardFooter>
           </Card>
         </div>

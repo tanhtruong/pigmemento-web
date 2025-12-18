@@ -6,7 +6,7 @@ import { Brain, LineChart, Shield, Sparkles } from 'lucide-react';
 export const features: Feature[] = [
   {
     icon: <Brain />,
-    title: 'AI-powered feedback',
+    title: 'Case-based training',
     description:
       'Instant, case-by-case guidance on your differential and malignancy risk estimation.',
   },
@@ -34,20 +34,15 @@ export const stats: Stat[] = [
   {
     id: 1,
     label: 'Practice cases',
-    value: '2k+',
+    value: '5k+',
   },
   {
     id: 2,
-    label: 'Avg. accuracy uplift',
-    value: '+18%',
-  },
-  {
-    id: 3,
     label: 'Avg. session length',
     value: '8-10 min',
   },
   {
-    id: 4,
+    id: 3,
     label: 'Platforms',
     value: 'iOS • Android • Web',
   },
@@ -60,12 +55,12 @@ export const faqs: FAQ[] = [
     answer:
       'General practitioners, junior dermatologists, and medical trainees who want focused practice in melanoma recognition.',
   },
-  {
-    id: 2,
-    question: 'How does the AI feedback work?',
-    answer:
-      'Your inputs are compared against expert-labeled cases. The system highlights salient visual features and explains decision boundaries in plain language.',
-  },
+  // {
+  //   id: 2,
+  //   question: 'How does the AI feedback work?',
+  //   answer:
+  //     'Your inputs are compared against expert-labeled cases. The system highlights salient visual features and explains decision boundaries in plain language.',
+  // },
   // {
   //   id: 3,
   //   question: 'Will you offer CME/CPD credits?',
