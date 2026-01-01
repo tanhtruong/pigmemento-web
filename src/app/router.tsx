@@ -27,6 +27,10 @@ export const createAppRouter = (queryClient: QueryClient) =>
       lazy: () => import('./routes/landing').then(convert(queryClient)),
     },
     {
+      path: paths.privacy.path,
+      lazy: () => import('./routes/privacy-policy').then(convert(queryClient)),
+    },
+    {
       path: paths.auth.login.path,
       lazy: () => import('./routes/auth/login').then(convert(queryClient)),
     },
