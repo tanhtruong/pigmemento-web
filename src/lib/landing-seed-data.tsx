@@ -53,24 +53,72 @@ export const faqs: FAQ[] = [
     id: 1,
     question: 'Who is Pigmemento for?',
     answer:
-      'General practitioners, junior dermatologists, and medical trainees who want focused practice in melanoma recognition.',
+      'General practitioners, dermatology trainees, and medical learners who want structured practice in melanoma recognition.',
   },
-  // {
-  //   id: 2,
-  //   question: 'How does the AI feedback work?',
-  //   answer:
-  //     'Your inputs are compared against expert-labeled cases. The system highlights salient visual features and explains decision boundaries in plain language.',
-  // },
-  // {
-  //   id: 3,
-  //   question: 'Will you offer CME/CPD credits?',
-  //   answer:
-  //     "Yes — accreditation is planned. Join the waitlist to be notified as soon as it's live.",
-  // },
+  {
+    id: 2,
+    question: 'Is Pigmemento a diagnostic tool?',
+    answer:
+      'No. Pigmemento is for educational use only and is not intended for diagnosis or clinical decision-making.',
+  },
+  {
+    id: 3,
+    question: 'Where do the cases come from?',
+    answer:
+      'Cases are curated from high-quality educational datasets and expert-reviewed sources. All content is de-identified and intended for learning.',
+  },
   {
     id: 4,
+    question: 'Does it include dermoscopy?',
+    answer:
+      'Yes. Training cases can include clinical and dermoscopic images along with brief context and teaching points.',
+  },
+  {
+    id: 5,
+    question: 'How does the feedback work?',
+    answer:
+      'After each answer, you’ll see the ground truth label, teaching points, and visual cues to focus on. When available, attention maps are shown as a learning aid - not a diagnostic output.',
+  },
+  {
+    id: 6,
+    question: 'Do you collect patient photos or allow uploads?',
+    answer:
+      'Not at launch. Pigmemento focuses on curated training cases, and we do not request or store patient photos uploaded by users.',
+  },
+  {
+    id: 7,
     question: 'Is my data safe?',
     answer:
-      'We minimize personal data collection, use encryption in transit/at rest, and support data export/deletion on request.',
+      'We minimize personal data collection, encrypt data in transit and at rest, and support data export/deletion on request where applicable.',
+  },
+  {
+    id: 8,
+    question: 'Do I need an account?',
+    answer:
+      'Early versions may allow lightweight access. If accounts are enabled, we only collect what’s needed to run the app and track learning progress.',
+  },
+  {
+    id: 9,
+    question: 'What devices does it work on?',
+    answer:
+      'Pigmemento works on iOS, Android, and the web - no special setup required.',
+  },
+  {
+    id: 10,
+    question: 'Can I use it offline?',
+    answer:
+      'An internet connection is recommended for the best experience since cases and updates are delivered online.',
+  },
+  {
+    id: 11,
+    question: 'Will you offer CME/CPD credits?',
+    answer:
+      'Not initially. CME/CPD accreditation is a potential future roadmap item - join the waitlist to be notified of updates.',
+  },
+  {
+    id: 12,
+    question: 'Will there be a free tier or pricing?',
+    answer:
+      'Pricing is still being finalized. Join the waitlist and we’ll share details before launch.',
   },
 ];
