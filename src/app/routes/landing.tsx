@@ -41,6 +41,39 @@ const LandingRoute = () => {
 
   const viewportOnce = useMemo(() => ({ once: true, amount: 0.2 }), []);
 
+  const faqJsonLd = useMemo(
+    () => ({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    }),
+    []
+  );
+
+  const organizationJsonLd = useMemo(
+    () => ({
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'Pigmemento',
+      url: 'https://pigmemento.app',
+      contactPoint: [
+        {
+          '@type': 'ContactPoint',
+          contactType: 'customer support',
+          email: 'contact@pigmemento.app',
+        },
+      ],
+    }),
+    []
+  );
+
   const fadeUp = useMemo(
     () => ({
       hidden: { opacity: 0, y: 14 },
@@ -92,6 +125,17 @@ const LandingRoute = () => {
 
   return (
     <>
+      {/* Structured data for SEO */}
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       {/* Hero */}
       <motion.section
         initial="hidden"
@@ -104,7 +148,7 @@ const LandingRoute = () => {
           variants={fadeUp}
           className="mx-auto max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl"
         >
-          Train your eye for melanoma.{' '}
+          Melanoma recognition training for clinicians.{' '}
           <span className="bg-gradient-to-r from-neutral-900 to-neutral-600 bg-clip-text text-transparent">
             Case by case.
           </span>
@@ -113,9 +157,10 @@ const LandingRoute = () => {
           variants={fadeIn}
           className="mx-auto max-w-2xl text-balance text-base text-neutral-600 md:text-lg"
         >
-          Short quizzes with real lesion images, guided feedback, and teaching
-          points. Built for GPs and dermatology trainees. Educational use only -
-          not for diagnosis.
+          Short quizzes using real clinical lesion images, guided feedback, and
+          teaching points to improve visual assessment of pigmented lesions.
+          Built for GPs and dermatology trainees. Educational use only - not for
+          diagnosis.
         </motion.p>
         <motion.div
           variants={fadeIn}
@@ -123,7 +168,7 @@ const LandingRoute = () => {
         >
           <Badge variant="secondary">Educational use only</Badge>
           <Badge variant="secondary">Real cases + guided feedback</Badge>
-          <Badge variant="secondary">iOS, Android, and web</Badge>
+          <Badge variant="secondary">Works on iOS, Android, and web</Badge>
         </motion.div>
         <motion.div
           variants={fadeIn}
@@ -153,7 +198,7 @@ const LandingRoute = () => {
                 />
               </CardContent>
               <CardFooter className="text-sm justify-center">
-                Dashboard & Drill Attempt
+                Timed drills dashboard (training mode)
               </CardFooter>
             </Card>
             <Card>
@@ -169,12 +214,29 @@ const LandingRoute = () => {
                 />
               </CardContent>
               <CardFooter className="text-sm justify-center">
-                Case Library & Case Review
+                Case library with guided review and teaching points
               </CardFooter>
             </Card>
           </div>
         </motion.div>
       </motion.section>
+
+      {/* SEO intro */}
+      <section className="mx-auto w-full max-w-6xl px-6 pb-6">
+        <div className="mx-auto max-w-3xl text-center text-sm text-neutral-600">
+          <h2 className="sr-only">What is Pigmemento?</h2>
+          <p>
+            Pigmemento is an educational melanoma recognition trainer designed
+            for clinicians, general practitioners, and dermatology trainees.
+            Practice pattern recognition with case-based drills and structured
+            feedback to help you spot high-risk features.
+          </p>
+          <p className="mt-3">
+            This product is for medical education only and does not provide
+            diagnosis or treatment recommendations.
+          </p>
+        </div>
+      </section>
 
       {/* Stats */}
       <motion.section
@@ -311,8 +373,7 @@ const LandingRoute = () => {
               </li>
               <li>
                 <span className="font-semibold">3) Decide & justify.</span>{' '}
-                Benign vs malignant choice, ABCDE notes, and next-step reasoning
-                (training).
+                Benign vs malignant choice, ABCDE/7-point notes, and next-step reasoning (training).
               </li>
               <li>
                 <span className="font-semibold">4) Get feedback.</span> See
@@ -334,7 +395,7 @@ const LandingRoute = () => {
             <CardContent>
               <img
                 src="/pigmemento-showcase-1.gif"
-                alt="pigmemento showcase 1"
+                alt="Mobile demo of a melanoma recognition training quiz with guided feedback"
                 className="w-full max-w-[220px] mx-auto h-auto rounded-xl shadow-sm border"
                 loading="lazy"
                 decoding="async"
