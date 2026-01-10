@@ -12,7 +12,7 @@ import {
   SidebarGroupContent,
 } from './sidebar';
 import { paths } from '@/config/paths';
-import { ArrowRight, Home } from 'lucide-react';
+import { ArrowRight, Book, Home } from 'lucide-react';
 import { JSX } from 'react';
 import { cn } from '@/lib/utils';
 import {
@@ -33,11 +33,25 @@ type SideNavigationItem = {
 const AppSidebar = () => {
   const navigation = [
     { name: 'Dashboard', to: paths.app.dashboard.getHref(), icon: Home },
+    { name: 'Cases', to: paths.app.cases.getHref(), icon: Book },
   ].filter(Boolean) as SideNavigationItem[];
 
   return (
     <Sidebar>
-      <SidebarHeader></SidebarHeader>
+      <SidebarHeader>
+        <NavLink to={paths.app.dashboard.getHref()} className="block">
+          <div className="flex items-center gap-2 px-2 py-2">
+            <img
+              src="/android-chrome-512x512.png"
+              alt="Pigmemento"
+              className="h-8 w-auto"
+            />
+            <span className="text-sm font-semibold tracking-tight">
+              Pigmemento
+            </span>
+          </div>
+        </NavLink>
+      </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>

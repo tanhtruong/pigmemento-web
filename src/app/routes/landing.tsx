@@ -1,6 +1,4 @@
-// import { useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
-// import { paths } from '@/config/paths';
 // import { isTokenValid } from '@/lib/auth';
 import { ArrowRight, Smartphone } from 'lucide-react';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
@@ -18,26 +16,16 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { Link } from 'react-router';
 import { Badge } from '@/components/ui/badge';
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 import WaitlistForm from '@/features/waitlist/components/waitlist-form';
 import { faqs, features, stats } from '@/lib/landing-seed-data';
-import { paths } from '@/config/paths';
 
 const LandingRoute = () => {
   const shouldReduceMotion = useReducedMotion();
-  // TODO: Add again when Auth is ready
-  // const navigate = useNavigate();
-  // const isLoggedin = isTokenValid();
-
-  // const handleStart = () => {
-  //   if (isLoggedin) {
-  //     navigate(paths.app.dashboard.getHref());
-  //   } else {
-  //     navigate(paths.auth.login.getHref());
-  //   }
-  // };
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const viewportOnce = useMemo(() => ({ once: true, amount: 0.2 }), []);
 
@@ -54,7 +42,7 @@ const LandingRoute = () => {
         },
       })),
     }),
-    []
+    [],
   );
 
   const organizationJsonLd = useMemo(
@@ -71,22 +59,23 @@ const LandingRoute = () => {
         },
       ],
     }),
-    []
+    [],
   );
 
   const fadeUp = useMemo(
-    () => ({
-      hidden: { opacity: 0, y: 14 },
-      visible: {
-        opacity: 1,
-        y: 0,
-        transition: {
-          duration: shouldReduceMotion ? 0 : 0.55,
-          ease: 'easeOut',
+    () =>
+      ({
+        hidden: { opacity: 0, y: 14 },
+        visible: {
+          opacity: 1,
+          y: 0,
+          transition: {
+            duration: shouldReduceMotion ? 0 : 0.55,
+            ease: 'easeOut',
+          },
         },
-      },
-    } satisfies Variants),
-    [shouldReduceMotion]
+      }) satisfies Variants,
+    [shouldReduceMotion],
   );
 
   const fadeIn = useMemo(
@@ -101,27 +90,60 @@ const LandingRoute = () => {
           },
         },
       }) satisfies Variants,
-    [shouldReduceMotion]
+    [shouldReduceMotion],
   );
 
   const stagger = useMemo(
-    () => ({
-      hidden: {},
-      visible: {
-        transition: {
-          staggerChildren: shouldReduceMotion ? 0 : 0.08,
-          delayChildren: shouldReduceMotion ? 0 : 0.08,
+    () =>
+      ({
+        hidden: {},
+        visible: {
+          transition: {
+            staggerChildren: shouldReduceMotion ? 0 : 0.08,
+            delayChildren: shouldReduceMotion ? 0 : 0.08,
+          },
         },
-      },
-    } satisfies Variants),
-    [shouldReduceMotion]
+      }) satisfies Variants,
+    [shouldReduceMotion],
   );
-  const scrollToId = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: shouldReduceMotion ? 'auto' : 'smooth' });
-    }
-  };
+  const scrollToId = useCallback(
+    (id: string) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: shouldReduceMotion ? 'auto' : 'smooth' });
+      }
+    },
+    [shouldReduceMotion],
+  );
+
+  useEffect(() => {
+    const state = location.state as { scrollTo?: string } | null;
+    const target = state?.scrollTo;
+    if (!target) return;
+
+    // Defer until after paint so sections exist
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (target === '__top__') {
+          window.scrollTo({
+            top: 0,
+            behavior: shouldReduceMotion ? 'auto' : 'smooth',
+          });
+        } else {
+          scrollToId(target);
+        }
+
+        // Clear the state so refresh/back doesn't re-scroll
+        navigate(location.pathname, { replace: true, state: null });
+      }, 0);
+    });
+  }, [
+    location.pathname,
+    location.state,
+    navigate,
+    scrollToId,
+    shouldReduceMotion,
+  ]);
 
   return (
     <>
@@ -373,7 +395,8 @@ const LandingRoute = () => {
               </li>
               <li>
                 <span className="font-semibold">3) Decide & justify.</span>{' '}
-                Benign vs malignant choice, ABCDE/7-point notes, and next-step reasoning (training).
+                Benign vs malignant choice, ABCDE/7-point notes, and next-step
+                reasoning (training).
               </li>
               <li>
                 <span className="font-semibold">4) Get feedback.</span> See
@@ -455,34 +478,6 @@ const LandingRoute = () => {
           ))}
         </Accordion>
       </motion.section>
-
-      {/* Footer */}
-      <motion.footer
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewportOnce}
-        variants={fadeIn}
-        className="border-t bg-neutral-50/60"
-      >
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 md:flex-row">
-          <p className="text-xs text-neutral-600">
-            © {new Date().getFullYear()} Pigmemento. Educational use only - not
-            for diagnosis. All rights reserved.
-          </p>
-          <div className="flex items-center gap-4 text-xs text-neutral-600">
-            <Link to={paths.privacy.path}>Privacy</Link>
-            {/*<a href="#" className="hover:text-neutral-900">
-              Terms
-            </a>*/}
-            <a
-              href="mailto:contact@pigmemento.app"
-              className="hover:text-neutral-900"
-            >
-              contact@pigmemento.app
-            </a>
-          </div>
-        </div>
-      </motion.footer>
     </>
   );
 };

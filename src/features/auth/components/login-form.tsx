@@ -36,7 +36,7 @@ export const LoginForm = ({ className, ...props }: ComponentProps<'div'>) => {
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className=" space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
             control={form.control}
             name="email"
@@ -84,7 +84,7 @@ export const LoginForm = ({ className, ...props }: ComponentProps<'div'>) => {
             <p className="text-destructive">Login failed. Try again.</p>
           )}
           <p className="text-sm ">
-            Don't have an account and want to join EXP?{' '}
+            Don't have an account and want to join Pigmemento?{' '}
             <Link
               to={paths.auth.register.getHref()}
               className="underline underline-offset-2"

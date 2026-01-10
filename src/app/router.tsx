@@ -9,6 +9,7 @@ import {
 } from './routes/app/root';
 import { ProtectedRoute } from '@/lib/auth';
 import { Spinner } from '@/components/ui/spinner';
+import { PublicLayout } from '@/components/layouts/public-layout.tsx';
 
 const convert = (queryClient: QueryClient) => (m: any) => {
   const { clientLoader, clientAction, default: Component, ...rest } = m;
@@ -23,12 +24,18 @@ const convert = (queryClient: QueryClient) => (m: any) => {
 export const createAppRouter = (queryClient: QueryClient) =>
   createBrowserRouter([
     {
-      path: paths.home.path,
-      lazy: () => import('./routes/landing').then(convert(queryClient)),
-    },
-    {
-      path: paths.privacy.path,
-      lazy: () => import('./routes/privacy-policy').then(convert(queryClient)),
+      element: <PublicLayout />,
+      children: [
+        {
+          path: paths.home.path,
+          lazy: () => import('./routes/landing').then(convert(queryClient)),
+        },
+        {
+          path: paths.privacy.path,
+          lazy: () =>
+            import('./routes/privacy-policy').then(convert(queryClient)),
+        },
+      ],
     },
     {
       path: paths.auth.login.path,
@@ -53,6 +60,39 @@ export const createAppRouter = (queryClient: QueryClient) =>
           path: paths.app.dashboard.path,
           lazy: () =>
             import('./routes/app/dashboard').then(convert(queryClient)),
+        },
+        {
+          path: paths.app.cases.path,
+          lazy: () =>
+            import('./routes/app/cases/cases').then(convert(queryClient)),
+        },
+        {
+          path: paths.app['case-random'].path,
+          lazy: () =>
+            import('./routes/app/cases/random-attempt').then(
+              convert(queryClient),
+            ),
+        },
+        {
+          path: paths.app['case-attempt'].path,
+          lazy: () =>
+            import('./routes/app/cases/case-attempt').then(
+              convert(queryClient),
+            ),
+        },
+        {
+          path: paths.app['case-review'].path,
+          lazy: () =>
+            import('./routes/app/cases/case-review').then(convert(queryClient)),
+        },
+        {
+          path: paths.app['case-drill'].path,
+          lazy: () =>
+            import('./routes/app/cases/case-drill').then(convert(queryClient)),
+        },
+        {
+          path: paths.app.profile.path,
+          lazy: () => import('./routes/app/profile').then(convert(queryClient)),
         },
       ],
     },
