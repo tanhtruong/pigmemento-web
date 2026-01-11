@@ -12,8 +12,8 @@ import {
   SidebarGroupContent,
 } from './sidebar';
 import { paths } from '@/config/paths';
-import { ArrowRight, Book, Home } from 'lucide-react';
-import { JSX } from 'react';
+import { Book, EllipsisVertical, Home } from 'lucide-react';
+import { JSX, SVGProps } from 'react';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -21,16 +21,31 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './dropdown-menu';
+import { Badge } from './badge';
 import { Avatar, AvatarFallback, AvatarImage } from './avatar';
 import LogoutDialog from '@/features/auth/components/logout-dialog';
+import { useProfile } from '@/features/profile/api/use-profile';
 
 type SideNavigationItem = {
   name: string;
   to: string;
-  icon: (props: React.SVGProps<SVGSVGElement>) => JSX.Element;
+  icon: (props: SVGProps<SVGSVGElement>) => JSX.Element;
 };
 
 const AppSidebar = () => {
+  const { data: user } = useProfile();
+
+  const initials =
+    (user?.name || user?.email || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase())
+      .join('') || 'U';
+
+  const displayName = user?.name || 'Pigmemento User';
+
   const navigation = [
     { name: 'Dashboard', to: paths.app.dashboard.getHref(), icon: Home },
     { name: 'Cases', to: paths.app.cases.getHref(), icon: Book },
@@ -65,7 +80,14 @@ const AppSidebar = () => {
                       <SidebarMenuButton
                         className={isActive ? 'bg-secondary' : ''}
                       >
-                        <item.icon strokeWidth={isActive ? 3 : 1} />
+                        <item.icon
+                          strokeWidth={isActive ? 3 : 1}
+                          color={
+                            isActive
+                              ? 'var(--sidebar-primary)'
+                              : 'var(--sidebar-foreground)'
+                          }
+                        />
                         <span
                           className={cn(
                             isActive ? 'text-primary font-bold' : '',
@@ -92,17 +114,27 @@ const AppSidebar = () => {
                   <span className="flex gap-2 items-center">
                     <Avatar>
                       <AvatarImage src="" alt="profile image" />
-                      <AvatarFallback>ATT</AvatarFallback>
-                    </Avatar>{' '}
-                    Name
+                      <AvatarFallback>{initials}</AvatarFallback>
+                    </Avatar>
+                    <span className="truncate">{displayName}</span>
                   </span>
-                  <ArrowRight />
+                  <EllipsisVertical />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="right">
-                <DropdownMenuItem>
-                  <span>Account</span>
+                <div className="px-2 py-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">Role</span>
+                    <Badge variant="secondary" className="capitalize">
+                      {user?.role ?? 'user'}
+                    </Badge>
+                  </div>
+                </div>
+
+                <DropdownMenuItem asChild>
+                  <NavLink to={paths.app.profile.getHref()}>Profile</NavLink>
                 </DropdownMenuItem>
+
                 <LogoutDialog>
                   <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                     Log out

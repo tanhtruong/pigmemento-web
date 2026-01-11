@@ -16,10 +16,3 @@ export type Meta = {
   total: number;
   totalPages: number;
 };
-
-export type User = Entity<{
-  name: string;
-  email: string;
-  role: 'ADMIN' | 'USER';
-  bio: string;
-}>;

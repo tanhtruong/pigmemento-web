@@ -14,9 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { paths } from '@/config/paths';
 import { useRandomCase } from '@/features/cases/api/use-case-random.ts';
 import { useCaseSubmitAttempt } from '@/features/cases/api/use-case-submit-attempt.ts';
-
-// Assumes you already have these hooks.
-// If your hook names/paths differ, tell me and I’ll align them.
+import { CheckCircle2 } from 'lucide-react';
 
 type Label = 'benign' | 'malignant' | 'skipped';
 
@@ -24,6 +22,8 @@ type DrillResult = {
   caseId: string;
   chosenLabel: Label;
   timeToAnswerMs: number;
+  isCorrect?: boolean;
+  correctLabel?: Exclude<Label, 'skipped'>;
 };
 
 const clampInt = (v: number, min: number, max: number) =>
@@ -143,13 +143,20 @@ const CaseDrillScene = () => {
         attempt: { chosenLabel: choice, timeToAnswerMs },
       },
       {
-        onSuccess: () => {
+        onSuccess: (res) => {
           setResults((prev) => [
             ...prev,
             {
               caseId: String(randomCase.id),
               chosenLabel: choice,
               timeToAnswerMs,
+              isCorrect:
+                typeof res?.correct === 'boolean' ? res.correct : undefined,
+              correctLabel:
+                res?.correctLabel === 'benign' ||
+                res?.correctLabel === 'malignant'
+                  ? res.correctLabel
+                  : undefined,
             },
           ]);
 
@@ -165,6 +172,45 @@ const CaseDrillScene = () => {
       results.reduce((sum, r) => sum + r.timeToAnswerMs, 0) / results.length,
     );
   }, [results]);
+
+  const gradedCount = useMemo(
+    () => results.filter((r) => typeof r.isCorrect === 'boolean').length,
+    [results],
+  );
+
+  const correctCount = useMemo(
+    () => results.filter((r) => r.isCorrect === true).length,
+    [results],
+  );
+
+  const skippedCount = useMemo(
+    () => results.filter((r) => r.chosenLabel === 'skipped').length,
+    [results],
+  );
+
+  const incorrectCases = useMemo(
+    () => results.filter((r) => r.isCorrect === false),
+    [results],
+  );
+
+  const sortedResults = useMemo(() => {
+    // Show incorrect first, then correct, then skipped/unknown
+    const score = (r: DrillResult) =>
+      r.chosenLabel === 'skipped'
+        ? 2
+        : r.isCorrect === false
+          ? 0
+          : r.isCorrect === true
+            ? 1
+            : 2;
+
+    return [...results].sort((a, b) => score(a) - score(b));
+  }, [results]);
+
+  const accuracy = useMemo(() => {
+    if (gradedCount === 0) return null;
+    return Math.round((correctCount / gradedCount) * 100);
+  }, [correctCount, gradedCount]);
 
   if (phase === 'setup') {
     return (
@@ -184,7 +230,7 @@ const CaseDrillScene = () => {
                 Number of cases
               </div>
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
                 {[5, 10, 20, 50].map((n) => (
                   <Button
                     key={n}
@@ -219,42 +265,191 @@ const CaseDrillScene = () => {
     return (
       <div className="py-6">
         <Card>
-          <CardHeader>
-            <CardTitle>Drill complete</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="text-sm">
-              You completed{' '}
-              <span className="font-medium">{results.length}</span> case
-              {results.length === 1 ? '' : 's'}.
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Average time: {avgTime ? formatMs(avgTime) : '—'}
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Session log</div>
-              <div className="space-y-2">
-                {results.map((r, i) => (
-                  <div
-                    key={`${r.caseId}-${i}`}
-                    className="rounded-lg border p-3 text-sm"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>Case {r.caseId}</div>
-                      <div className="text-muted-foreground">
-                        {formatMs(r.timeToAnswerMs)}
-                      </div>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Your answer:{' '}
-                      {r.chosenLabel === 'skipped' ? 'Skipped' : r.chosenLabel}
-                    </div>
-                  </div>
-                ))}
+          <CardHeader className="space-y-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle>Drill complete</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Nice work — keep it consistent for the best training effect.
+                </p>
               </div>
+              <div className="inline-flex items-center gap-2 rounded-full border bg-muted/30 px-3 py-1 text-xs font-medium">
+                <CheckCircle2 size={16} />
+                Completed
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-5">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-lg border p-4">
+                <div className="text-xs text-muted-foreground">Cases</div>
+                <div className="mt-1 text-2xl font-semibold">
+                  {results.length}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Target: {safeTarget}
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-4">
+                <div className="text-xs text-muted-foreground">Accuracy</div>
+                <div className="mt-1 text-2xl font-semibold">
+                  {accuracy !== null ? `${accuracy}%` : '—'}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {gradedCount > 0
+                    ? `${correctCount}/${gradedCount} graded`
+                    : 'Not available'}
+                </div>
+                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-primary"
+                    style={{ width: accuracy !== null ? `${accuracy}%` : '0%' }}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-4">
+                <div className="text-xs text-muted-foreground">
+                  Average time
+                </div>
+                <div className="mt-1 text-2xl font-semibold">
+                  {avgTime ? formatMs(avgTime) : '—'}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Per case
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-4">
+                <div className="text-xs text-muted-foreground">Skipped</div>
+                <div className="mt-1 text-2xl font-semibold">
+                  {skippedCount}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {incorrectCases.length > 0
+                    ? `${incorrectCases.length} missed to review`
+                    : 'No misses recorded'}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="text-sm font-medium">Next up</div>
+                  <p className="text-xs text-muted-foreground">
+                    Reviewing missed cases reinforces learning fastest.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      const firstMiss = incorrectCases[0];
+                      if (!firstMiss) return;
+                      navigate(
+                        paths.app['case-review'].getHref(firstMiss.caseId),
+                      );
+                    }}
+                    disabled={incorrectCases.length === 0}
+                  >
+                    Review missed ({incorrectCases.length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const last = results[results.length - 1];
+                      if (!last) return;
+                      navigate(paths.app['case-review'].getHref(last.caseId));
+                    }}
+                    disabled={results.length === 0}
+                  >
+                    Review last
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-medium">Session log</div>
+                <div className="text-xs text-muted-foreground">
+                  {results.length} item{results.length === 1 ? '' : 's'}
+                </div>
+              </div>
+
+              <Separator className="my-3" />
+
+              <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
+                {sortedResults.map((r, i) => {
+                  const label =
+                    r.chosenLabel === 'skipped' ? 'Skipped' : r.chosenLabel;
+
+                  const correctnessLabel =
+                    r.chosenLabel === 'skipped'
+                      ? '—'
+                      : typeof r.isCorrect === 'boolean'
+                        ? r.isCorrect
+                          ? 'Correct'
+                          : 'Incorrect'
+                        : '—';
+
+                  const chipClass =
+                    r.chosenLabel === 'skipped'
+                      ? 'bg-muted text-muted-foreground'
+                      : r.isCorrect === true
+                        ? 'bg-emerald-500/10 text-emerald-700'
+                        : r.isCorrect === false
+                          ? 'bg-destructive/10 text-destructive'
+                          : 'bg-muted text-muted-foreground';
+
+                  return (
+                    <div
+                      key={`${r.caseId}-${i}`}
+                      className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm ${
+                        r.isCorrect === false ? 'bg-destructive/5' : ''
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium">Case {r.caseId}</div>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${chipClass}`}
+                          >
+                            {label}
+                            {correctnessLabel !== '—'
+                              ? ` • ${correctnessLabel}`
+                              : ''}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Time: {formatMs(r.timeToAnswerMs)}
+                          {r.correctLabel
+                            ? ` • Correct: ${r.correctLabel}`
+                            : ''}
+                        </div>
+                      </div>
+                      <Button
+                        variant="link"
+                        className="h-auto px-0 text-xs"
+                        onClick={() =>
+                          navigate(paths.app['case-review'].getHref(r.caseId))
+                        }
+                      >
+                        Review
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {results.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No attempts recorded.
+                </p>
+              ) : null}
             </div>
 
             <div className="text-xs text-muted-foreground">
@@ -262,7 +457,8 @@ const CaseDrillScene = () => {
               decision-making.
             </div>
           </CardContent>
-          <CardFooter className="flex gap-2">
+
+          <CardFooter className="flex flex-col gap-2 sm:flex-row sm:justify-between">
             <Button
               variant="secondary"
               onClick={() => {
@@ -274,9 +470,30 @@ const CaseDrillScene = () => {
             >
               New drill
             </Button>
-            <Button onClick={() => navigate(paths.app.dashboard.getHref())}>
-              Back to dashboard
-            </Button>
+
+            <div className="flex w-full gap-2 sm:w-auto">
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => {
+                  // Start the same drill immediately
+                  setResults([]);
+                  setIndex(0);
+                  setChoice(null);
+                  setPhase('running');
+                  queryClient.invalidateQueries({ queryKey: ['random-case'] });
+                  refetch();
+                }}
+              >
+                Run again
+              </Button>
+              <Button
+                className="w-full sm:w-auto"
+                onClick={() => navigate(paths.app.dashboard.getHref())}
+              >
+                Back to dashboard
+              </Button>
+            </div>
           </CardFooter>
         </Card>
       </div>
