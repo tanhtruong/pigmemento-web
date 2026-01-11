@@ -12,7 +12,7 @@ import {
   SidebarGroupContent,
 } from './sidebar';
 import { paths } from '@/config/paths';
-import { Book, EllipsisVertical, Home } from 'lucide-react';
+import { Home, Library, Timer, EllipsisVertical } from 'lucide-react';
 import { JSX, SVGProps } from 'react';
 import { cn } from '@/lib/utils';
 import {
@@ -29,6 +29,7 @@ import { useProfile } from '@/features/profile/api/use-profile';
 type SideNavigationItem = {
   name: string;
   to: string;
+  end?: boolean;
   icon: (props: SVGProps<SVGSVGElement>) => JSX.Element;
 };
 
@@ -46,9 +47,22 @@ const AppSidebar = () => {
 
   const displayName = user?.name || 'Pigmemento User';
 
-  const navigation = [
+  const appNavigation = [
     { name: 'Dashboard', to: paths.app.dashboard.getHref(), icon: Home },
-    { name: 'Cases', to: paths.app.cases.getHref(), icon: Book },
+  ].filter(Boolean) as SideNavigationItem[];
+
+  const casesNavigation = [
+    {
+      name: 'Case Library',
+      to: paths.app.cases.getHref(),
+      end: true,
+      icon: Library,
+    },
+    {
+      name: 'Drills',
+      to: paths.app['case-drill'].getHref(),
+      icon: Timer,
+    },
   ].filter(Boolean) as SideNavigationItem[];
 
   return (
@@ -73,7 +87,7 @@ const AppSidebar = () => {
           <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigation.map((item) => (
+              {appNavigation.map((item) => (
                 <SidebarMenuItem key={item.name}>
                   <NavLink to={item.to}>
                     {({ isActive }) => (
@@ -81,7 +95,42 @@ const AppSidebar = () => {
                         className={isActive ? 'bg-secondary' : ''}
                       >
                         <item.icon
-                          strokeWidth={isActive ? 3 : 1}
+                          strokeWidth={isActive ? 2.5 : 1}
+                          color={
+                            isActive
+                              ? 'var(--sidebar-primary)'
+                              : 'var(--sidebar-foreground)'
+                          }
+                        />
+                        <span
+                          className={cn(
+                            isActive ? 'text-primary font-bold' : '',
+                          )}
+                        >
+                          {item.name}
+                        </span>
+                      </SidebarMenuButton>
+                    )}
+                  </NavLink>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Cases</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {casesNavigation.map((item) => (
+                <SidebarMenuItem key={item.name}>
+                  <NavLink to={item.to} end={item.end}>
+                    {({ isActive }) => (
+                      <SidebarMenuButton
+                        className={isActive ? 'bg-secondary' : ''}
+                      >
+                        <item.icon
+                          strokeWidth={isActive ? 2.5 : 1}
                           color={
                             isActive
                               ? 'var(--sidebar-primary)'
