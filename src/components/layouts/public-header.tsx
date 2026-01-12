@@ -77,7 +77,7 @@ export const PublicHeader = () => {
             setMobileNavOpen(false);
           }}
         >
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-neutral-900 text-white">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-white">
             P
           </span>
           <span className="text-sm md:text-base">Pigmemento</span>
@@ -120,9 +120,9 @@ export const PublicHeader = () => {
 
         {/* Desktop CTA */}
         <div className="hidden items-center gap-2 md:flex">
-          <Button variant="ghost" onClick={() => scrollToId('waitlist')}>
+          {/*<Button variant="ghost" onClick={() => scrollToId('waitlist')}>
             Join waitlist
-          </Button>
+          </Button>*/}
           <Button onClick={() => scrollToId('waitlist')} asChild>
             <Link to={handleStart()}>
               Log in <ArrowRight />
@@ -182,14 +182,14 @@ export const PublicHeader = () => {
               >
                 Privacy
               </Link>
-              <div className="pt-2">
+              {/*<div className="pt-2">
                 <Button
                   className="w-full"
                   onClick={() => scrollToIdAndClose('waitlist')}
                 >
                   Get early access <ArrowRight />
                 </Button>
-              </div>
+              </div>*/}
             </div>
           </div>
         </div>

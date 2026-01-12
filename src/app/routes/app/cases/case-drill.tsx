@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -15,6 +15,8 @@ import { paths } from '@/config/paths';
 import { useRandomCase } from '@/features/cases/api/use-case-random.ts';
 import { useCaseSubmitAttempt } from '@/features/cases/api/use-case-submit-attempt.ts';
 import { CheckCircle2 } from 'lucide-react';
+import { Kbd } from '@/components/ui/kbd.tsx';
+import { Progress } from '@/components/ui/progress.tsx';
 
 type Label = 'benign' | 'malignant' | 'skipped';
 
@@ -50,6 +52,12 @@ const CaseDrillScene = () => {
   const [results, setResults] = useState<DrillResult[]>([]);
   const [choice, setChoice] = useState<Label | null>(null);
   const startedAtRef = useRef<number>(0);
+  const advanceTimeoutRef = useRef<number | null>(null);
+
+  const [reveal, setReveal] = useState<{
+    isCorrect: boolean | null;
+    correctLabel?: Exclude<Label, 'skipped'>;
+  } | null>(null);
 
   const {
     data: randomCase,
@@ -82,6 +90,7 @@ const CaseDrillScene = () => {
     if (!randomCase?.id) return;
     startedAtRef.current = performance.now();
     setChoice(null);
+    setReveal(null);
     resetSubmit();
   }, [phase, randomCase?.id, resetSubmit]);
 
@@ -113,20 +122,22 @@ const CaseDrillScene = () => {
     });
   };
 
-  const advance = () => {
-    const nextIndex = index + 1;
-    if (nextIndex >= safeTarget) {
-      finishDrill();
-      return;
-    }
+  const advance = useCallback(() => {
+    setIndex((prev) => {
+      const nextIndex = prev + 1;
+      if (nextIndex >= safeTarget) {
+        finishDrill();
+        return prev;
+      }
 
-    setIndex(nextIndex);
-    // Get a fresh case next
-    queryClient.invalidateQueries({ queryKey: ['random-case'] });
-    refetch();
-  };
+      queryClient.invalidateQueries({ queryKey: ['random-case'] });
+      refetch();
 
-  const submitCurrent = () => {
+      return nextIndex;
+    });
+  }, [finishDrill, queryClient, refetch, safeTarget]);
+
+  const submitCurrent = useCallback(() => {
     if (!randomCase?.id || !choice) return;
 
     const timeToAnswerMs = Math.max(
@@ -144,27 +155,141 @@ const CaseDrillScene = () => {
       },
       {
         onSuccess: (res) => {
+          const isCorrect =
+            typeof res?.correct === 'boolean' ? res.correct : null;
+
+          const correctLabel =
+            res?.correctLabel === 'benign' || res?.correctLabel === 'malignant'
+              ? res.correctLabel
+              : undefined;
+
           setResults((prev) => [
             ...prev,
             {
               caseId: String(randomCase.id),
               chosenLabel: choice,
               timeToAnswerMs,
-              isCorrect:
-                typeof res?.correct === 'boolean' ? res.correct : undefined,
-              correctLabel:
-                res?.correctLabel === 'benign' ||
-                res?.correctLabel === 'malignant'
-                  ? res.correctLabel
-                  : undefined,
+              isCorrect: isCorrect === null ? undefined : isCorrect,
+              correctLabel,
             },
           ]);
 
-          advance();
+          setReveal({ isCorrect, correctLabel });
+
+          if (advanceTimeoutRef.current !== null) {
+            window.clearTimeout(advanceTimeoutRef.current);
+          }
+
+          advanceTimeoutRef.current = window.setTimeout(() => {
+            setReveal(null);
+            advance();
+            advanceTimeoutRef.current = null;
+          }, 650);
         },
       },
     );
-  };
+  }, [advance, choice, randomCase?.id, resetSubmit, submitAttempt]);
+
+  useEffect(() => {
+    if (phase !== 'running') return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      const tag = el?.tagName?.toLowerCase();
+      if (
+        tag === 'input' ||
+        tag === 'textarea' ||
+        (el as any)?.isContentEditable
+      )
+        return;
+
+      if (isSubmitting || Boolean(reveal)) return;
+
+      if (e.key === 'b') {
+        e.preventDefault();
+        setChoice('benign');
+        return;
+      }
+
+      if (e.key === 'm') {
+        e.preventDefault();
+        setChoice('malignant');
+        return;
+      }
+
+      if (e.key === 's' || e.key === 'S') {
+        e.preventDefault();
+        if (!randomCase?.id) return;
+
+        setResults((prev) => [
+          ...prev,
+          {
+            caseId: String(randomCase.id),
+            chosenLabel: 'skipped',
+            timeToAnswerMs: Math.max(
+              0,
+              Math.round(performance.now() - startedAtRef.current),
+            ),
+          },
+        ]);
+
+        setChoice(null);
+        setReveal(null);
+        resetSubmit();
+        advance();
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        if (!choice) return;
+        e.preventDefault();
+        submitCurrent();
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        const ok = window.confirm(
+          'Exit the drill? Your current session will be lost.',
+        );
+        if (!ok) return;
+
+        setPhase('setup');
+        setResults([]);
+        setIndex(0);
+        setChoice(null);
+        setReveal(null);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [
+    advance,
+    choice,
+    isSubmitting,
+    phase,
+    randomCase?.id,
+    resetSubmit,
+    reveal,
+    submitCurrent,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (advanceTimeoutRef.current !== null) {
+        window.clearTimeout(advanceTimeoutRef.current);
+        advanceTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (phase !== 'running' && advanceTimeoutRef.current !== null) {
+      window.clearTimeout(advanceTimeoutRef.current);
+      advanceTimeoutRef.current = null;
+    }
+  }, [phase]);
 
   const avgTime = useMemo(() => {
     if (results.length === 0) return 0;
@@ -220,11 +345,6 @@ const CaseDrillScene = () => {
             <CardTitle>Case drill</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Do a quick session of back-to-back cases. Educational use only —
-              not for diagnosis.
-            </p>
-
             <div className="space-y-3">
               <div className="text-xs font-medium text-muted-foreground">
                 Number of cases
@@ -302,12 +422,7 @@ const CaseDrillScene = () => {
                     ? `${correctCount}/${gradedCount} graded`
                     : 'Not available'}
                 </div>
-                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full bg-primary"
-                    style={{ width: accuracy !== null ? `${accuracy}%` : '0%' }}
-                  />
-                </div>
+                <Progress value={accuracy} className="mt-3" />
               </div>
 
               <div className="rounded-lg border p-4">
@@ -385,7 +500,11 @@ const CaseDrillScene = () => {
               <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
                 {sortedResults.map((r, i) => {
                   const label =
-                    r.chosenLabel === 'skipped' ? 'Skipped' : r.chosenLabel;
+                    r.chosenLabel === 'skipped'
+                      ? 'Skipped'
+                      : r.chosenLabel === 'benign'
+                        ? 'Benign'
+                        : 'Malignant';
 
                   const correctnessLabel =
                     r.chosenLabel === 'skipped'
@@ -395,15 +514,6 @@ const CaseDrillScene = () => {
                           ? 'Correct'
                           : 'Incorrect'
                         : '—';
-
-                  const chipClass =
-                    r.chosenLabel === 'skipped'
-                      ? 'bg-muted text-muted-foreground'
-                      : r.isCorrect === true
-                        ? 'bg-emerald-500/10 text-emerald-700'
-                        : r.isCorrect === false
-                          ? 'bg-destructive/10 text-destructive'
-                          : 'bg-muted text-muted-foreground';
 
                   return (
                     <div
@@ -416,7 +526,15 @@ const CaseDrillScene = () => {
                         <div className="flex items-center gap-2">
                           <div className="font-medium">Case {r.caseId}</div>
                           <span
-                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${chipClass}`}
+                            className={`rounded-full border px-2 py-0.5 text-xs font-medium ${
+                              r.chosenLabel === 'skipped'
+                                ? 'border-border bg-muted/40 text-muted-foreground'
+                                : r.isCorrect === true
+                                  ? 'border-primary/20 bg-primary/10 text-primary'
+                                  : r.isCorrect === false
+                                    ? 'border-destructive/20 bg-destructive/10 text-destructive'
+                                    : 'border-border bg-muted/40 text-muted-foreground'
+                            }`}
                           >
                             {label}
                             {correctnessLabel !== '—'
@@ -427,7 +545,7 @@ const CaseDrillScene = () => {
                         <div className="text-xs text-muted-foreground">
                           Time: {formatMs(r.timeToAnswerMs)}
                           {r.correctLabel
-                            ? ` • Correct: ${r.correctLabel}`
+                            ? ` • Correct: ${r.correctLabel === 'benign' ? 'Benign' : 'Malignant'}`
                             : ''}
                         </div>
                       </div>
@@ -450,11 +568,6 @@ const CaseDrillScene = () => {
                   No attempts recorded.
                 </p>
               ) : null}
-            </div>
-
-            <div className="text-xs text-muted-foreground">
-              Educational use only — not for diagnosis or clinical
-              decision-making.
             </div>
           </CardContent>
 
@@ -502,27 +615,35 @@ const CaseDrillScene = () => {
 
   // Running
   return (
-    <div className="flex h-[100dvh] flex-col gap-4 overflow-hidden py-6 text-left">
+    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden bg-background py-6 text-left text-foreground">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Case drill</h1>
-          <p className="text-muted-foreground">Progress: {progressLabel}</p>
+          <div className="space-y-1">
+            <p className="text-muted-foreground">Progress: {progressLabel}</p>
+            <Progress value={Math.round(((index + 1) / safeTarget) * 100)} />
+          </div>
         </div>
         <div className="flex gap-2">
           <Button
             variant="secondary"
             onClick={() => {
+              const ok = window.confirm(
+                'Exit the drill? Your current session will be lost.',
+              );
+              if (!ok) return;
+
               setPhase('setup');
               setResults([]);
               setIndex(0);
               setChoice(null);
+              setReveal(null);
             }}
           >
-            Exit
+            <Kbd>ESC</Kbd> Exit
           </Button>
         </div>
       </header>
-
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {isCaseLoading ? (
           <Card>
@@ -565,34 +686,54 @@ const CaseDrillScene = () => {
                     loading="eager"
                   />
                 </div>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Educational use only — not for diagnosis or clinical
-                  decision-making.
-                </p>
               </CardContent>
             </Card>
 
-            <Card className="flex flex-col h-fit">
+            <Card className="flex h-fit flex-col lg:sticky">
               <CardHeader>
                 <CardTitle>Your answer</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                {reveal ? (
+                  <div
+                    className={`rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 ${
+                      reveal.isCorrect === true
+                        ? 'border-primary/20 bg-primary/10 text-primary'
+                        : reveal.isCorrect === false
+                          ? 'border-destructive/20 bg-destructive/10 text-destructive'
+                          : 'border-border bg-muted/40 text-muted-foreground'
+                    } opacity-100 translate-y-0`}
+                  >
+                    {reveal.isCorrect === true
+                      ? 'Correct'
+                      : reveal.isCorrect === false
+                        ? 'Incorrect'
+                        : 'Checked'}
+                    {reveal.isCorrect === false && reveal.correctLabel
+                      ? ` • Correct: ${
+                          reveal.correctLabel === 'benign'
+                            ? 'Benign'
+                            : 'Malignant'
+                        }`
+                      : ''}
+                  </div>
+                ) : null}
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
                     variant={choice === 'benign' ? 'default' : 'secondary'}
                     onClick={() => setChoice('benign')}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || Boolean(reveal)}
                   >
-                    Benign
+                    <Kbd>B</Kbd> Benign
                   </Button>
                   <Button
                     type="button"
                     variant={choice === 'malignant' ? 'default' : 'secondary'}
                     onClick={() => setChoice('malignant')}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || Boolean(reveal)}
                   >
-                    Malignant
+                    <Kbd>M</Kbd> Malignant
                   </Button>
                 </div>
 
@@ -600,13 +741,13 @@ const CaseDrillScene = () => {
                   type="button"
                   className="w-full"
                   onClick={submitCurrent}
-                  disabled={!choice || isSubmitting}
+                  disabled={!choice || isSubmitting || Boolean(reveal)}
                 >
-                  {isSubmitting ? 'Submitting…' : 'Submit'}
+                  <Kbd>⏎</Kbd> {isSubmitting ? 'Submitting…' : 'Submit'}
                 </Button>
 
                 {isSubmitError ? (
-                  <p className="text-xs text-red-700">
+                  <p className="text-xs text-destructive">
                     {submitError instanceof Error
                       ? submitError.message
                       : 'Could not submit attempt. Please try again.'}
@@ -619,7 +760,6 @@ const CaseDrillScene = () => {
                   Completed: {results.length} / {safeTarget}
                 </div>
               </CardContent>
-
               <CardFooter className="mt-auto">
                 <Button
                   variant="outline"
@@ -640,13 +780,14 @@ const CaseDrillScene = () => {
                     ]);
 
                     setChoice(null);
+                    setReveal(null);
                     resetSubmit();
 
                     advance();
                   }}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || Boolean(reveal)}
                 >
-                  Skip
+                  <Kbd>S</Kbd> Skip
                 </Button>
               </CardFooter>
             </Card>

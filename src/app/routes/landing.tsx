@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button';
-// import { isTokenValid } from '@/lib/auth';
 import { ArrowRight, Smartphone } from 'lucide-react';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import {
@@ -19,7 +18,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import WaitlistForm from '@/features/waitlist/components/waitlist-form';
 import { faqs, features, stats } from '@/lib/landing-seed-data';
 
 const LandingRoute = () => {
@@ -164,7 +162,7 @@ const LandingRoute = () => {
         whileInView="visible"
         viewport={viewportOnce}
         variants={stagger}
-        className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 px-6 py-16 text-center md:py-24"
+        className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 px-6 py-16 text-center"
       >
         <motion.h1
           variants={fadeUp}
@@ -197,7 +195,7 @@ const LandingRoute = () => {
           className="flex flex-col items-center gap-4 md:flex-row"
         >
           <Button onClick={() => scrollToId('waitlist')}>
-            Get early access
+            Try out Pigmemento <ArrowRight />
           </Button>
           <Button variant="ghost" onClick={() => scrollToId('features')}>
             See how it works <ArrowRight />
@@ -434,7 +432,7 @@ const LandingRoute = () => {
       </motion.section>
 
       {/* Waitlist */}
-      <motion.section
+      {/* <motion.section
         id="waitlist"
         initial="hidden"
         whileInView="visible"
@@ -457,7 +455,7 @@ const LandingRoute = () => {
             <WaitlistForm />
           </CardContent>
         </Card>
-      </motion.section>
+      </motion.section>*/}
 
       {/* FAQ */}
       <motion.section

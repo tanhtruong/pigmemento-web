@@ -59,7 +59,7 @@ export const CaseAttemptView = ({
         </div>
         <div className="flex gap-2">
           <Button asChild variant="secondary">
-            <Link to={paths.app.cases.getHref()}>All cases</Link>
+            <Link to={paths.app.cases.getHref()}>Case Library</Link>
           </Button>
         </div>
       </header>

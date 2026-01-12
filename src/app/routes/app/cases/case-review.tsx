@@ -1,6 +1,9 @@
-import { Link, useParams } from 'react-router';
+import { useEffect } from 'react';
+import { Link, useNavigate, useParams } from 'react-router';
 
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Kbd } from '@/components/ui/kbd';
 import {
   Card,
   CardContent,
@@ -12,10 +15,75 @@ import { Separator } from '@/components/ui/separator';
 import { paths } from '@/config/paths';
 import { useCaseLatestAttempt } from '@/features/cases/api/use-case-latest-attempt.ts';
 import { useCase } from '@/features/cases/api/use-case.ts';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-keys.ts';
 
 export const CaseReviewScene = () => {
   const { caseId } = useParams();
   const safeCaseId = caseId ?? '';
+
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const formatLabel = (v: string) => {
+    const s = String(v || '').toLowerCase();
+    if (s === 'benign') return 'Benign';
+    if (s === 'malignant') return 'Malignant';
+    if (s === 'skipped') return 'Skipped';
+    return v;
+  };
+
+  const retryCase = () => {
+    // Remove cached data so we don't briefly render a stale "latest attempt"
+    // (which can feel like it's one behind) before the refetch completes.
+    queryClient.removeQueries({
+      queryKey: queryKeys['latest-attempt'](safeCaseId),
+    });
+    queryClient.removeQueries({
+      queryKey: queryKeys.case(safeCaseId),
+    });
+
+    // List views can stay as invalidate (no need to hard-clear)
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.cases,
+    });
+
+    navigate(paths.app['case-attempt'].getHref(safeCaseId));
+  };
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      const tag = el?.tagName?.toLowerCase();
+      if (
+        tag === 'input' ||
+        tag === 'textarea' ||
+        (el as any)?.isContentEditable
+      )
+        return;
+
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        navigate(paths.app['case-random'].getHref());
+        return;
+      }
+
+      if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        retryCase();
+        return;
+      }
+
+      if (e.key === 'l' || e.key === 'L') {
+        e.preventDefault();
+        navigate(paths.app.cases.getHref());
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [navigate, retryCase]);
 
   if (!safeCaseId) {
     return (
@@ -88,30 +156,48 @@ export const CaseReviewScene = () => {
   }
 
   return (
-    <div className="flex h-[100dvh] flex-col gap-4 overflow-hidden py-6 text-left">
+    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden bg-background py-6 text-left text-foreground">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Case review</h1>
           <p className="text-muted-foreground">Case {caseItem.id}</p>
         </div>
-        <Button asChild variant="secondary">
-          <Link to={paths.app.cases.getHref()}>All cases</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="secondary">
+            <Link
+              to={paths.app.cases.getHref()}
+              className="flex items-center gap-2"
+            >
+              <Kbd>L</Kbd> Case Library
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link
+              to={paths.app['case-random'].getHref()}
+              className="flex items-center gap-2"
+            >
+              <Kbd>N</Kbd> Next case
+            </Link>
+          </Button>
+        </div>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="grid gap-5 lg:grid-cols-3">
           {/* Image */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Image</CardTitle>
+          <Card className="group lg:col-span-2 border-border bg-card transition-colors hover:bg-muted/40 hover:shadow-sm">
+            <CardHeader className="space-y-1">
+              <CardTitle>Case image</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Re-check borders, symmetry, and color variation.
+              </p>
             </CardHeader>
             <CardContent>
-              <div className="overflow-hidden rounded-lg border">
+              <div className="overflow-hidden rounded-md border border-border bg-card">
                 <img
                   src={caseItem.imageUrl}
                   alt={`Case ${caseItem.id}`}
-                  className="w-full object-contain"
+                  className="w-full object-contain transition-transform duration-200 group-hover:scale-[1.01]"
                 />
               </div>
             </CardContent>
@@ -119,93 +205,84 @@ export const CaseReviewScene = () => {
 
           {/* Results */}
           <div className="flex flex-col gap-5">
-            <Card>
+            <Card className="border-border bg-card transition-colors hover:bg-muted/40 hover:shadow-sm">
               <CardHeader>
                 <CardTitle>Result</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Your answer</span>
-                  <span className="font-medium">{attempt.chosenLabel}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Ground truth</span>
-                  <span className="font-medium">{attempt.correctLabel}</span>
-                </div>
-                <Separator />
+              <CardContent className="space-y-3 text-sm">
                 <div
-                  className={
+                  className={`rounded-lg border px-3 py-2 text-xs font-medium ${
                     correct
-                      ? 'text-green-700 font-medium'
-                      : 'text-red-700 font-medium'
-                  }
+                      ? 'border-primary/20 bg-primary/10 text-primary'
+                      : 'border-destructive/20 bg-destructive/10 text-destructive'
+                  }`}
                 >
                   {correct ? 'Correct' : 'Incorrect'}
+                  <span className="text-muted-foreground">
+                    {' '}
+                    • You chose {formatLabel(attempt.chosenLabel)} • Truth is{' '}
+                    {formatLabel(attempt.correctLabel)}
+                  </span>
                 </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Your answer</span>
+                  <Badge
+                    variant={correct ? 'default' : 'secondary'}
+                    className="rounded-full"
+                  >
+                    {formatLabel(attempt.chosenLabel)}
+                  </Badge>
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Ground truth</span>
+                  <Badge
+                    variant={correct ? 'secondary' : 'default'}
+                    className="rounded-full"
+                  >
+                    {formatLabel(attempt.correctLabel)}
+                  </Badge>
+                </div>
+
+                <Separator />
+                <p className="text-xs text-muted-foreground">
+                  Educational use only — not for diagnosis.
+                </p>
               </CardContent>
             </Card>
 
-            {/* <Card>
-              <CardHeader>
-                <CardTitle>Model output (educational)</CardTitle>
+            <Card className="border-border bg-card transition-colors hover:bg-muted/40 hover:shadow-sm lg:sticky lg:top-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Next actions</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Benign</span>
-                  <span>{formatPercent(data.modelProbs.benign)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Malignant</span>
-                  <span>{formatPercent(data.modelProbs.malignant)}</span>
-                </div>
-                <p className="pt-2 text-xs text-muted-foreground">
-                  These probabilities are shown for training purposes only and
-                  must not be used for diagnosis.
-                </p>
-              </CardContent>
-            </Card>*/}
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Teaching points</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                {attempt.teachingPoints && attempt.teachingPoints.length > 0 ? (
-                  <ul className="list-disc space-y-1 pl-5">
-                    {attempt.teachingPoints.map((p, i) => (
-                      <li key={i}>{p}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No teaching points are available for this case yet.
-                  </p>
-                )}
+              <CardContent className="space-y-2">
+                <Button asChild className="w-full shadow-sm">
+                  <Link
+                    to={paths.app['case-random'].getHref()}
+                    className="flex items-center justify-center gap-2"
+                  >
+                    <Kbd>N</Kbd> Next random case
+                  </Link>
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="w-full flex items-center justify-center gap-2"
+                  onClick={retryCase}
+                >
+                  <Kbd>R</Kbd> Try this case again
+                </Button>
+                <Button asChild variant="outline" className="w-full">
+                  <Link
+                    to={paths.app.cases.getHref()}
+                    className="flex items-center justify-center gap-2"
+                  >
+                    <Kbd>L</Kbd> Back to Case Library
+                  </Link>
+                </Button>
               </CardContent>
             </Card>
           </div>
-
-          {/* CAM + Teaching points */}
-          {/*<Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Model attention (Grad-CAM)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {data.camUrl ? (
-                <div className="overflow-hidden rounded-lg border">
-                  <img
-                    src={data.camUrl}
-                    alt="Grad-CAM"
-                    className="w-full object-contain"
-                  />
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No attention map available.
-                </p>
-              )}
-            </CardContent>
-          </Card>*/}
         </div>
       </div>
     </div>

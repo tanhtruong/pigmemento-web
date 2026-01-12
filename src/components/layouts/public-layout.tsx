@@ -7,7 +7,7 @@ export const PublicLayout = () => {
     <>
       <PublicHeader />
 
-      <main className="mx-auto w-full max-w-6xl px-6">
+      <main className="mx-auto w-full">
         <Outlet />
       </main>
 

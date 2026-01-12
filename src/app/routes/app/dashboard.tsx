@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { paths } from '@/config/paths';
 import { useCaseHistory } from '@/features/cases/api/use-case-history.ts';
 import type { CaseListItem } from '@/features/cases/types/case-list-item.ts';
+import { Badge } from '@/components/ui/badge.tsx';
 
 const formatMs = (ms: number) => {
   const s = Math.round(ms / 100) / 10;
@@ -119,7 +120,7 @@ const Dashboard = () => {
   }, [attemptedCases]);
 
   return (
-    <div className="flex h-full flex-col gap-6 py-6 text-left overflow-hidden">
+    <div className="flex h-full min-h-0 flex-col gap-6 overflow-hidden bg-background py-6 text-left text-foreground">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Welcome back</h1>
@@ -127,24 +128,21 @@ const Dashboard = () => {
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button asChild>
-            <Link to={paths.app.cases.getHref()}>Continue training</Link>
-          </Button>
           <Button asChild variant="secondary">
-            <Link to={paths.app.profile.getHref()}>View progress</Link>
+            <Link to={paths.app.profile.getHref()}>Profile</Link>
           </Button>
         </div>
       </header>
       <div className="flex min-h-0 flex-1 flex-col gap-6">
         <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <Card>
+          <Card className="border-primary/15 bg-primary/5 transition-colors hover:bg-primary/10">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Accuracy (7d)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold">
+              <div className="text-3xl font-semibold tabular-nums text-primary">
                 {metrics.accuracy7d}%
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -152,15 +150,14 @@ const Dashboard = () => {
               </p>
             </CardContent>
           </Card>
-
-          <Card>
+          <Card className="border-primary/15 bg-primary/5 transition-colors hover:bg-primary/10">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Attempts (today)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold">
+              <div className="text-3xl font-semibold tabular-nums text-primary">
                 {metrics.attemptsToday}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -168,15 +165,14 @@ const Dashboard = () => {
               </p>
             </CardContent>
           </Card>
-
-          <Card>
+          <Card className="border-primary/15 bg-primary/5 transition-colors hover:bg-primary/10">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Avg time (7d)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold">
+              <div className="text-3xl font-semibold tabular-nums text-primary">
                 {metrics.avgTimeMs ? formatMs(metrics.avgTimeMs) : '—'}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -184,15 +180,14 @@ const Dashboard = () => {
               </p>
             </CardContent>
           </Card>
-
-          <Card>
+          <Card className="border-primary/15 bg-primary/5 transition-colors hover:bg-primary/10">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Streak
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold">
+              <div className="text-3xl font-semibold tabular-nums text-primary">
                 {metrics.streak} day{metrics.streak === 1 ? '' : 's'}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -215,7 +210,10 @@ const Dashboard = () => {
               ) : (
                 <div className="space-y-3">
                   {recentAttemptedCases.map((c) => (
-                    <div key={c.id} className="rounded-lg border p-3">
+                    <div
+                      key={c.id}
+                      className="rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/40"
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="text-sm font-medium">Case {c.id}</div>
@@ -225,15 +223,14 @@ const Dashboard = () => {
                         </div>
                         <div className="text-right">
                           <div className="text-sm font-medium">
-                            <span
-                              className={
-                                c.lastAttempt.correct
-                                  ? 'text-green-700'
-                                  : 'text-red-700'
+                            <Badge
+                              variant={
+                                c.lastAttempt.correct ? 'default' : 'secondary'
                               }
+                              className="rounded-full"
                             >
                               {c.lastAttempt.correct ? 'Correct' : 'Incorrect'}
-                            </span>
+                            </Badge>
                           </div>
                           <div className="mt-1 text-xs text-muted-foreground">
                             {formatMs(c.lastAttempt.timeToAnswerMs)}
@@ -258,7 +255,7 @@ const Dashboard = () => {
                         <div>
                           <Link
                             to={paths.app['case-review'].getHref(c.id)}
-                            className="text-neutral-900 underline underline-offset-4"
+                            className="text-primary underline underline-offset-4 transition-opacity hover:opacity-80"
                           >
                             Review case
                           </Link>
@@ -276,21 +273,20 @@ const Dashboard = () => {
               <CardTitle>Next steps</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="rounded-lg border p-3">
+              <div className="rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/40">
                 <div className="text-sm font-medium">Start a case</div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Jump into a random case.
                 </p>
                 <div className="mt-3">
-                  <Button size="sm" asChild>
+                  <Button size="sm" asChild className="shadow-sm">
                     <Link to={paths.app['case-random'].getHref()}>
                       Start case
                     </Link>
                   </Button>
                 </div>
               </div>
-
-              <div className="rounded-lg border p-3">
+              <div className="rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/40">
                 <div className="text-sm font-medium">Case drill</div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Choose an amount of cases to do back-to-back. Focus on pattern
@@ -304,8 +300,7 @@ const Dashboard = () => {
                   </Button>
                 </div>
               </div>
-
-              <div className="rounded-lg border p-3">
+              <div className="rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/40">
                 <div className="text-sm font-medium">Review your misses</div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Revisit incorrect answers—this is where learning happens.
