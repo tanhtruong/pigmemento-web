@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 
 import { Button } from '@/components/ui/button';
@@ -14,130 +14,42 @@ import { paths } from '@/config/paths';
 import { useCase } from '@/features/cases/api/use-case.ts';
 import { Badge } from '@/components/ui/badge.tsx';
 import { useCaseSubmitAttempt } from '@/features/cases/api/use-case-submit-attempt.ts';
+import { Kbd } from '@/components/ui/kbd.tsx';
+import { useCaseAttemptShortcuts } from '@/features/cases/hooks/use-case-attempt-shortcuts.ts';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCaseTimer } from '@/features/cases/hooks/use-case-timer.ts';
 
-type Label = 'benign' | 'malignant';
+export type Label = 'benign' | 'malignant';
 
-const CaseAttemptScene = () => {
-  const { caseId } = useParams();
-  const safeCaseId = caseId ?? '';
-
-  const navigate = useNavigate();
-
-  const startedAtRef = useRef<number>(0);
-  const [elapsedMs, setElapsedMs] = useState(0);
-
-  const { data: caseItem, isLoading, isError } = useCase(safeCaseId);
-
-  const [choice, setChoice] = useState<Label | null>(null);
-  const {
-    mutate: submitAttempt,
-    isPending,
-    isError: isSubmitError,
-    error: submitError,
-    reset,
-  } = useCaseSubmitAttempt();
-
-  useEffect(() => {
-    // Start (or restart) timer when opening a case
-    startedAtRef.current = performance.now();
-    setElapsedMs(0);
-    setChoice(null);
-
-    const interval = window.setInterval(() => {
-      setElapsedMs(Math.max(0, performance.now() - startedAtRef.current));
-    }, 100);
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [safeCaseId]);
-
-  const canSubmit = Boolean(choice) && !isPending;
-
-  const elapsedLabel = useMemo(() => {
-    const totalSeconds = Math.floor(elapsedMs / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${String(seconds).padStart(2, '0')}`;
-  }, [elapsedMs]);
-
-  const onSubmit = () => {
-    if (!choice || !safeCaseId) return;
-
-    // clear any previous mutation error
-    reset();
-
-    const timeToAnswerMs = Math.max(
-      0,
-      Math.round(performance.now() - startedAtRef.current),
-    );
-
-    submitAttempt(
-      { caseId: safeCaseId, attempt: { chosenLabel: choice, timeToAnswerMs } },
-      {
-        onSuccess: () => {
-          navigate(paths.app['case-review'].getHref(safeCaseId));
-        },
-      },
-    );
+type CaseAttemptViewProps = {
+  caseItem: {
+    id: string | number;
+    imageUrl: string;
+    site: string;
+    patientAge: number;
+    clinicalNote: string;
   };
+  choice: Label | null;
+  setChoice: (v: Label) => void;
+  elapsedLabel: string;
+  isPending: boolean;
+  canSubmit: boolean;
+  onSubmit: () => void;
+  submitErrorNode?: ReactNode;
+  newCaseNode: ReactNode;
+};
 
-  if (!safeCaseId) {
-    return (
-      <div className="py-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Case not found</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Missing case id.
-          </CardContent>
-          <CardFooter>
-            <Button asChild>
-              <Link to={paths.app.cases.getHref()}>Back to cases</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="py-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Loading case…</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Please wait.
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (isError || !caseItem) {
-    return (
-      <div className="py-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Case not found</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            We couldn’t load this case. It may have been removed or you may not
-            have access.
-          </CardContent>
-          <CardFooter>
-            <Button asChild>
-              <Link to={paths.app.cases.getHref()}>Back to cases</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
+export const CaseAttemptView = ({
+  caseItem,
+  choice,
+  setChoice,
+  elapsedLabel,
+  isPending,
+  canSubmit,
+  onSubmit,
+  submitErrorNode,
+  newCaseNode,
+}: CaseAttemptViewProps) => {
   return (
     <div className="flex h-[100dvh] flex-col gap-4 overflow-hidden py-6 text-left">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -184,6 +96,7 @@ const CaseAttemptScene = () => {
                 </div>
               </CardContent>
             </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Clinical note</CardTitle>
@@ -194,6 +107,7 @@ const CaseAttemptScene = () => {
                 </p>
               </CardContent>
             </Card>
+
             <Card className="flex flex-col">
               <CardHeader>
                 <CardTitle>Your answer</CardTitle>
@@ -209,6 +123,7 @@ const CaseAttemptScene = () => {
                     onClick={() => setChoice('benign')}
                     disabled={isPending}
                   >
+                    <Kbd>B</Kbd>
                     Benign
                   </Button>
                   <Button
@@ -217,6 +132,7 @@ const CaseAttemptScene = () => {
                     onClick={() => setChoice('malignant')}
                     disabled={isPending}
                   >
+                    <Kbd>M</Kbd>
                     Malignant
                   </Button>
                 </div>
@@ -227,30 +143,187 @@ const CaseAttemptScene = () => {
                   onClick={onSubmit}
                   disabled={!canSubmit}
                 >
+                  <Kbd>⏎</Kbd>
                   {isPending ? 'Submitting…' : 'Submit'}
                 </Button>
 
-                {isSubmitError ? (
-                  <p className="text-xs text-red-700">
-                    {submitError instanceof Error
-                      ? submitError.message
-                      : 'Could not submit attempt. Please try again.'}
-                  </p>
-                ) : null}
+                {submitErrorNode}
 
                 <Separator />
               </CardContent>
 
               <CardFooter className="mt-auto flex flex-col items-stretch gap-2">
-                <Button asChild variant="outline">
-                  <Link to={paths.app['case-random'].getHref()}>New case</Link>
-                </Button>
+                {newCaseNode}
               </CardFooter>
             </Card>
           </div>
         </div>
       </div>
     </div>
+  );
+};
+
+const CaseAttemptScene = () => {
+  const queryClient = useQueryClient();
+  const { caseId } = useParams();
+  const safeCaseId = caseId ?? '';
+
+  const navigate = useNavigate();
+
+  const { data: caseItem, isLoading, isError } = useCase(safeCaseId);
+
+  const [choice, setChoice] = useState<Label | null>(null);
+  const {
+    mutate: submitAttempt,
+    isPending,
+    isError: isSubmitError,
+    error: submitError,
+    reset,
+  } = useCaseSubmitAttempt();
+
+  // Use reusable timer hook
+  const { elapsedLabel, getElapsedMs } = useCaseTimer([safeCaseId]);
+  useEffect(() => {
+    setChoice(null);
+  }, [safeCaseId]);
+
+  const canSubmit = Boolean(choice) && !isPending;
+
+  const onSubmit = useCallback(() => {
+    if (!choice || !safeCaseId) return;
+
+    // clear any previous mutation error
+    reset();
+
+    const timeToAnswerMs = getElapsedMs();
+
+    submitAttempt(
+      { caseId: safeCaseId, attempt: { chosenLabel: choice, timeToAnswerMs } },
+      {
+        onSuccess: () => {
+          navigate(paths.app['case-review'].getHref(safeCaseId));
+        },
+      },
+    );
+  }, [choice, safeCaseId, reset, submitAttempt, navigate, getElapsedMs]);
+
+  useCaseAttemptShortcuts({
+    enabled: Boolean(caseItem),
+    canSubmit,
+    isPending,
+    onSelectBenign: () => setChoice('benign'),
+    onSelectMalignant: () => setChoice('malignant'),
+    onSubmit,
+    onNewCase: () => {
+      queryClient.invalidateQueries({ queryKey: ['random-case'] });
+      navigate(0);
+    },
+    onExit: () => navigate(paths.app.cases.getHref()),
+  });
+
+  if (!safeCaseId) {
+    return (
+      <div className="py-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Case not found</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Missing case id.
+          </CardContent>
+          <CardFooter>
+            <Button asChild>
+              <Link to={paths.app.cases.getHref()}>Back to cases</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="py-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Loading case…</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Please wait.
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="py-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Case not found</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            We couldn’t load this case. It may have been removed or you may not
+            have access.
+          </CardContent>
+          <CardFooter>
+            <Button asChild>
+              <Link to={paths.app.cases.getHref()}>Back to cases</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!caseItem) {
+    return (
+      <div className="py-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Case not found</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Missing case id.
+          </CardContent>
+          <CardFooter>
+            <Button asChild>
+              <Link to={paths.app.cases.getHref()}>Back to cases</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <CaseAttemptView
+      caseItem={caseItem}
+      choice={choice}
+      setChoice={setChoice}
+      elapsedLabel={elapsedLabel}
+      isPending={isPending}
+      canSubmit={canSubmit}
+      onSubmit={onSubmit}
+      submitErrorNode={
+        isSubmitError ? (
+          <p className="text-xs text-red-700">
+            {submitError instanceof Error
+              ? submitError.message
+              : 'Could not submit attempt. Please try again.'}
+          </p>
+        ) : null
+      }
+      newCaseNode={
+        <Button asChild variant="outline">
+          <Link to={paths.app['case-random'].getHref()}>
+            <Kbd>N</Kbd>
+            New case
+          </Link>
+        </Button>
+      }
+    />
   );
 };
 

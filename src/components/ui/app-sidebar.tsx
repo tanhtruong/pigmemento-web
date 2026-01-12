@@ -89,25 +89,17 @@ const AppSidebar = () => {
             <SidebarMenu>
               {appNavigation.map((item) => (
                 <SidebarMenuItem key={item.name}>
-                  <NavLink to={item.to}>
+                  <NavLink to={item.to} end={item.end}>
                     {({ isActive }) => (
                       <SidebarMenuButton
-                        className={isActive ? 'bg-secondary' : ''}
+                        asChild
+                        className={isActive ? 'bg-secondary text-primary' : ''}
                       >
-                        <item.icon
-                          strokeWidth={isActive ? 2.5 : 1}
-                          color={
-                            isActive
-                              ? 'var(--sidebar-primary)'
-                              : 'var(--sidebar-foreground)'
-                          }
-                        />
-                        <span
-                          className={cn(
-                            isActive ? 'text-primary font-bold' : '',
-                          )}
-                        >
-                          {item.name}
+                        <span className="flex items-center gap-2">
+                          <item.icon strokeWidth={isActive ? 2.5 : 1} />
+                          <span className={cn(isActive ? 'font-bold' : '')}>
+                            {item.name}
+                          </span>
                         </span>
                       </SidebarMenuButton>
                     )}
@@ -127,22 +119,14 @@ const AppSidebar = () => {
                   <NavLink to={item.to} end={item.end}>
                     {({ isActive }) => (
                       <SidebarMenuButton
-                        className={isActive ? 'bg-secondary' : ''}
+                        asChild
+                        className={isActive ? 'bg-secondary text-primary' : ''}
                       >
-                        <item.icon
-                          strokeWidth={isActive ? 2.5 : 1}
-                          color={
-                            isActive
-                              ? 'var(--sidebar-primary)'
-                              : 'var(--sidebar-foreground)'
-                          }
-                        />
-                        <span
-                          className={cn(
-                            isActive ? 'text-primary font-bold' : '',
-                          )}
-                        >
-                          {item.name}
+                        <span className="flex items-center gap-2">
+                          <item.icon strokeWidth={isActive ? 2.5 : 1} />
+                          <span className={cn(isActive ? 'font-bold' : '')}>
+                            {item.name}
+                          </span>
                         </span>
                       </SidebarMenuButton>
                     )}
