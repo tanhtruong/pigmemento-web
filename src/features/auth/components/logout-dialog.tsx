@@ -29,7 +29,7 @@ const LogoutDialog = ({ children }: PropsWithChildren) => {
         <DialogHeader>
           <DialogTitle>Log out?</DialogTitle>
           <DialogDescription>
-            Are you sure you want to log out of EXP?
+            Are you sure you want to log out of Pigmemento?
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

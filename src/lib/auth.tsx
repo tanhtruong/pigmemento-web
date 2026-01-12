@@ -26,6 +26,14 @@ export const isTokenValid = () => {
   }
 };
 
+export const clearAuthToken = () => {
+  try {
+    localStorage.removeItem('token');
+  } catch (e) {
+    console.warn('Failed to clear auth token:', e);
+  }
+};
+
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 

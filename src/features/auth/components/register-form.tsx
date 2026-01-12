@@ -102,7 +102,7 @@ const RegisterForm = ({ className, ...props }: ComponentProps<'div'>) => {
           {isError && (
             <p className="text-destructive">Registration failed. Try again.</p>
           )}
-          <p className="text-sm ">
+          <p className="text-sm">
             Already have an account?{' '}
             <Link
               to={paths.auth.login.getHref()}
