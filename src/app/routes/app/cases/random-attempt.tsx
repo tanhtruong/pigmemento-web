@@ -17,6 +17,7 @@ import { Kbd } from '@/components/ui/kbd.tsx';
 import { useCaseAttemptShortcuts } from '@/features/cases/hooks/use-case-attempt-shortcuts.ts';
 import { useCaseTimer } from '@/features/cases/hooks/use-case-timer';
 import { CaseAttemptView } from '@/app/routes/app/cases/case-attempt.tsx';
+import { queryKeys } from '@/lib/query-keys.ts';
 
 type Label = 'benign' | 'malignant';
 
@@ -52,7 +53,7 @@ const RandomCaseScene = () => {
       {
         onSuccess: () => {
           // Invalidate cached random case so the next one is always fresh
-          queryClient.invalidateQueries({ queryKey: ['random-case'] });
+          queryClient.invalidateQueries({ queryKey: queryKeys['random-case'] });
           navigate(paths.app['case-review'].getHref(caseItem.id));
         },
       },
