@@ -215,7 +215,7 @@ const LandingRoute = () => {
                 <img
                   src="/dashboard-drill-mock.png"
                   alt="Dashboard showing a timed drill attempt"
-                  className="rounded-lg"
+                  className="w-full h-auto rounded-lg"
                   loading="lazy"
                   decoding="async"
                   width={1200}
@@ -231,7 +231,7 @@ const LandingRoute = () => {
                 <img
                   src="/library-review-mock.png"
                   alt="Case library with guided case review"
-                  className="rounded-lg"
+                  className="w-full h-auto rounded-lg"
                   loading="lazy"
                   decoding="async"
                   width={1200}

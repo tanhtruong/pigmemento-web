@@ -1,5 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { ChevronDown } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +11,11 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { paths } from '@/config/paths';
 import { useCase } from '@/features/cases/api/use-case.ts';
 import { Badge } from '@/components/ui/badge.tsx';
@@ -18,6 +24,7 @@ import { Kbd } from '@/components/ui/kbd.tsx';
 import { useCaseAttemptShortcuts } from '@/features/cases/hooks/use-case-attempt-shortcuts.ts';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCaseTimer } from '@/features/cases/hooks/use-case-timer.ts';
+import { queryKeys } from '@/lib/query-keys.ts';
 
 export type Label = 'benign' | 'malignant';
 
@@ -50,22 +57,23 @@ export const CaseAttemptView = ({
   submitErrorNode,
   newCaseNode,
 }: CaseAttemptViewProps) => {
+  const [showClinicalContext, setShowClinicalContext] = useState(false);
   return (
-    <div className="flex h-[100dvh] flex-col gap-4 overflow-hidden py-6 text-left">
+    <div className="flex min-h-0 flex-col gap-4 py-4 sm:py-6 text-left">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Case attempt</h1>
-          <p className="text-muted-foreground">Case {caseItem.id}</p>
+          <h1 className="text-2xl font-bold sm:text-3xl">Case attempt</h1>
+          <p className="text-sm text-muted-foreground">Case {caseItem.id}</p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild variant="secondary">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button asChild variant="secondary" className="w-full sm:w-auto">
             <Link to={paths.app.cases.getHref()}>Case Library</Link>
           </Button>
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        <div className="grid gap-5 lg:grid-cols-3">
+      <div className="flex-1">
+        <div className="grid gap-4 sm:gap-5 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Image</CardTitle>
@@ -75,38 +83,79 @@ export const CaseAttemptView = ({
                 <img
                   src={caseItem.imageUrl}
                   alt={`Case ${caseItem.id}`}
-                  className="w-full object-contain"
+                  className="w-full object-contain max-h-[60vh] sm:max-h-none"
                   loading="eager"
                 />
               </div>
             </CardContent>
           </Card>
 
-          <div className="flex flex-col gap-5 lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Case metadata</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">{caseItem.site}</Badge>
-                  {caseItem.patientAge > 0 && (
-                    <Badge variant="outline">{caseItem.patientAge}y</Badge>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-1">
+            <Collapsible
+              open={showClinicalContext}
+              onOpenChange={setShowClinicalContext}
+              className="lg:hidden rounded-lg border bg-card px-4 py-3"
+            >
+              <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 text-left text-sm font-medium text-muted-foreground">
+                <span>Clinical context</span>
+                <span className="flex items-center gap-2 text-xs">
+                  {showClinicalContext ? 'Hide' : 'Show'}
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform duration-200 ${showClinicalContext ? 'rotate-180' : ''}`}
+                    aria-hidden="true"
+                  />
+                </span>
+              </CollapsibleTrigger>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Clinical note</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                  {caseItem.clinicalNote}
-                </p>
-              </CardContent>
-            </Card>
+              <CollapsibleContent className="mt-3 space-y-4 data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+                <div>
+                  <div className="mb-2 text-xs font-medium text-muted-foreground">
+                    Metadata
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline">{caseItem.site}</Badge>
+                    {caseItem.patientAge > 0 && (
+                      <Badge variant="outline">{caseItem.patientAge}y</Badge>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-2 text-xs font-medium text-muted-foreground">
+                    Clinical note
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                    {caseItem.clinicalNote}
+                  </p>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+            <div className="hidden lg:block space-y-4 sm:space-y-5">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Case metadata</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline">{caseItem.site}</Badge>
+                    {caseItem.patientAge > 0 && (
+                      <Badge variant="outline">{caseItem.patientAge}y</Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Clinical note</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                    {caseItem.clinicalNote}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
 
             <Card className="flex flex-col">
               <CardHeader>
@@ -116,14 +165,16 @@ export const CaseAttemptView = ({
                 </p>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <Button
                     type="button"
                     variant={choice === 'benign' ? 'default' : 'secondary'}
                     onClick={() => setChoice('benign')}
                     disabled={isPending}
                   >
-                    <Kbd>B</Kbd>
+                    <span className="hidden sm:inline-flex">
+                      <Kbd>B</Kbd>
+                    </span>
                     Benign
                   </Button>
                   <Button
@@ -132,7 +183,9 @@ export const CaseAttemptView = ({
                     onClick={() => setChoice('malignant')}
                     disabled={isPending}
                   >
-                    <Kbd>M</Kbd>
+                    <span className="hidden sm:inline-flex">
+                      <Kbd>M</Kbd>
+                    </span>
                     Malignant
                   </Button>
                 </div>
@@ -143,7 +196,9 @@ export const CaseAttemptView = ({
                   onClick={onSubmit}
                   disabled={!canSubmit}
                 >
-                  <Kbd>⏎</Kbd>
+                  <span className="hidden sm:inline-flex">
+                    <Kbd>⏎</Kbd>
+                  </span>
                   {isPending ? 'Submitting…' : 'Submit'}
                 </Button>
 
@@ -169,6 +224,21 @@ const CaseAttemptScene = () => {
   const safeCaseId = caseId ?? '';
 
   const navigate = useNavigate();
+
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('matchMedia' in window)) return;
+
+    const mq = window.matchMedia('(pointer: coarse)');
+    const update = () => setIsCoarsePointer(Boolean(mq.matches));
+    update();
+
+    if ('addEventListener' in mq) {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+  }, []);
 
   const { data: caseItem, isLoading, isError } = useCase(safeCaseId);
 
@@ -208,14 +278,14 @@ const CaseAttemptScene = () => {
   }, [choice, safeCaseId, reset, submitAttempt, navigate, getElapsedMs]);
 
   useCaseAttemptShortcuts({
-    enabled: Boolean(caseItem),
+    enabled: Boolean(caseItem) && !isCoarsePointer,
     canSubmit,
     isPending,
     onSelectBenign: () => setChoice('benign'),
     onSelectMalignant: () => setChoice('malignant'),
     onSubmit,
     onNewCase: () => {
-      queryClient.invalidateQueries({ queryKey: ['random-case'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys['random-case'] });
       navigate(0);
     },
     onExit: () => navigate(paths.app.cases.getHref()),
@@ -223,7 +293,7 @@ const CaseAttemptScene = () => {
 
   if (!safeCaseId) {
     return (
-      <div className="py-6">
+      <div className="py-4 sm:py-6">
         <Card>
           <CardHeader>
             <CardTitle>Case not found</CardTitle>
@@ -243,7 +313,7 @@ const CaseAttemptScene = () => {
 
   if (isLoading) {
     return (
-      <div className="py-6">
+      <div className="py-4 sm:py-6">
         <Card>
           <CardHeader>
             <CardTitle>Loading case…</CardTitle>
@@ -258,7 +328,7 @@ const CaseAttemptScene = () => {
 
   if (isError) {
     return (
-      <div className="py-6">
+      <div className="py-4 sm:py-6">
         <Card>
           <CardHeader>
             <CardTitle>Case not found</CardTitle>
@@ -279,7 +349,7 @@ const CaseAttemptScene = () => {
 
   if (!caseItem) {
     return (
-      <div className="py-6">
+      <div className="py-4 sm:py-6">
         <Card>
           <CardHeader>
             <CardTitle>Case not found</CardTitle>
@@ -318,7 +388,9 @@ const CaseAttemptScene = () => {
       newCaseNode={
         <Button asChild variant="outline">
           <Link to={paths.app['case-random'].getHref()}>
-            <Kbd>N</Kbd>
+            <span className="hidden sm:inline-flex">
+              <Kbd>N</Kbd>
+            </span>
             New case
           </Link>
         </Button>

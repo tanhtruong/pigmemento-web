@@ -10,21 +10,21 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
-} from './sidebar';
-import { paths } from '@/config/paths';
+} from '../ui/sidebar.tsx';
+import { paths } from '@/config/paths.ts';
 import { Home, Library, Timer, EllipsisVertical } from 'lucide-react';
 import { JSX, SVGProps } from 'react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils.ts';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from './dropdown-menu';
-import { Badge } from './badge';
-import { Avatar, AvatarFallback, AvatarImage } from './avatar';
-import LogoutDialog from '@/features/auth/components/logout-dialog';
-import { useProfile } from '@/features/profile/api/use-profile';
+} from '../ui/dropdown-menu.tsx';
+import { Badge } from '../ui/badge.tsx';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar.tsx';
+import LogoutDialog from '@/features/auth/components/logout-dialog.tsx';
+import { useProfile } from '@/features/profile/api/use-profile.ts';
 
 type SideNavigationItem = {
   name: string;

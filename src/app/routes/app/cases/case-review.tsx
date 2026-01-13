@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { CheckCircle2, XCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +25,21 @@ export const CaseReviewScene = () => {
 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('matchMedia' in window)) return;
+
+    const mq = window.matchMedia('(pointer: coarse)');
+    const update = () => setIsCoarsePointer(Boolean(mq.matches));
+    update();
+
+    if ('addEventListener' in mq) {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+  }, []);
 
   const formatLabel = (v: string) => {
     const s = String(v || '').toLowerCase();
@@ -52,6 +68,8 @@ export const CaseReviewScene = () => {
   };
 
   useEffect(() => {
+    if (isCoarsePointer) return;
+
     const onKeyDown = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
       const tag = el?.tagName?.toLowerCase();
@@ -83,11 +101,11 @@ export const CaseReviewScene = () => {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [navigate, retryCase]);
+  }, [navigate, retryCase, isCoarsePointer]);
 
   if (!safeCaseId) {
     return (
-      <div className="py-6">
+      <div className="py-4 sm:py-6">
         <Card>
           <CardHeader>
             <CardTitle>Invalid case</CardTitle>
@@ -116,13 +134,16 @@ export const CaseReviewScene = () => {
     isError: isAttemptError,
   } = useCaseLatestAttempt(safeCaseId);
 
+  const skipped = attempt
+    ? String(attempt.chosenLabel).toLowerCase() === 'skipped'
+    : false;
   const correct = attempt
-    ? attempt.correctLabel === attempt.chosenLabel
+    ? !skipped && attempt.correctLabel === attempt.chosenLabel
     : false;
 
   if (isCaseLoading || isAttemptLoading) {
     return (
-      <div className="py-6">
+      <div className="py-4 sm:py-6">
         <Card>
           <CardHeader>
             <CardTitle>Loading review…</CardTitle>
@@ -137,7 +158,7 @@ export const CaseReviewScene = () => {
 
   if (isCaseError || isAttemptError || !attempt || !caseItem) {
     return (
-      <div className="py-6">
+      <div className="py-4 sm:py-6">
         <Card>
           <CardHeader>
             <CardTitle>Review not available</CardTitle>
@@ -156,34 +177,40 @@ export const CaseReviewScene = () => {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden bg-background py-6 text-left text-foreground">
+    <div className="flex min-h-0 flex-col gap-4 bg-background py-4 sm:py-6 text-left text-foreground">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Case review</h1>
-          <p className="text-muted-foreground">Case {caseItem.id}</p>
+          <h1 className="text-2xl font-bold sm:text-3xl">Case review</h1>
+          <p className="text-sm text-muted-foreground">Case {caseItem.id}</p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild variant="secondary">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button asChild variant="secondary" className="w-full sm:w-auto">
             <Link
               to={paths.app.cases.getHref()}
               className="flex items-center gap-2"
             >
-              <Kbd>L</Kbd> Case Library
+              <span className="hidden sm:inline-flex">
+                <Kbd>L</Kbd>
+              </span>{' '}
+              Case Library
             </Link>
           </Button>
-          <Button asChild>
+          <Button asChild className="w-full sm:w-auto">
             <Link
               to={paths.app['case-random'].getHref()}
               className="flex items-center gap-2"
             >
-              <Kbd>N</Kbd> Next case
+              <span className="hidden sm:inline-flex">
+                <Kbd>N</Kbd>
+              </span>{' '}
+              Next case
             </Link>
           </Button>
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        <div className="grid gap-5 lg:grid-cols-3">
+      <div className="flex-1">
+        <div className="grid gap-4 sm:gap-5 lg:grid-cols-3">
           {/* Image */}
           <Card className="group lg:col-span-2 border-border bg-card transition-colors hover:bg-muted/40 hover:shadow-sm">
             <CardHeader className="space-y-1">
@@ -197,52 +224,98 @@ export const CaseReviewScene = () => {
                 <img
                   src={caseItem.imageUrl}
                   alt={`Case ${caseItem.id}`}
-                  className="w-full object-contain transition-transform duration-200 group-hover:scale-[1.01]"
+                  className="w-full object-contain max-h-[60vh] sm:max-h-none transition-transform duration-200 group-hover:scale-[1.01]"
                 />
               </div>
             </CardContent>
           </Card>
 
           {/* Results */}
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-4 sm:gap-5">
             <Card className="border-border bg-card transition-colors hover:bg-muted/40 hover:shadow-sm">
               <CardHeader>
                 <CardTitle>Result</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div
-                  className={`rounded-lg border px-3 py-2 text-xs font-medium ${
-                    correct
-                      ? 'border-primary/20 bg-primary/10 text-primary'
-                      : 'border-destructive/20 bg-destructive/10 text-destructive'
-                  }`}
+                  className={
+                    skipped
+                      ? 'rounded-lg border border-muted-foreground/20 bg-muted/40 px-3 py-2'
+                      : correct
+                        ? 'rounded-lg border border-primary/20 bg-primary/10 px-3 py-2'
+                        : 'rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2'
+                  }
                 >
-                  {correct ? 'Correct' : 'Incorrect'}
-                  <span className="text-muted-foreground">
-                    {' '}
-                    • You chose {formatLabel(attempt.chosenLabel)} • Truth is{' '}
-                    {formatLabel(attempt.correctLabel)}
-                  </span>
+                  <div
+                    className={
+                      skipped
+                        ? 'text-xs font-semibold text-foreground'
+                        : correct
+                          ? 'text-xs font-semibold text-primary'
+                          : 'text-xs font-semibold text-destructive'
+                    }
+                  >
+                    {skipped ? 'Skipped' : correct ? 'Correct' : 'Incorrect'}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {skipped ? (
+                      <>
+                        You skipped this case. Correct answer is{' '}
+                        <span className="font-medium text-foreground">
+                          {formatLabel(attempt.correctLabel)}
+                        </span>
+                        .
+                      </>
+                    ) : correct ? (
+                      <>
+                        You answered{' '}
+                        <span className="font-medium text-foreground">
+                          {formatLabel(attempt.chosenLabel)}
+                        </span>
+                        .
+                      </>
+                    ) : (
+                      <>
+                        You answered{' '}
+                        <span className="font-medium text-foreground">
+                          {formatLabel(attempt.chosenLabel)}
+                        </span>
+                        . Correct answer is{' '}
+                        <span className="font-medium text-foreground">
+                          {formatLabel(attempt.correctLabel)}
+                        </span>
+                        .
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-muted-foreground">Your answer</span>
-                  <Badge
-                    variant={correct ? 'default' : 'secondary'}
-                    className="rounded-full"
-                  >
-                    {formatLabel(attempt.chosenLabel)}
-                  </Badge>
+                  <span className="flex items-center gap-2">
+                    {!skipped && !correct ? (
+                      <XCircle
+                        className="h-4 w-4 text-destructive"
+                        aria-hidden="true"
+                      />
+                    ) : null}
+                    <Badge variant="secondary" className="rounded-full">
+                      {formatLabel(attempt.chosenLabel)}
+                    </Badge>
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">Ground truth</span>
-                  <Badge
-                    variant={correct ? 'secondary' : 'default'}
-                    className="rounded-full"
-                  >
-                    {formatLabel(attempt.correctLabel)}
-                  </Badge>
+                  <span className="text-muted-foreground">Correct answer</span>
+                  <span className="flex items-center gap-2">
+                    <CheckCircle2
+                      className="h-4 w-4 text-primary"
+                      aria-hidden="true"
+                    />
+                    <Badge variant="default" className="rounded-full">
+                      {formatLabel(attempt.correctLabel)}
+                    </Badge>
+                  </span>
                 </div>
 
                 <Separator />
@@ -262,7 +335,10 @@ export const CaseReviewScene = () => {
                     to={paths.app['case-random'].getHref()}
                     className="flex items-center justify-center gap-2"
                   >
-                    <Kbd>N</Kbd> Next random case
+                    <span className="hidden sm:inline-flex">
+                      <Kbd>N</Kbd>
+                    </span>{' '}
+                    Next random case
                   </Link>
                 </Button>
                 <Button
@@ -270,14 +346,20 @@ export const CaseReviewScene = () => {
                   className="w-full flex items-center justify-center gap-2"
                   onClick={retryCase}
                 >
-                  <Kbd>R</Kbd> Try this case again
+                  <span className="hidden sm:inline-flex">
+                    <Kbd>R</Kbd>
+                  </span>{' '}
+                  Try this case again
                 </Button>
                 <Button asChild variant="outline" className="w-full">
                   <Link
                     to={paths.app.cases.getHref()}
                     className="flex items-center justify-center gap-2"
                   >
-                    <Kbd>L</Kbd> Back to Case Library
+                    <span className="hidden sm:inline-flex">
+                      <Kbd>L</Kbd>
+                    </span>{' '}
+                    Back to Case Library
                   </Link>
                 </Button>
               </CardContent>

@@ -120,21 +120,21 @@ const Dashboard = () => {
   }, [attemptedCases]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-6 overflow-hidden bg-background py-6 text-left text-foreground">
+    <div className="flex h-full min-h-0 flex-col gap-5 bg-background py-4 sm:py-6 text-left text-foreground md:overflow-hidden">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Welcome back</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Welcome back</h1>
           <p className="text-muted-foreground">Today is {todayLabel}</p>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button asChild variant="secondary">
+          <Button asChild variant="secondary" className="w-full sm:w-auto">
             <Link to={paths.app.profile.getHref()}>Profile</Link>
           </Button>
         </div>
       </header>
       <div className="flex min-h-0 flex-1 flex-col gap-6">
-        <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="border-primary/15 bg-primary/5 transition-colors hover:bg-primary/10">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -142,7 +142,7 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold tabular-nums text-primary">
+              <div className="text-2xl font-semibold tabular-nums text-primary sm:text-3xl">
                 {metrics.accuracy7d}%
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -157,7 +157,7 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold tabular-nums text-primary">
+              <div className="text-2xl font-semibold tabular-nums text-primary sm:text-3xl">
                 {metrics.attemptsToday}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -172,7 +172,7 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold tabular-nums text-primary">
+              <div className="text-2xl font-semibold tabular-nums text-primary sm:text-3xl">
                 {metrics.avgTimeMs ? formatMs(metrics.avgTimeMs) : '—'}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -187,7 +187,7 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold tabular-nums text-primary">
+              <div className="text-2xl font-semibold tabular-nums text-primary sm:text-3xl">
                 {metrics.streak} day{metrics.streak === 1 ? '' : 's'}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -197,12 +197,12 @@ const Dashboard = () => {
           </Card>
         </section>
 
-        <section className="grid min-h-0 gap-5 lg:grid-cols-3">
-          <Card className="lg:col-span-2 flex min-h-0 flex-col">
+        <section className="grid min-h-0 gap-4 sm:gap-5 lg:grid-cols-3">
+          <Card className="lg:col-span-2 flex flex-col md:min-h-0">
             <CardHeader>
               <CardTitle>Recent activity</CardTitle>
             </CardHeader>
-            <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <CardContent className="md:min-h-0 md:flex-1 md:overflow-y-auto md:overscroll-contain">
               {recentAttemptedCases.length === 0 ? (
                 <div className="text-sm text-muted-foreground">
                   No attempts yet. Start a quiz to see your activity here.
@@ -214,7 +214,7 @@ const Dashboard = () => {
                       key={c.id}
                       className="rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/40"
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                         <div>
                           <div className="text-sm font-medium">Case {c.id}</div>
                           <div className="mt-1 text-xs text-muted-foreground">
@@ -240,7 +240,7 @@ const Dashboard = () => {
 
                       <Separator className="my-3" />
 
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                      <div className="flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                         <div className="space-y-1">
                           <div>
                             Your answer:{' '}

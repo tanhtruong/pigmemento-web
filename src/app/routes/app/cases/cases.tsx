@@ -149,30 +149,30 @@ const CasesScene = () => {
   }, [attempted, cases, debouncedQuery, difficulty, sort]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden bg-background py-6 text-left text-foreground">
+    <div className="flex min-h-0 flex-col gap-4 bg-background py-4 sm:py-6 text-left text-foreground">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Case Library</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-bold sm:text-3xl">Case Library</h1>
+          <p className="text-sm text-muted-foreground">
             Explore the case library, filter by difficulty and status, and jump
             into a random case when you’re ready to train.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 justify-end">
-          <Button asChild className="shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+          <Button asChild className="shadow-sm w-full sm:w-auto">
             <Link to={paths.app['case-random'].getHref()}>Random case</Link>
           </Button>
-          <Button asChild variant="secondary">
+          <Button asChild variant="secondary" className="w-full sm:w-auto">
             <Link to={paths.app['case-drill'].getHref()}>Start drill</Link>
           </Button>
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className="w-full sm:w-auto">
             <Link to={paths.app.dashboard.getHref()}>Back to dashboard</Link>
           </Button>
         </div>
       </header>
 
       <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
           <div className="flex-1">
             <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Search
@@ -184,7 +184,7 @@ const CasesScene = () => {
             />
           </div>
 
-          <div className="sm:w-64">
+          <div className="w-full sm:w-64">
             <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Sort
             </label>
@@ -223,7 +223,7 @@ const CasesScene = () => {
           )}
         </div>
 
-        <div className="md:flex gap-10">
+        <div className="flex flex-col gap-4 sm:flex-row sm:gap-8">
           <div>
             <div className="mb-1 text-xs font-medium text-muted-foreground">
               Difficulty
@@ -277,9 +277,9 @@ const CasesScene = () => {
         </div>
       </section>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <div className="flex-1">
         {isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 9 }).map((_, i) => (
               <Card key={i}>
                 <CardHeader>
@@ -304,13 +304,13 @@ const CasesScene = () => {
             No cases match your filters.
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((c) => (
               <Card
                 key={c.id}
                 className="group flex flex-col border-border bg-card transition-colors hover:bg-muted/40 hover:shadow-sm"
               >
-                <CardHeader className="py-1.5">
+                <CardHeader className="py-2 sm:py-1.5">
                   <CardTitle className="text-sm">Case {c.id}</CardTitle>
                   {(() => {
                     const meta = formatAttemptMeta(c);
@@ -336,7 +336,7 @@ const CasesScene = () => {
                   })()}
                 </CardHeader>
 
-                <CardContent className="space-y-1.5">
+                <CardContent className="space-y-2 sm:space-y-1.5">
                   <div className="overflow-hidden rounded-md border">
                     <img
                       src={c.imageUrl}
@@ -357,7 +357,7 @@ const CasesScene = () => {
                   </div>
                 </CardContent>
 
-                <CardFooter className="mt-auto pt-1">
+                <CardFooter className="mt-auto pt-2 sm:pt-1">
                   <Button asChild size="sm" className="h-8 w-full">
                     <Link to={paths.app['case-attempt'].getHref(c.id)}>
                       {c.lastAttempt ? 'Try again' : 'Start case'}

@@ -12,6 +12,89 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Info } from 'lucide-react';
+const useCoarsePointer = () => {
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('matchMedia' in window)) return;
+
+    const mq = window.matchMedia('(pointer: coarse)');
+    const update = () => setIsCoarsePointer(Boolean(mq.matches));
+    update();
+
+    if ('addEventListener' in mq) {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+  }, []);
+
+  return isCoarsePointer;
+};
+
+type InfoHelpProps = {
+  label: string;
+  description: string;
+};
+
+const InfoHelp = ({ label, description }: InfoHelpProps) => {
+  const isCoarsePointer = useCoarsePointer();
+
+  const trigger = (
+    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+      <span className="underline decoration-dotted">{label}</span>
+      <span
+        className="inline-flex h-6 w-6 items-center justify-center rounded-md hover:bg-muted"
+        aria-label={`About ${label}`}
+      >
+        <Info className="h-4 w-4" aria-hidden="true" />
+      </span>
+    </span>
+  );
+
+  if (isCoarsePointer) {
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <button type="button" className="text-left">
+            {trigger}
+          </button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{label}</DialogTitle>
+            <DialogDescription className="text-sm">
+              {description}
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button type="button" className="text-left">
+            {trigger}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="max-w-xs text-xs">{description}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -138,10 +221,12 @@ const ProfileScene = () => {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 py-6 text-left">
+    <div className="mx-auto w-full max-w-3xl space-y-6 py-4 sm:py-6 text-left">
       <header>
-        <h1 className="text-3xl font-bold">Profile</h1>
-        <p className="text-muted-foreground">Account and app information</p>
+        <h1 className="text-2xl font-bold sm:text-3xl">Profile</h1>
+        <p className="text-sm text-muted-foreground">
+          Account and app information
+        </p>
       </header>
 
       <Card>
@@ -170,10 +255,14 @@ const ProfileScene = () => {
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="secondary" size="sm">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="w-full sm:w-auto"
+                  >
                     Sign out
                   </Button>
                 </AlertDialogTrigger>
@@ -196,13 +285,18 @@ const ProfileScene = () => {
               </AlertDialog>
 
               {!isEditing ? (
-                <Button size="sm" onClick={() => setIsEditing(true)}>
+                <Button
+                  size="sm"
+                  className="w-full sm:w-auto"
+                  onClick={() => setIsEditing(true)}
+                >
                   Edit
                 </Button>
               ) : (
                 <>
                   <Button
                     size="sm"
+                    className="w-full sm:w-auto"
                     onClick={onSaveProfile}
                     disabled={isUpdating}
                   >
@@ -211,6 +305,7 @@ const ProfileScene = () => {
                   <Button
                     variant="secondary"
                     size="sm"
+                    className="w-full sm:w-auto"
                     onClick={onCancelEdit}
                     disabled={isUpdating}
                   >
@@ -222,7 +317,7 @@ const ProfileScene = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-muted-foreground">Name</span>
             {isEditing ? (
               <Input
@@ -231,19 +326,19 @@ const ProfileScene = () => {
                 className="h-9 max-w-[240px]"
               />
             ) : (
-              <span className="font-medium">{user.name}</span>
+              <span className="font-medium sm:text-right">{user.name}</span>
             )}
           </div>
           <Separator />
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-muted-foreground">Member since</span>
-            <span className="font-medium">
+            <span className="font-medium sm:text-right">
               {new Date(user.createdAt).toLocaleDateString()}
             </span>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-muted-foreground">Last login</span>
-            <span className="font-medium">
+            <span className="font-medium sm:text-right">
               {user.lastLoginAt
                 ? new Date(user.lastLoginAt).toLocaleDateString()
                 : '—'}
@@ -264,87 +359,52 @@ const ProfileScene = () => {
           <CardTitle>Your progress</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-muted-foreground">Total attempts</span>
-            <span className="font-medium">
+            <span className="font-medium sm:text-right">
               {stats ? stats.totalAttempts : '—'}
             </span>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-muted-foreground">
               Unique cases attempted
             </span>
-            <span className="font-medium">
+            <span className="font-medium sm:text-right">
               {stats ? stats.uniqueCasesAttempted : '—'}
             </span>
           </div>
 
-          <div className="flex items-center justify-between">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="cursor-help text-muted-foreground underline decoration-dotted">
-                    Accuracy
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="max-w-xs text-xs">
-                    Accuracy is the overall proportion of correct answers. It
-                    does not distinguish between missed melanomas and false
-                    alarms and should not be interpreted in isolation.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <span className="font-medium">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <InfoHelp
+              label="Accuracy"
+              description="Accuracy is the overall proportion of correct answers. It does not distinguish between missed melanomas and false alarms and should not be interpreted in isolation."
+            />
+            <span className="font-medium sm:text-right">
               {stats && stats.accuracy !== null
                 ? `${Math.round(stats.accuracy * 100)}%`
                 : '—'}
             </span>
           </div>
 
-          <div className="flex items-center justify-between">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="cursor-help text-muted-foreground underline decoration-dotted">
-                    Sensitivity
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="max-w-xs text-xs">
-                    Sensitivity measures how often malignant cases are correctly
-                    identified. High sensitivity reduces missed melanomas.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <span className="font-medium">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <InfoHelp
+              label="Sensitivity"
+              description="Sensitivity measures how often malignant cases are correctly identified. High sensitivity reduces missed melanomas."
+            />
+            <span className="font-medium sm:text-right">
               {stats && stats.sensitivity !== null
                 ? `${Math.round(stats.sensitivity * 100)}%`
                 : '—'}
             </span>
           </div>
 
-          <div className="flex items-center justify-between">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="cursor-help text-muted-foreground underline decoration-dotted">
-                    Specificity
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="max-w-xs text-xs">
-                    Specificity measures how often benign cases are correctly
-                    identified. High specificity reduces unnecessary concern or
-                    biopsies.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <span className="font-medium">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <InfoHelp
+              label="Specificity"
+              description="Specificity measures how often benign cases are correctly identified. High specificity reduces unnecessary concern or biopsies."
+            />
+            <span className="font-medium sm:text-right">
               {stats && stats.specificity !== null
                 ? `${Math.round(stats.specificity * 100)}%`
                 : '—'}
@@ -353,18 +413,18 @@ const ProfileScene = () => {
 
           <Separator />
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-muted-foreground">First attempt</span>
-            <span className="font-medium">
+            <span className="font-medium sm:text-right">
               {stats?.firstAttemptAt
                 ? new Date(stats.firstAttemptAt).toLocaleDateString()
                 : '—'}
             </span>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-muted-foreground">Last attempt</span>
-            <span className="font-medium">
+            <span className="font-medium sm:text-right">
               {stats?.lastAttemptAt
                 ? new Date(stats.lastAttemptAt).toLocaleDateString()
                 : '—'}
@@ -430,7 +490,12 @@ const ProfileScene = () => {
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button type="button" variant="destructive" disabled={isDeleting}>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={isDeleting}
+                className="w-full sm:w-auto"
+              >
                 Delete account
               </Button>
             </AlertDialogTrigger>

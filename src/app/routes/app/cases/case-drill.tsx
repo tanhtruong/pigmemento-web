@@ -43,6 +43,21 @@ const CaseDrillScene = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('matchMedia' in window)) return;
+
+    const mq = window.matchMedia('(pointer: coarse)');
+    const update = () => setIsCoarsePointer(Boolean(mq.matches));
+    update();
+
+    if ('addEventListener' in mq) {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+  }, []);
+
   // Setup
   const [targetCount, setTargetCount] = useState(5);
   const [phase, setPhase] = useState<'setup' | 'running' | 'finished'>('setup');
@@ -191,6 +206,7 @@ const CaseDrillScene = () => {
   }, [advance, choice, randomCase?.id, resetSubmit, submitAttempt]);
 
   useEffect(() => {
+    if (isCoarsePointer) return;
     if (phase !== 'running') return;
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -273,6 +289,7 @@ const CaseDrillScene = () => {
     resetSubmit,
     reveal,
     submitCurrent,
+    isCoarsePointer,
   ]);
 
   useEffect(() => {
@@ -339,7 +356,7 @@ const CaseDrillScene = () => {
 
   if (phase === 'setup') {
     return (
-      <div className="py-6">
+      <div className="py-4 sm:py-6">
         <Card>
           <CardHeader>
             <CardTitle>Case drill</CardTitle>
@@ -367,14 +384,17 @@ const CaseDrillScene = () => {
               </p>
             </div>
           </CardContent>
-          <CardFooter className="flex gap-2">
+          <CardFooter className="flex flex-col gap-2 sm:flex-row">
             <Button
               variant="secondary"
+              className="w-full sm:w-auto"
               onClick={() => navigate(paths.app.dashboard.getHref())}
             >
               Back
             </Button>
-            <Button onClick={startDrill}>Start drill</Button>
+            <Button className="w-full sm:w-auto" onClick={startDrill}>
+              Start drill
+            </Button>
           </CardFooter>
         </Card>
       </div>
@@ -383,7 +403,7 @@ const CaseDrillScene = () => {
 
   if (phase === 'finished') {
     return (
-      <div className="py-6">
+      <div className="py-4 sm:py-6">
         <Card>
           <CardHeader className="space-y-2">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -393,18 +413,18 @@ const CaseDrillScene = () => {
                   Nice work — keep it consistent for the best training effect.
                 </p>
               </div>
-              <div className="inline-flex items-center gap-2 rounded-full border bg-muted/30 px-3 py-1 text-xs font-medium">
+              <div className="inline-flex items-center gap-2 rounded-full border bg-muted/30 px-2.5 py-1 text-xs font-medium">
                 <CheckCircle2 size={16} />
                 Completed
               </div>
             </div>
           </CardHeader>
 
-          <CardContent className="space-y-5">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-lg border p-4">
+          <CardContent className="space-y-4 sm:space-y-5">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-lg border p-3 sm:p-4">
                 <div className="text-xs text-muted-foreground">Cases</div>
-                <div className="mt-1 text-2xl font-semibold">
+                <div className="mt-1 text-xl font-semibold sm:text-2xl">
                   {results.length}
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">
@@ -412,9 +432,9 @@ const CaseDrillScene = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border p-4">
+              <div className="rounded-lg border p-3 sm:p-4">
                 <div className="text-xs text-muted-foreground">Accuracy</div>
-                <div className="mt-1 text-2xl font-semibold">
+                <div className="mt-1 text-xl font-semibold sm:text-2xl">
                   {accuracy !== null ? `${accuracy}%` : '—'}
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">
@@ -425,11 +445,11 @@ const CaseDrillScene = () => {
                 <Progress value={accuracy} className="mt-3" />
               </div>
 
-              <div className="rounded-lg border p-4">
+              <div className="rounded-lg border p-3 sm:p-4">
                 <div className="text-xs text-muted-foreground">
                   Average time
                 </div>
-                <div className="mt-1 text-2xl font-semibold">
+                <div className="mt-1 text-xl font-semibold sm:text-2xl">
                   {avgTime ? formatMs(avgTime) : '—'}
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">
@@ -437,9 +457,9 @@ const CaseDrillScene = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border p-4">
+              <div className="rounded-lg border p-3 sm:p-4">
                 <div className="text-xs text-muted-foreground">Skipped</div>
-                <div className="mt-1 text-2xl font-semibold">
+                <div className="mt-1 text-xl font-semibold sm:text-2xl">
                   {skippedCount}
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">
@@ -458,9 +478,10 @@ const CaseDrillScene = () => {
                     Reviewing missed cases reinforces learning fastest.
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Button
                     variant="secondary"
+                    className="w-full sm:w-auto"
                     onClick={() => {
                       const firstMiss = incorrectCases[0];
                       if (!firstMiss) return;
@@ -474,6 +495,7 @@ const CaseDrillScene = () => {
                   </Button>
                   <Button
                     variant="outline"
+                    className="w-full sm:w-auto"
                     onClick={() => {
                       const last = results[results.length - 1];
                       if (!last) return;
@@ -487,17 +509,17 @@ const CaseDrillScene = () => {
               </div>
             </div>
 
-            <div className="rounded-lg border p-4">
-              <div className="flex items-center justify-between gap-2">
+            <div className="rounded-xl border bg-muted/20 p-4 sm:p-5">
+              <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-medium">Session log</div>
                 <div className="text-xs text-muted-foreground">
                   {results.length} item{results.length === 1 ? '' : 's'}
                 </div>
               </div>
 
-              <Separator className="my-3" />
+              <Separator className="my-3 opacity-60" />
 
-              <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
+              <div className="space-y-2 md:max-h-[320px] md:overflow-y-auto md:pr-1">
                 {sortedResults.map((r, i) => {
                   const label =
                     r.chosenLabel === 'skipped'
@@ -518,31 +540,41 @@ const CaseDrillScene = () => {
                   return (
                     <div
                       key={`${r.caseId}-${i}`}
-                      className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm ${
-                        r.isCorrect === false ? 'bg-destructive/5' : ''
+                      className={`flex flex-col gap-2 rounded-lg border bg-background/60 px-3 py-2 text-sm transition-colors hover:bg-background sm:flex-row sm:items-center sm:justify-between sm:gap-3 ${
+                        r.isCorrect === false
+                          ? 'border-destructive/20 bg-destructive/5 hover:bg-destructive/10'
+                          : ''
                       }`}
                     >
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <div className="font-medium">Case {r.caseId}</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="font-medium tabular-nums">
+                            Case {r.caseId}
+                          </div>
                           <span
                             className={`rounded-full border px-2 py-0.5 text-xs font-medium ${
                               r.chosenLabel === 'skipped'
                                 ? 'border-border bg-muted/40 text-muted-foreground'
-                                : r.isCorrect === true
+                                : 'border-border bg-background text-foreground'
+                            }`}
+                          >
+                            {label}
+                          </span>
+                          {correctnessLabel !== '—' ? (
+                            <span
+                              className={`rounded-full border px-2 py-0.5 text-xs font-medium ${
+                                r.isCorrect === true
                                   ? 'border-primary/20 bg-primary/10 text-primary'
                                   : r.isCorrect === false
                                     ? 'border-destructive/20 bg-destructive/10 text-destructive'
                                     : 'border-border bg-muted/40 text-muted-foreground'
-                            }`}
-                          >
-                            {label}
-                            {correctnessLabel !== '—'
-                              ? ` • ${correctnessLabel}`
-                              : ''}
-                          </span>
+                              }`}
+                            >
+                              {correctnessLabel}
+                            </span>
+                          ) : null}
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-[11px] text-muted-foreground/90 break-words">
                           Time: {formatMs(r.timeToAnswerMs)}
                           {r.correctLabel
                             ? ` • Correct: ${r.correctLabel === 'benign' ? 'Benign' : 'Malignant'}`
@@ -551,7 +583,7 @@ const CaseDrillScene = () => {
                       </div>
                       <Button
                         variant="link"
-                        className="h-auto px-0 text-xs"
+                        className="h-auto px-0 text-xs self-start sm:self-auto"
                         onClick={() =>
                           navigate(paths.app['case-review'].getHref(r.caseId))
                         }
@@ -574,6 +606,7 @@ const CaseDrillScene = () => {
           <CardFooter className="flex flex-col gap-2 sm:flex-row sm:justify-between">
             <Button
               variant="secondary"
+              className="w-full sm:w-auto"
               onClick={() => {
                 setPhase('setup');
                 setResults([]);
@@ -584,7 +617,7 @@ const CaseDrillScene = () => {
               New drill
             </Button>
 
-            <div className="flex w-full gap-2 sm:w-auto">
+            <div className="flex flex-col sm:flex-row w-full gap-2 sm:w-auto">
               <Button
                 variant="outline"
                 className="w-full sm:w-auto"
@@ -615,18 +648,19 @@ const CaseDrillScene = () => {
 
   // Running
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden bg-background py-6 text-left text-foreground">
+    <div className="flex min-h-0 flex-col gap-4 bg-background py-4 sm:py-6 text-left text-foreground">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Case drill</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Case drill</h1>
           <div className="space-y-1">
             <p className="text-muted-foreground">Progress: {progressLabel}</p>
             <Progress value={Math.round(((index + 1) / safeTarget) * 100)} />
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Button
             variant="secondary"
+            className="w-full sm:w-auto"
             onClick={() => {
               const ok = window.confirm(
                 'Exit the drill? Your current session will be lost.',
@@ -640,11 +674,14 @@ const CaseDrillScene = () => {
               setReveal(null);
             }}
           >
-            <Kbd>ESC</Kbd> Exit
+            <span className="hidden sm:inline-flex">
+              <Kbd>ESC</Kbd>
+            </span>{' '}
+            Exit
           </Button>
         </div>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <div className="flex-1">
         {isCaseLoading ? (
           <Card>
             <CardHeader>
@@ -672,7 +709,7 @@ const CaseDrillScene = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-5 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-5 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>Image</CardTitle>
@@ -682,50 +719,55 @@ const CaseDrillScene = () => {
                   <img
                     src={randomCase.imageUrl}
                     alt={`Case ${randomCase.id}`}
-                    className="w-full object-contain"
+                    className="w-full object-contain max-h-[60vh] sm:max-h-none"
                     loading="eager"
                   />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="flex h-fit flex-col lg:sticky">
+            <Card className="flex flex-col lg:sticky lg:top-4">
               <CardHeader>
                 <CardTitle>Your answer</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {reveal ? (
                   <div
-                    className={`rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 ${
+                    className={
                       reveal.isCorrect === true
-                        ? 'border-primary/20 bg-primary/10 text-primary'
+                        ? 'rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary'
                         : reveal.isCorrect === false
-                          ? 'border-destructive/20 bg-destructive/10 text-destructive'
-                          : 'border-border bg-muted/40 text-muted-foreground'
-                    } opacity-100 translate-y-0`}
+                          ? 'rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs font-semibold text-destructive'
+                          : 'rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs font-semibold text-foreground'
+                    }
                   >
-                    {reveal.isCorrect === true
-                      ? 'Correct'
-                      : reveal.isCorrect === false
-                        ? 'Incorrect'
-                        : 'Checked'}
-                    {reveal.isCorrect === false && reveal.correctLabel
-                      ? ` • Correct: ${
-                          reveal.correctLabel === 'benign'
-                            ? 'Benign'
-                            : 'Malignant'
-                        }`
-                      : ''}
+                    {reveal.isCorrect === true ? (
+                      <>
+                        Correct — {choice === 'benign' ? 'Benign' : 'Malignant'}
+                      </>
+                    ) : reveal.isCorrect === false && reveal.correctLabel ? (
+                      <>
+                        Incorrect — Correct:{' '}
+                        {reveal.correctLabel === 'benign'
+                          ? 'Benign'
+                          : 'Malignant'}
+                      </>
+                    ) : (
+                      <>Checked</>
+                    )}
                   </div>
                 ) : null}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <Button
                     type="button"
                     variant={choice === 'benign' ? 'default' : 'secondary'}
                     onClick={() => setChoice('benign')}
                     disabled={isSubmitting || Boolean(reveal)}
                   >
-                    <Kbd>B</Kbd> Benign
+                    <span className="hidden sm:inline-flex">
+                      <Kbd>B</Kbd>
+                    </span>{' '}
+                    Benign
                   </Button>
                   <Button
                     type="button"
@@ -733,7 +775,10 @@ const CaseDrillScene = () => {
                     onClick={() => setChoice('malignant')}
                     disabled={isSubmitting || Boolean(reveal)}
                   >
-                    <Kbd>M</Kbd> Malignant
+                    <span className="hidden sm:inline-flex">
+                      <Kbd>M</Kbd>
+                    </span>{' '}
+                    Malignant
                   </Button>
                 </div>
 
@@ -743,7 +788,10 @@ const CaseDrillScene = () => {
                   onClick={submitCurrent}
                   disabled={!choice || isSubmitting || Boolean(reveal)}
                 >
-                  <Kbd>⏎</Kbd> {isSubmitting ? 'Submitting…' : 'Submit'}
+                  <span className="hidden sm:inline-flex">
+                    <Kbd>⏎</Kbd>
+                  </span>{' '}
+                  {isSubmitting ? 'Submitting…' : 'Submit'}
                 </Button>
 
                 {isSubmitError ? (
@@ -787,7 +835,10 @@ const CaseDrillScene = () => {
                   }}
                   disabled={isSubmitting || Boolean(reveal)}
                 >
-                  <Kbd>S</Kbd> Skip
+                  <span className="hidden sm:inline-flex">
+                    <Kbd>S</Kbd>
+                  </span>{' '}
+                  Skip
                 </Button>
               </CardFooter>
             </Card>

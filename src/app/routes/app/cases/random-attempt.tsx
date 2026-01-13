@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router';
 
@@ -24,6 +24,21 @@ type Label = 'benign' | 'malignant';
 const RandomCaseScene = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('matchMedia' in window)) return;
+
+    const mq = window.matchMedia('(pointer: coarse)');
+    const update = () => setIsCoarsePointer(Boolean(mq.matches));
+    update();
+
+    if ('addEventListener' in mq) {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+  }, []);
 
   const { data: caseItem, isLoading, isError } = useRandomCase();
 
@@ -69,14 +84,14 @@ const RandomCaseScene = () => {
   ]);
 
   useCaseAttemptShortcuts({
-    enabled: Boolean(caseItem),
+    enabled: Boolean(caseItem) && !isCoarsePointer,
     canSubmit,
     isPending,
     onSelectBenign: () => setChoice('benign'),
     onSelectMalignant: () => setChoice('malignant'),
     onSubmit,
     onNewCase: () => {
-      queryClient.invalidateQueries({ queryKey: ['random-case'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys['random-case'] });
       navigate(0);
     },
     onExit: () => navigate(paths.app.cases.getHref()),
@@ -84,7 +99,7 @@ const RandomCaseScene = () => {
 
   if (isLoading) {
     return (
-      <div className="py-6">
+      <div className="py-4 sm:py-6">
         <Card>
           <CardHeader>
             <CardTitle>Loading case…</CardTitle>
@@ -99,7 +114,7 @@ const RandomCaseScene = () => {
 
   if (isError) {
     return (
-      <div className="py-6">
+      <div className="py-4 sm:py-6">
         <Card>
           <CardHeader>
             <CardTitle>Case not found</CardTitle>
@@ -120,7 +135,7 @@ const RandomCaseScene = () => {
 
   if (!caseItem) {
     return (
-      <div className="py-6">
+      <div className="py-4 sm:py-6">
         <Card>
           <CardHeader>
             <CardTitle>Case not found</CardTitle>
@@ -159,7 +174,9 @@ const RandomCaseScene = () => {
       newCaseNode={
         <Button asChild variant="outline">
           <Link to={paths.app['case-random'].getHref()}>
-            <Kbd>N</Kbd>
+            <span className="hidden sm:inline-flex">
+              <Kbd>N</Kbd>
+            </span>
             New case
           </Link>
         </Button>
