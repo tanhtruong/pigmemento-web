@@ -17,8 +17,10 @@ import {
 } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { useCallback, useEffect, useMemo } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { faqs, features, stats } from '@/lib/landing-seed-data';
+import { paths } from '@/config/paths.ts';
+import { Head } from '@/components/seo/head.tsx';
 
 const LandingRoute = () => {
   const shouldReduceMotion = useReducedMotion();
@@ -156,6 +158,7 @@ const LandingRoute = () => {
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
+      <Head title="Pigmemento – Melanoma Recognition Training for Clinicians" />
       {/* Hero */}
       <motion.section
         initial="hidden"
@@ -194,8 +197,10 @@ const LandingRoute = () => {
           variants={fadeIn}
           className="flex flex-col items-center gap-4 md:flex-row"
         >
-          <Button onClick={() => scrollToId('waitlist')}>
-            Try out Pigmemento <ArrowRight />
+          <Button onClick={() => scrollToId('waitlist')} asChild>
+            <Link to={paths.auth.login.getHref()}>
+              Try out Pigmemento <ArrowRight />
+            </Link>
           </Button>
           <Button variant="ghost" onClick={() => scrollToId('features')}>
             See how it works <ArrowRight />
