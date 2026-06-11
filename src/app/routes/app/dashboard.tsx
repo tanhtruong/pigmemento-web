@@ -8,6 +8,11 @@ import { paths } from '@/config/paths';
 import { useCaseHistory } from '@/features/cases/api/use-case-history.ts';
 import type { CaseListItem } from '@/features/cases/types/case-list-item.ts';
 import { Badge } from '@/components/ui/badge.tsx';
+import { NumberTicker } from '@/components/motion/number-ticker.tsx';
+import { SoftCircleReveal } from '@/components/motion/soft-circle-reveal.tsx';
+import { AnimatePresence, LayoutGroup, motion } from 'motion/react';
+
+import { motionTokens } from '@/lib/motion-tokens.ts';
 
 const formatMs = (ms: number) => {
   const s = Math.round(ms / 100) / 10;
@@ -135,22 +140,32 @@ const Dashboard = () => {
       </header>
       <div className="flex min-h-0 flex-1 flex-col gap-6">
         <section className="grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <Card className="border-primary/15 bg-primary/5 transition-colors hover:bg-primary/10">
+          <Card className="border-primary/15 bg-primary/5 transition-all duration-150 ease-out hover:bg-primary/10 hover:-translate-y-px hover:shadow-md motion-reduce:transform-none motion-reduce:hover:transform-none">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Accuracy (7d)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-primary sm:text-3xl">
-                {metrics.accuracy7d}%
+              <div className="flex items-center gap-3">
+                <div className="text-2xl font-semibold tabular-nums text-primary sm:text-3xl">
+                  <NumberTicker
+                    value={metrics.accuracy7d}
+                    formatValue={(n) => `${n}%`}
+                  />
+                </div>
+                <SoftCircleReveal
+                  configuration="ring-fill"
+                  percentage={metrics.accuracy7d}
+                  size={48}
+                />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 Based on your last 7 days of attempts.
               </p>
             </CardContent>
           </Card>
-          <Card className="border-primary/15 bg-primary/5 transition-colors hover:bg-primary/10">
+          <Card className="border-primary/15 bg-primary/5 transition-all duration-150 ease-out hover:bg-primary/10 hover:-translate-y-px hover:shadow-md motion-reduce:transform-none motion-reduce:hover:transform-none">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Attempts (today)
@@ -158,14 +173,14 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold tabular-nums text-primary sm:text-3xl">
-                {metrics.attemptsToday}
+                <NumberTicker value={metrics.attemptsToday} />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 Keep going—short sessions compound.
               </p>
             </CardContent>
           </Card>
-          <Card className="border-primary/15 bg-primary/5 transition-colors hover:bg-primary/10">
+          <Card className="border-primary/15 bg-primary/5 transition-all duration-150 ease-out hover:bg-primary/10 hover:-translate-y-px hover:shadow-md motion-reduce:transform-none motion-reduce:hover:transform-none">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Avg time (7d)
@@ -173,14 +188,21 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold tabular-nums text-primary sm:text-3xl">
-                {metrics.avgTimeMs ? formatMs(metrics.avgTimeMs) : '—'}
+                {metrics.avgTimeMs ? (
+                  <NumberTicker
+                    value={metrics.avgTimeMs}
+                    formatValue={formatMs}
+                  />
+                ) : (
+                  '—'
+                )}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 Speed matters less than consistency.
               </p>
             </CardContent>
           </Card>
-          <Card className="border-primary/15 bg-primary/5 transition-colors hover:bg-primary/10">
+          <Card className="border-primary/15 bg-primary/5 transition-all duration-150 ease-out hover:bg-primary/10 hover:-translate-y-px hover:shadow-md motion-reduce:transform-none motion-reduce:hover:transform-none">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Streak
@@ -188,7 +210,8 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold tabular-nums text-primary sm:text-3xl">
-                {metrics.streak} day{metrics.streak === 1 ? '' : 's'}
+                <NumberTicker value={metrics.streak} /> day
+                {metrics.streak === 1 ? '' : 's'}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 Train daily to build pattern recognition.
@@ -208,62 +231,77 @@ const Dashboard = () => {
                   No attempts yet. Start a quiz to see your activity here.
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {recentAttemptedCases.map((c) => (
-                    <div
-                      key={c.id}
-                      className="rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/40"
-                    >
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-                        <div>
-                          <div className="text-sm font-medium">Case {c.id}</div>
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            {formatDateTime(c.lastAttempt.createdAt)}
+                <LayoutGroup>
+                  <motion.ul layout className="space-y-3 list-none p-0">
+                    <AnimatePresence initial={false}>
+                      {recentAttemptedCases.map((c) => (
+                        <motion.li
+                          key={c.id}
+                          layout
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={motionTokens.normal}
+                          className="rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/40"
+                        >
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                            <div>
+                              <div className="text-sm font-medium">
+                                Case {c.id}
+                              </div>
+                              <div className="mt-1 text-xs text-muted-foreground">
+                                {formatDateTime(c.lastAttempt.createdAt)}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm font-medium">
+                                <Badge
+                                  variant={
+                                    c.lastAttempt.correct
+                                      ? 'default'
+                                      : 'secondary'
+                                  }
+                                  className="rounded-full"
+                                >
+                                  {c.lastAttempt.correct
+                                    ? 'Correct'
+                                    : 'Incorrect'}
+                                </Badge>
+                              </div>
+                              <div className="mt-1 text-xs text-muted-foreground">
+                                {formatMs(c.lastAttempt.timeToAnswerMs)}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium">
-                            <Badge
-                              variant={
-                                c.lastAttempt.correct ? 'default' : 'secondary'
-                              }
-                              className="rounded-full"
-                            >
-                              {c.lastAttempt.correct ? 'Correct' : 'Incorrect'}
-                            </Badge>
-                          </div>
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            {formatMs(c.lastAttempt.timeToAnswerMs)}
-                          </div>
-                        </div>
-                      </div>
 
-                      <Separator className="my-3" />
+                          <Separator className="my-3" />
 
-                      <div className="flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                        <div className="space-y-1">
-                          <div>
-                            Your answer:{' '}
-                            <span className="font-medium text-foreground">
-                              {c.lastAttempt.chosenLabel}
-                            </span>
+                          <div className="flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                            <div className="space-y-1">
+                              <div>
+                                Your answer:{' '}
+                                <span className="font-medium text-foreground">
+                                  {c.lastAttempt.chosenLabel}
+                                </span>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {c.difficulty} • {c.site} • {c.patientAge}y
+                              </div>
+                            </div>
+                            <div>
+                              <Link
+                                to={paths.app['case-review'].getHref(c.id)}
+                                className="text-primary underline underline-offset-4 transition-opacity hover:opacity-80"
+                              >
+                                Review case
+                              </Link>
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {c.difficulty} • {c.site} • {c.patientAge}y
-                          </div>
-                        </div>
-                        <div>
-                          <Link
-                            to={paths.app['case-review'].getHref(c.id)}
-                            className="text-primary underline underline-offset-4 transition-opacity hover:opacity-80"
-                          >
-                            Review case
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                        </motion.li>
+                      ))}
+                    </AnimatePresence>
+                  </motion.ul>
+                </LayoutGroup>
               )}
             </CardContent>
           </Card>
