@@ -1,5 +1,8 @@
+import { motion, useReducedMotion } from 'motion/react';
+
 import { cn } from '@/lib/utils';
 import { Hairline } from '@/components/foundation/hairline';
+import { revealSequence } from '@/lib/motion-tokens';
 
 type Outcome = 'correct' | 'incorrect' | 'skipped';
 
@@ -23,15 +26,20 @@ const DOT_CLASS: Record<Outcome, string> = {
   skipped: 'bg-muted-foreground',
 };
 
+const EASE: [number, number, number, number] = [0.2, 0.8, 0.2, 1];
+
 /**
  * The diagnosis reveal — the single Instrument Serif moment inside the app.
  *
- * For PR1 this renders the composed final state (all beats present, no
- * animation). PR5 layers in the character-stagger + sequenced reveal per
- * revealSequence in motion-tokens.ts.
+ * On mount it plays the locked reveal sequence (~1.6 s total) per spec § 11:
+ *   1. Hairline divider draws left→right (0 ms · 220 ms)
+ *   2. `DIAGNOSIS` eyebrow fades up (150 ms)
+ *   3. Serif diagnosis character-staggers in (300 ms · 24 ms/char · 8 px rise)
+ *   4. Dampened correctness indicator + plain copy (550 ms)
+ *   5. Teaching prose fades up (700 ms)
  *
- * The serif appearing here — and ONLY here, inside the app — makes it a
- * meaning-marker rather than decoration.
+ * Reduced motion: all beats render in their final composed state with no
+ * animation.
  */
 export const DiagnosisReveal = ({
   diagnosis,
@@ -41,25 +49,90 @@ export const DiagnosisReveal = ({
   visible = true,
   className,
 }: DiagnosisRevealProps) => {
+  const reducedMotion = useReducedMotion();
   if (!visible) return null;
+
+  const at = (ms: number) => ms / 1000;
+
   return (
     <section
       data-slot="diagnosis-reveal"
       data-outcome={outcome}
       className={cn('flex flex-col gap-4', className)}
     >
-      <Hairline />
+      {/* Beat 1 — hairline divider draws */}
+      {reducedMotion ? (
+        <Hairline />
+      ) : (
+        <motion.div
+          aria-hidden
+          className="bg-hairline h-px w-full origin-left"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{
+            duration: revealSequence.dividerDuration / 1000,
+            ease: EASE,
+            delay: at(revealSequence.divider),
+          }}
+        />
+      )}
 
-      <p className="font-mono text-xs tracking-[0.18em] text-primary uppercase">
+      {/* Beat 2 — eyebrow */}
+      <motion.p
+        initial={reducedMotion ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          duration: 0.3,
+          ease: EASE,
+          delay: reducedMotion ? 0 : at(revealSequence.eyebrow),
+        }}
+        className="text-primary font-mono text-xs tracking-[0.18em] uppercase"
+      >
         Diagnosis
-      </p>
+      </motion.p>
 
-      <h2 className="font-display text-4xl leading-[1.05] sm:text-5xl">
-        {diagnosis}
+      {/* Beat 3 — serif diagnosis with character stagger */}
+      <h2
+        aria-label={diagnosis}
+        className="font-display text-4xl leading-[1.05] sm:text-5xl"
+      >
+        {reducedMotion
+          ? diagnosis
+          : Array.from(diagnosis).map((ch, i) => (
+              <motion.span
+                key={`${ch}-${i}`}
+                aria-hidden
+                style={{ display: 'inline-block' }}
+                initial={{
+                  opacity: 0,
+                  y: revealSequence.diagnosisCharRise,
+                }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.4,
+                  ease: EASE,
+                  delay:
+                    at(revealSequence.diagnosis) +
+                    (i * revealSequence.diagnosisCharStaggerMs) / 1000,
+                }}
+              >
+                {ch === ' ' ? ' ' : ch}
+              </motion.span>
+            ))}
       </h2>
 
+      {/* Beat 4 — correctness indicator */}
       {outcome && outcomeCopy && (
-        <p className="flex items-center gap-2 text-sm text-foreground">
+        <motion.p
+          initial={reducedMotion ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.32,
+            ease: EASE,
+            delay: reducedMotion ? 0 : at(revealSequence.correctness),
+          }}
+          className="text-foreground flex items-center gap-2 text-sm"
+        >
           <span
             className={cn(
               'inline-block h-2 w-2 rounded-full',
@@ -68,13 +141,23 @@ export const DiagnosisReveal = ({
             aria-hidden
           />
           {outcomeCopy}
-        </p>
+        </motion.p>
       )}
 
+      {/* Beat 5 — teaching prose */}
       {teaching && (
-        <p className="text-muted-foreground text-base leading-relaxed">
+        <motion.p
+          initial={reducedMotion ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.42,
+            ease: EASE,
+            delay: reducedMotion ? 0 : at(revealSequence.teaching),
+          }}
+          className="text-muted-foreground text-base leading-relaxed"
+        >
           {teaching}
-        </p>
+        </motion.p>
       )}
     </section>
   );

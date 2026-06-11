@@ -32,7 +32,7 @@ const stubCase = {
   difficulty: 'medium' as const,
   site: 'arm',
   patientAge: 42,
-  clinicalNote: '...',
+  clinicalNote: 'A 42-year-old patient with a pigmented lesion on the arm.',
 };
 
 const stubAnnotatedCase = {
@@ -51,12 +51,23 @@ const stubAnnotatedCase = {
   ],
 };
 
-const stubAttempt = {
+const stubAttemptCorrect = {
   correct: true,
   correctLabel: 'benign' as const,
   chosenLabel: 'benign' as const,
-  timeToAnswerMs: 2000,
+  timeToAnswerMs: 12_400,
   teachingPoints: [],
+  disclaimer: '',
+};
+
+const stubAttemptIncorrect = {
+  correct: false,
+  correctLabel: 'malignant' as const,
+  chosenLabel: 'benign' as const,
+  timeToAnswerMs: 8_100,
+  teachingPoints: [
+    'Look at how the color shifts left-to-right — that asymmetry is one of the strongest signals here.',
+  ],
   disclaimer: '',
 };
 
@@ -85,28 +96,93 @@ const renderRoute = () => {
 };
 
 describe('CaseReviewScene', () => {
-  it('renders the AnswerRevealSweep over the lesion under normal motion', () => {
+  it('renders the diagnosis reveal with the correct outcome', () => {
     mockedUseCase.mockReturnValue({
       data: stubCase,
       isLoading: false,
       isError: false,
     } as unknown as ReturnType<typeof useCase>);
     mockedUseLatestAttempt.mockReturnValue({
-      data: stubAttempt,
+      data: stubAttemptCorrect,
       isLoading: false,
       isError: false,
     } as unknown as ReturnType<typeof useCaseLatestAttempt>);
 
     renderRoute();
 
+    // The DiagnosisReveal moment is present (with aria-label on the headline).
+    const reveal = screen.getByLabelText(/Benign/i, { selector: 'h2' });
+    expect(reveal).toBeInTheDocument();
+
+    // Correctness sentence — locked microcopy.
+    expect(screen.getByText(/You were right\./i)).toBeInTheDocument();
+
+    // The image still renders with the case alt.
     expect(screen.getByRole('img', { name: /case 42/i })).toBeInTheDocument();
-    expect(screen.getByTestId('answer-reveal-sweep')).toHaveAttribute(
-      'data-sweeping',
-      'true',
-    );
   });
 
-  it('skips the sweep and shows the verdict immediately under prefers-reduced-motion', () => {
+  it('renders the incorrect outcome with the locked "You said X. The answer is Y." copy', () => {
+    mockedUseCase.mockReturnValue({
+      data: stubCase,
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useCase>);
+    mockedUseLatestAttempt.mockReturnValue({
+      data: stubAttemptIncorrect,
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useCaseLatestAttempt>);
+
+    renderRoute();
+
+    expect(
+      screen.getByText(/You said Benign\. The answer is Malignant\./i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/asymmetry is one of the strongest signals here/i),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the ABCDE features in the margin-side label list when present', () => {
+    mockedUseCase.mockReturnValue({
+      data: stubAnnotatedCase,
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useCase>);
+    mockedUseLatestAttempt.mockReturnValue({
+      data: stubAttemptCorrect,
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useCaseLatestAttempt>);
+
+    renderRoute();
+
+    expect(
+      screen.getByText(/Asymmetric across the long axis/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Irregular border on the medial edge/i),
+    ).toBeInTheDocument();
+  });
+
+  it('omits the ABCDE label list when the case has no annotations', () => {
+    mockedUseCase.mockReturnValue({
+      data: stubCase,
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useCase>);
+    mockedUseLatestAttempt.mockReturnValue({
+      data: stubAttemptCorrect,
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useCaseLatestAttempt>);
+
+    renderRoute();
+
+    expect(screen.queryByText(/Asymmetric across the long axis/i)).toBeNull();
+  });
+
+  it('respects prefers-reduced-motion by rendering the composed reveal state', () => {
     mockedUseReducedMotion.mockReturnValue(true);
     mockedUseCase.mockReturnValue({
       data: stubCase,
@@ -114,82 +190,17 @@ describe('CaseReviewScene', () => {
       isError: false,
     } as unknown as ReturnType<typeof useCase>);
     mockedUseLatestAttempt.mockReturnValue({
-      data: stubAttempt,
+      data: stubAttemptCorrect,
       isLoading: false,
       isError: false,
     } as unknown as ReturnType<typeof useCaseLatestAttempt>);
 
     renderRoute();
 
-    expect(screen.queryByTestId('answer-reveal-sweep')).toBeNull();
-    // Verdict block is present immediately (lesion image renders + at least one
-    // "Correct" verdict label exists).
-    expect(screen.getByRole('img', { name: /case 42/i })).toBeInTheDocument();
-    expect(screen.getAllByText(/correct/i).length).toBeGreaterThan(0);
-  });
-
-  it('renders one ABCDE marker per feature when the case is annotated', () => {
-    mockedUseCase.mockReturnValue({
-      data: stubAnnotatedCase,
-      isLoading: false,
-      isError: false,
-    } as unknown as ReturnType<typeof useCase>);
-    mockedUseLatestAttempt.mockReturnValue({
-      data: stubAttempt,
-      isLoading: false,
-      isError: false,
-    } as unknown as ReturnType<typeof useCaseLatestAttempt>);
-
-    renderRoute();
-
+    // The diagnosis is still present — under reduced motion all beats just
+    // render in their composed state without animation.
     expect(
-      screen.getByLabelText(/A.*asymmetric across the long axis/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByLabelText(/B.*irregular border on the medial edge/i),
-    ).toBeInTheDocument();
-  });
-
-  it('renders no ABCDE markers when the case has no annotations (slice #5 baseline)', () => {
-    mockedUseCase.mockReturnValue({
-      data: stubCase,
-      isLoading: false,
-      isError: false,
-    } as unknown as ReturnType<typeof useCase>);
-    mockedUseLatestAttempt.mockReturnValue({
-      data: stubAttempt,
-      isLoading: false,
-      isError: false,
-    } as unknown as ReturnType<typeof useCaseLatestAttempt>);
-
-    renderRoute();
-
-    expect(document.querySelector('[data-abcde-marker]')).toBeNull();
-    // And the baseline sweep is still present.
-    expect(screen.getByTestId('answer-reveal-sweep')).toBeInTheDocument();
-  });
-
-  it('shows ABCDE markers immediately under prefers-reduced-motion on an annotated case', () => {
-    mockedUseReducedMotion.mockReturnValue(true);
-    mockedUseCase.mockReturnValue({
-      data: stubAnnotatedCase,
-      isLoading: false,
-      isError: false,
-    } as unknown as ReturnType<typeof useCase>);
-    mockedUseLatestAttempt.mockReturnValue({
-      data: stubAttempt,
-      isLoading: false,
-      isError: false,
-    } as unknown as ReturnType<typeof useCaseLatestAttempt>);
-
-    renderRoute();
-
-    expect(screen.queryByTestId('answer-reveal-sweep')).toBeNull();
-    expect(
-      screen.getByLabelText(/A.*asymmetric across the long axis/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByLabelText(/B.*irregular border on the medial edge/i),
+      screen.getByLabelText(/Benign/i, { selector: 'h2' }),
     ).toBeInTheDocument();
   });
 });
