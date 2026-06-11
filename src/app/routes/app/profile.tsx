@@ -1,10 +1,25 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Check, Info, X } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { useProfile } from '@/features/profile/api/use-profile.ts';
-import { useStats } from '@/features/profile/api/use-stats.ts';
+import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
+import { Hairline } from '@/components/foundation/hairline';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import {
   Tooltip,
   TooltipContent,
@@ -19,43 +34,42 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Info } from 'lucide-react';
+import { useProfile } from '@/features/profile/api/use-profile.ts';
+import { useStats } from '@/features/profile/api/use-stats.ts';
+import { useUpdateProfile } from '@/features/profile/api/use-update-profile';
+import { useDeleteAccount } from '@/features/profile/api/use-delete-account.ts';
+import { clearAuthToken } from '@/lib/auth';
+
 const useCoarsePointer = () => {
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
-
   useEffect(() => {
     if (typeof window === 'undefined' || !('matchMedia' in window)) return;
-
     const mq = window.matchMedia('(pointer: coarse)');
     const update = () => setIsCoarsePointer(Boolean(mq.matches));
     update();
-
     if ('addEventListener' in mq) {
       mq.addEventListener('change', update);
       return () => mq.removeEventListener('change', update);
     }
   }, []);
-
   return isCoarsePointer;
 };
 
-type InfoHelpProps = {
+const InfoHelp = ({
+  label,
+  description,
+}: {
   label: string;
   description: string;
-};
-
-const InfoHelp = ({ label, description }: InfoHelpProps) => {
+}) => {
   const isCoarsePointer = useCoarsePointer();
-
   const trigger = (
-    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-      <span className="underline decoration-dotted">{label}</span>
-      <span
-        className="inline-flex h-6 w-6 items-center justify-center rounded-md hover:bg-muted"
-        aria-label={`About ${label}`}
-      >
-        <Info className="h-4 w-4" aria-hidden="true" />
+    <span className="text-muted-foreground inline-flex items-center gap-1.5">
+      <span>{label}</span>
+      <span aria-hidden>
+        <Info className="h-3.5 w-3.5" />
       </span>
+      <span className="sr-only">About {label}</span>
     </span>
   );
 
@@ -94,35 +108,31 @@ const InfoHelp = ({ label, description }: InfoHelpProps) => {
     </TooltipProvider>
   );
 };
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { useDeleteAccount } from '@/features/profile/api/use-delete-account.ts';
-import { useNavigate } from 'react-router';
-import { useQueryClient } from '@tanstack/react-query';
-import { Input } from '@/components/ui/input';
-import { useUpdateProfile } from '@/features/profile/api/use-update-profile';
-import { clearAuthToken } from '@/lib/auth';
-import { toast } from 'sonner';
+
+const Row = ({
+  label,
+  value,
+}: {
+  label: React.ReactNode;
+  value: React.ReactNode;
+}) => (
+  <div className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
+    <span className="text-muted-foreground">{label}</span>
+    <span className="text-foreground text-right tabular-nums">{value}</span>
+  </div>
+);
+
+const Pct = (n: number | null | undefined) =>
+  n === null || n === undefined ? '—' : `${Math.round(n * 100)}%`;
+
+const formatDate = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleDateString() : '—';
 
 const ProfileScene = () => {
   const { data: user } = useProfile();
   const { data: stats } = useStats();
-  const {
-    mutateAsync: deleteAccount,
-    isPending: isDeleting,
-    isError: isDeleteError,
-    error: deleteError,
-    reset: resetDelete,
-  } = useDeleteAccount();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const {
     mutateAsync: updateProfile,
@@ -132,6 +142,14 @@ const ProfileScene = () => {
     reset: resetUpdate,
   } = useUpdateProfile();
 
+  const {
+    mutateAsync: deleteAccount,
+    isPending: isDeleting,
+    isError: isDeleteError,
+    error: deleteError,
+    reset: resetDelete,
+  } = useDeleteAccount();
+
   const [isEditing, setIsEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
 
@@ -139,9 +157,6 @@ const ProfileScene = () => {
     if (!user) return;
     setNameDraft(user.name ?? '');
   }, [user]);
-
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const initials =
     (user?.name || user?.email || '')
@@ -151,23 +166,6 @@ const ProfileScene = () => {
       .slice(0, 2)
       .map((p) => p[0]?.toUpperCase())
       .join('') || 'U';
-
-  const onDeleteAccount = async () => {
-    // clear any previous mutation error
-    resetDelete();
-
-    try {
-      await deleteAccount();
-
-      // Clear cached authenticated data so the UI doesn't show stale user state
-      queryClient.clear();
-
-      // Redirect out of the authenticated app shell
-      navigate('/', { replace: true });
-    } catch {
-      // mutation error is handled by `useDeleteAccount` state
-    }
-  };
 
   const onSignOut = () => {
     clearAuthToken();
@@ -184,339 +182,279 @@ const ProfileScene = () => {
 
   const onSaveProfile = async () => {
     resetUpdate();
-
     const name = nameDraft.trim();
-
     if (!name) {
-      toast.error('Missing information', {
-        description: 'Name is required.',
-      });
+      toast.error('Name is required.');
       return;
     }
-
     try {
       await updateProfile({ name });
       toast('Profile updated');
-      // Refresh profile data
       await queryClient.invalidateQueries({ queryKey: ['profile'] });
       setIsEditing(false);
     } catch {
-      // error handled by mutation state
+      // mutation state holds the error
+    }
+  };
+
+  const onDeleteAccount = async () => {
+    resetDelete();
+    try {
+      await deleteAccount();
+      queryClient.clear();
+      navigate('/', { replace: true });
+    } catch {
+      // mutation state holds the error
     }
   };
 
   if (!user) {
     return (
-      <div className="mx-auto w-full max-w-3xl py-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Loading profile…</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Please wait.
-          </CardContent>
-        </Card>
+      <div className="flex flex-col items-center gap-3 py-20">
+        <Spinner size="lg" variant="muted" />
+        <p className="text-muted-foreground font-mono text-xs tracking-wider uppercase">
+          Loading profile…
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 py-4 sm:py-6 text-left">
-      <header>
-        <h1 className="text-2xl font-bold sm:text-3xl">Profile</h1>
-        <p className="text-sm text-muted-foreground">
-          Account and app information
+    <article className="mx-auto flex w-full max-w-3xl flex-col gap-10 py-2">
+      <header className="flex flex-col gap-1.5">
+        <p className="text-primary font-mono text-[0.6875rem] tracking-[0.18em] uppercase">
+          Profile
+        </p>
+        <h1 className="font-display text-4xl leading-tight sm:text-5xl">
+          Your account.
+        </h1>
+        <p className="text-muted-foreground text-sm">
+          Settings, identity, and the long-form record of your practice.
         </p>
       </header>
 
-      <Card>
-        <CardHeader className="gap-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div
-                className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-base font-semibold"
-                aria-label="Profile avatar"
-              >
-                {initials}
-              </div>
+      <Hairline />
 
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-base">
-                    {user.name || '—'}
-                  </CardTitle>
-                  <Badge variant="secondary" className="capitalize">
-                    {user.role}
-                  </Badge>
-                </div>
-                <p className="truncate text-sm text-muted-foreground">
-                  {user.email}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="w-full sm:w-auto"
-                  >
-                    Sign out
-                  </Button>
-                </AlertDialogTrigger>
-
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Sign out</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to sign out?
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={onSignOut}>
-                      Sign out
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
-              {!isEditing ? (
-                <Button
-                  size="sm"
-                  className="w-full sm:w-auto"
-                  onClick={() => setIsEditing(true)}
-                >
-                  Edit
-                </Button>
+      {/* Identity */}
+      <section className="flex flex-col gap-4">
+        <div className="flex items-start gap-4">
+          <div
+            aria-label="Profile avatar"
+            className="border-hairline bg-muted/50 flex h-14 w-14 shrink-0 items-center justify-center rounded-full border font-mono text-base"
+          >
+            {initials}
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <div className="flex flex-wrap items-baseline gap-2">
+              {isEditing ? (
+                <Input
+                  value={nameDraft}
+                  onChange={(e) => setNameDraft(e.target.value)}
+                  className="h-9 max-w-[240px]"
+                  autoFocus
+                />
               ) : (
-                <>
-                  <Button
-                    size="sm"
-                    className="w-full sm:w-auto"
-                    onClick={onSaveProfile}
-                    disabled={isUpdating}
-                  >
-                    {isUpdating ? 'Saving…' : 'Save'}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="w-full sm:w-auto"
-                    onClick={onCancelEdit}
-                    disabled={isUpdating}
-                  >
-                    Cancel
-                  </Button>
-                </>
+                <h2 className="font-display text-foreground text-2xl leading-tight">
+                  {user.name || '—'}
+                </h2>
+              )}
+              {user.role && (
+                <Badge variant="outline" className="capitalize">
+                  {user.role}
+                </Badge>
               )}
             </div>
+            <p className="text-muted-foreground truncate text-sm">
+              {user.email}
+            </p>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-muted-foreground">Name</span>
-            {isEditing ? (
-              <Input
-                value={nameDraft}
-                onChange={(e) => setNameDraft(e.target.value)}
-                className="h-9 max-w-[240px]"
-              />
+
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+            {!isEditing ? (
+              <Button size="sm" onClick={() => setIsEditing(true)}>
+                Edit
+              </Button>
             ) : (
-              <span className="font-medium sm:text-right">{user.name}</span>
+              <>
+                <Button size="sm" onClick={onSaveProfile} disabled={isUpdating}>
+                  <Check />
+                  {isUpdating ? 'Saving…' : 'Save'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={onCancelEdit}
+                  disabled={isUpdating}
+                >
+                  <X />
+                </Button>
+              </>
             )}
           </div>
-          <Separator />
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-muted-foreground">Member since</span>
-            <span className="font-medium sm:text-right">
-              {new Date(user.createdAt).toLocaleDateString()}
-            </span>
-          </div>
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-muted-foreground">Last login</span>
-            <span className="font-medium sm:text-right">
-              {user.lastLoginAt
-                ? new Date(user.lastLoginAt).toLocaleDateString()
-                : '—'}
-            </span>
-          </div>
-          {isEditing && isUpdateError ? (
-            <p className="pt-2 text-xs text-destructive">
-              {updateError instanceof Error
-                ? updateError.message
-                : 'Could not update profile.'}
-            </p>
-          ) : null}
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Your progress</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-muted-foreground">Total attempts</span>
-            <span className="font-medium sm:text-right">
-              {stats ? stats.totalAttempts : '—'}
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-muted-foreground">
-              Unique cases attempted
-            </span>
-            <span className="font-medium sm:text-right">
-              {stats ? stats.uniqueCasesAttempted : '—'}
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <InfoHelp
-              label="Accuracy"
-              description="Accuracy is the overall proportion of correct answers. It does not distinguish between missed melanomas and false alarms and should not be interpreted in isolation."
-            />
-            <span className="font-medium sm:text-right">
-              {stats && stats.accuracy !== null
-                ? `${Math.round(stats.accuracy * 100)}%`
-                : '—'}
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <InfoHelp
-              label="Sensitivity"
-              description="Sensitivity measures how often malignant cases are correctly identified. High sensitivity reduces missed melanomas."
-            />
-            <span className="font-medium sm:text-right">
-              {stats && stats.sensitivity !== null
-                ? `${Math.round(stats.sensitivity * 100)}%`
-                : '—'}
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <InfoHelp
-              label="Specificity"
-              description="Specificity measures how often benign cases are correctly identified. High specificity reduces unnecessary concern or biopsies."
-            />
-            <span className="font-medium sm:text-right">
-              {stats && stats.specificity !== null
-                ? `${Math.round(stats.specificity * 100)}%`
-                : '—'}
-            </span>
-          </div>
-
-          <Separator />
-
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-muted-foreground">First attempt</span>
-            <span className="font-medium sm:text-right">
-              {stats?.firstAttemptAt
-                ? new Date(stats.firstAttemptAt).toLocaleDateString()
-                : '—'}
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-muted-foreground">Last attempt</span>
-            <span className="font-medium sm:text-right">
-              {stats?.lastAttemptAt
-                ? new Date(stats.lastAttemptAt).toLocaleDateString()
-                : '—'}
-            </span>
-          </div>
-
-          <p className="pt-2 text-xs text-muted-foreground">
-            Metrics are provided for educational feedback only and must not be
-            used for clinical decision-making.
+        {isEditing && isUpdateError && (
+          <p className="text-incorrect text-xs">
+            {updateError instanceof Error
+              ? updateError.message
+              : 'Couldn’t update your profile.'}
           </p>
-        </CardContent>
-      </Card>
+        )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>About Pigmemento</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <p>
-            Pigmemento helps clinicians train visual recognition of melanoma
-            using real cases, guided tips, and model-based attention maps.
+        <div className="border-hairline border-t">
+          <Row label="Member since" value={formatDate(user.createdAt)} />
+          <Hairline />
+          <Row
+            label="Last login"
+            value={user.lastLoginAt ? formatDate(user.lastLoginAt) : '—'}
+          />
+        </div>
+      </section>
+
+      <Hairline />
+
+      {/* Long-form practice record */}
+      <section className="flex flex-col gap-4">
+        <p className="text-muted-foreground font-mono text-[0.6875rem] tracking-[0.18em] uppercase">
+          Your practice
+        </p>
+        <div className="border-hairline border-t">
+          <Row label="Total attempts" value={stats?.totalAttempts ?? '—'} />
+          <Hairline />
+          <Row
+            label="Unique cases attempted"
+            value={stats?.uniqueCasesAttempted ?? '—'}
+          />
+          <Hairline />
+          <Row
+            label={
+              <InfoHelp
+                label="Accuracy"
+                description="Overall proportion of correct answers. Doesn't distinguish missed melanomas from false alarms — read alongside sensitivity and specificity."
+              />
+            }
+            value={Pct(stats?.accuracy)}
+          />
+          <Hairline />
+          <Row
+            label={
+              <InfoHelp
+                label="Sensitivity"
+                description="How often malignant cases are correctly identified. High sensitivity reduces missed melanomas."
+              />
+            }
+            value={Pct(stats?.sensitivity)}
+          />
+          <Hairline />
+          <Row
+            label={
+              <InfoHelp
+                label="Specificity"
+                description="How often benign cases are correctly identified. High specificity reduces unnecessary concern or biopsies."
+              />
+            }
+            value={Pct(stats?.specificity)}
+          />
+          <Hairline />
+          <Row
+            label="First attempt"
+            value={formatDate(stats?.firstAttemptAt)}
+          />
+          <Hairline />
+          <Row label="Last attempt" value={formatDate(stats?.lastAttemptAt)} />
+        </div>
+        <p className="text-muted-foreground text-[0.6875rem]">
+          Metrics are educational only. Not a calibrated diagnostic tool.
+        </p>
+      </section>
+
+      <Hairline />
+
+      {/* About */}
+      <section className="flex flex-col gap-3">
+        <p className="text-muted-foreground font-mono text-[0.6875rem] tracking-[0.18em] uppercase">
+          About
+        </p>
+        <p className="text-foreground text-sm leading-relaxed">
+          Pigmemento trains visual recognition of melanoma using real
+          dermoscopic cases curated from the ISIC Archive, with structured
+          feedback and ABCDE annotations.
+        </p>
+        <p className="text-muted-foreground text-[0.6875rem]">
+          Educational use only — not for diagnosis or clinical decision-making.
+        </p>
+        <a
+          href="mailto:contact@pigmemento.app?subject=Pigmemento%20Support"
+          className="text-primary w-fit text-sm underline-offset-4 hover:underline"
+        >
+          Contact support →
+        </a>
+      </section>
+
+      <Hairline />
+
+      {/* Session + danger zone */}
+      <section className="flex flex-col gap-6">
+        <div className="flex flex-col gap-2">
+          <p className="text-muted-foreground font-mono text-[0.6875rem] tracking-[0.18em] uppercase">
+            Session
           </p>
-          <p className="text-xs text-muted-foreground">
-            Educational use only — not for diagnosis or clinical
-            decision-making.
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="w-fit">
+                Sign out
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Sign out</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You can always sign back in.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={onSignOut}>
+                  Sign out
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <p className="text-incorrect font-mono text-[0.6875rem] tracking-[0.18em] uppercase">
+            Danger zone
           </p>
-
-          <Separator />
-
-          <div className="flex flex-col gap-2">
-            {/*<Button asChild variant="link" className="justify-start px-0">
-              <Link to={paths.app.sources.getHref()}>Sources & References</Link>
-            </Button>
-            <Button asChild variant="link" className="justify-start px-0">
-              <Link to={paths.app.privacy.getHref()}>Privacy policy</Link>
-            </Button>*/}
-            <Button asChild variant="link" className="justify-start px-0">
-              <a href="mailto:contact@pigmemento.app?subject=Pigmemento%20Support">
-                Contact support
-              </a>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Danger zone</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Deleting your account is permanent. Your profile and training
             history will be removed.
           </p>
-
-          {isDeleteError ? (
-            <p className="text-xs text-destructive">
+          {isDeleteError && (
+            <p className="text-incorrect text-xs">
               {deleteError instanceof Error
                 ? deleteError.message
-                : 'Could not delete account.'}
+                : 'Couldn’t delete your account.'}
             </p>
-          ) : null}
-
+          )}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
-                type="button"
                 variant="destructive"
+                className="w-fit"
                 disabled={isDeleting}
-                className="w-full sm:w-auto"
               >
-                Delete account
+                {isDeleting ? 'Deleting…' : 'Delete account'}
               </Button>
             </AlertDialogTrigger>
-
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete account</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action is permanent. Your account and all training
-                  history will be permanently removed.
+                  This is permanent. Your account and all training history will
+                  be removed.
                 </AlertDialogDescription>
               </AlertDialogHeader>
-
-              {isDeleteError ? (
-                <p className="text-xs text-destructive">
-                  {deleteError instanceof Error
-                    ? deleteError.message
-                    : 'Could not delete account.'}
-                </p>
-              ) : null}
-
               <AlertDialogFooter>
                 <AlertDialogCancel disabled={isDeleting}>
                   Cancel
@@ -524,16 +462,16 @@ const ProfileScene = () => {
                 <AlertDialogAction
                   onClick={onDeleteAccount}
                   disabled={isDeleting}
-                  className="bg-destructive text-white hover:bg-destructive/90"
+                  className="bg-destructive text-destructive-foreground hover:brightness-105"
                 >
-                  {isDeleting ? 'Deleting…' : 'Yes, delete account'}
+                  {isDeleting ? 'Deleting…' : 'Yes, delete'}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </section>
+    </article>
   );
 };
 
