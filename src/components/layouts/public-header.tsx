@@ -52,7 +52,7 @@ export const PublicHeader = () => {
   }, [location.pathname]);
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-hairline bg-background/75 backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-6 py-4">
         <Link
           to={paths.home.path}
@@ -77,41 +77,43 @@ export const PublicHeader = () => {
             setMobileNavOpen(false);
           }}
         >
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-white">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-button bg-primary font-display text-primary-foreground">
             P
           </span>
-          <span className="text-sm md:text-base">Pigmemento</span>
+          <span className="text-foreground text-sm md:text-base">
+            Pigmemento
+          </span>
         </Link>
 
         {/* Desktop nav */}
         <nav
-          className="hidden items-center gap-6 text-sm text-neutral-700 md:flex"
+          className="hidden items-center gap-6 text-sm text-muted-foreground md:flex"
           aria-label="Primary"
         >
           <button
             type="button"
             onClick={() => scrollToId('features')}
-            className="hover:text-neutral-900"
+            className="transition-colors hover:text-foreground"
           >
             Features
           </button>
           <button
             type="button"
             onClick={() => scrollToId('how')}
-            className="hover:text-neutral-900"
+            className="transition-colors hover:text-foreground"
           >
             How it works
           </button>
           <button
             type="button"
             onClick={() => scrollToId('faq')}
-            className="hover:text-neutral-900"
+            className="transition-colors hover:text-foreground"
           >
             FAQ
           </button>
           <Link
             to={paths.privacy.path}
-            className="hover:text-neutral-900"
+            className="transition-colors hover:text-foreground"
             onClick={() => window.scrollTo({ top: 0, behavior: 'auto' })}
           >
             Privacy
@@ -133,7 +135,7 @@ export const PublicHeader = () => {
         {/* Mobile menu button */}
         <button
           type="button"
-          className="inline-flex items-center justify-center rounded-md p-2 text-neutral-700 hover:bg-neutral-100 md:hidden"
+          className="text-muted-foreground hover:bg-accent hover:text-foreground inline-flex items-center justify-center rounded-input p-2 transition-colors md:hidden"
           aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={mobileNavOpen}
           onClick={() => setMobileNavOpen((v) => !v)}
@@ -148,33 +150,33 @@ export const PublicHeader = () => {
 
       {/* Mobile nav panel */}
       {mobileNavOpen ? (
-        <div className="border-t bg-white md:hidden">
+        <div className="border-t border-hairline bg-background/95 backdrop-blur-md md:hidden">
           <div className="mx-auto w-full max-w-6xl px-6 py-4">
-            <div className="flex flex-col gap-3 text-sm text-neutral-700">
+            <div className="flex flex-col gap-3 text-sm text-muted-foreground">
               <button
                 type="button"
                 onClick={() => scrollToIdAndClose('features')}
-                className="text-left hover:text-neutral-900"
+                className="text-left transition-colors hover:text-foreground"
               >
                 Features
               </button>
               <button
                 type="button"
                 onClick={() => scrollToIdAndClose('how')}
-                className="text-left hover:text-neutral-900"
+                className="text-left transition-colors hover:text-foreground"
               >
                 How it works
               </button>
               <button
                 type="button"
                 onClick={() => scrollToIdAndClose('faq')}
-                className="text-left hover:text-neutral-900"
+                className="text-left transition-colors hover:text-foreground"
               >
                 FAQ
               </button>
               <Link
                 to={paths.privacy.path}
-                className="hover:text-neutral-900"
+                className="transition-colors hover:text-foreground"
                 onClick={() => {
                   window.scrollTo({ top: 0, behavior: 'auto' });
                   setMobileNavOpen(false);

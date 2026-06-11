@@ -28,21 +28,23 @@ export const PublicFooter = () => {
       whileInView="visible"
       viewport={viewportOnce}
       variants={fadeIn}
-      className="border-t bg-neutral-50/60"
+      className="border-hairline relative z-10 border-t"
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 md:flex-row">
-        <p className="text-xs text-neutral-600">
-          © {new Date().getFullYear()} Pigmemento. Educational use only - not
+      <div className="text-muted-foreground mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-xs md:flex-row">
+        <p>
+          © {new Date().getFullYear()} Pigmemento. Educational use only — not
           for diagnosis. All rights reserved.
         </p>
-        <div className="flex items-center gap-4 text-xs text-neutral-600">
-          <Link to={paths.privacy.path}>Privacy</Link>
-          {/*<a href="#" className="hover:text-neutral-900">
-              Terms
-            </a>*/}
+        <div className="flex items-center gap-4">
+          <Link
+            to={paths.privacy.path}
+            className="hover:text-foreground transition-colors"
+          >
+            Privacy
+          </Link>
           <a
             href="mailto:contact@pigmemento.app"
-            className="hover:text-neutral-900"
+            className="hover:text-foreground transition-colors"
           >
             contact@pigmemento.app
           </a>
