@@ -13,6 +13,8 @@ import { SoftCircleReveal } from '@/components/motion/soft-circle-reveal.tsx';
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react';
 
 import { motionTokens } from '@/lib/motion-tokens.ts';
+import { useStreakMilestone } from '@/features/cases/hooks/use-streak-milestone.ts';
+import { milestoneLabel } from '@/lib/streak-milestone.ts';
 
 const formatMs = (ms: number) => {
   const s = Math.round(ms / 100) / 10;
@@ -113,6 +115,8 @@ const Dashboard = () => {
     };
   }, [attemptedCases]);
 
+  const { milestone, isCelebrating } = useStreakMilestone(metrics.streak);
+
   const recentAttemptedCases = useMemo(() => {
     return attemptedCases
       .slice()
@@ -202,7 +206,16 @@ const Dashboard = () => {
               </p>
             </CardContent>
           </Card>
-          <Card className="border-primary/15 bg-primary/5 transition-all duration-150 ease-out hover:bg-primary/10 hover:-translate-y-px hover:shadow-md motion-reduce:transform-none motion-reduce:hover:transform-none">
+          <Card
+            data-streak-card
+            data-celebrating={isCelebrating ? 'true' : undefined}
+            className={
+              'relative border-primary/15 bg-primary/5 transition-all duration-150 ease-out hover:bg-primary/10 hover:-translate-y-px hover:shadow-md motion-reduce:transform-none motion-reduce:hover:transform-none ' +
+              (isCelebrating
+                ? '-translate-y-1 shadow-lg ring-2 ring-primary/40 motion-reduce:translate-y-0 motion-reduce:ring-1'
+                : '')
+            }
+          >
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Streak
@@ -216,6 +229,14 @@ const Dashboard = () => {
               <p className="mt-1 text-xs text-muted-foreground">
                 Train daily to build pattern recognition.
               </p>
+              {milestone && (
+                <Badge
+                  variant="secondary"
+                  className="absolute right-3 top-3 rounded-full text-[10px] font-medium uppercase tracking-wide"
+                >
+                  {milestoneLabel(milestone)}
+                </Badge>
+              )}
             </CardContent>
           </Card>
         </section>
