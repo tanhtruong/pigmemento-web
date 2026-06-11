@@ -1,33 +1,25 @@
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ChevronDown } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+  CaseChoiceCard,
+  type CaseChoice,
+} from '@/components/cases/case-choice-card';
+import { Hairline } from '@/components/foundation/hairline';
+import { Spinner } from '@/components/ui/spinner';
 import { paths } from '@/config/paths';
 import { useCase } from '@/features/cases/api/use-case.ts';
-import { Badge } from '@/components/ui/badge.tsx';
 import { useCaseSubmitAttempt } from '@/features/cases/api/use-case-submit-attempt.ts';
-import { Kbd } from '@/components/ui/kbd.tsx';
 import { useCaseAttemptShortcuts } from '@/features/cases/hooks/use-case-attempt-shortcuts.ts';
-import { useQueryClient } from '@tanstack/react-query';
 import { useCaseTimer } from '@/features/cases/hooks/use-case-timer.ts';
 import { queryKeys } from '@/lib/query-keys.ts';
 import { CaseLesionFrame } from '@/components/cases/case-lesion-frame.tsx';
+import { RING_FILL_MS } from '@/lib/motion-tokens';
 
-export type Label = 'benign' | 'malignant';
+export type Label = CaseChoice;
 
 type CaseAttemptViewProps = {
   caseItem: {
@@ -37,183 +29,113 @@ type CaseAttemptViewProps = {
     patientAge: number;
     clinicalNote: string;
   };
-  choice: Label | null;
-  setChoice: (v: Label) => void;
-  elapsedLabel: string;
+  /** The committed choice — drives the ring-fill animation. */
+  committed: CaseChoice | null;
   isPending: boolean;
-  canSubmit: boolean;
-  onSubmit: () => void;
+  onCommit: (choice: CaseChoice) => void;
   submitErrorNode?: ReactNode;
-  newCaseNode: ReactNode;
+  /** "New case" / "Back to library" action(s) for the header. */
+  headerActionsNode?: ReactNode;
 };
 
 export const CaseAttemptView = ({
   caseItem,
-  choice,
-  setChoice,
-  elapsedLabel,
+  committed,
   isPending,
-  canSubmit,
-  onSubmit,
+  onCommit,
   submitErrorNode,
-  newCaseNode,
+  headerActionsNode,
 }: CaseAttemptViewProps) => {
-  const [showClinicalContext, setShowClinicalContext] = useState(false);
+  const choices: {
+    value: CaseChoice;
+    label: string;
+    shortcut: 'B' | 'M' | 'S';
+  }[] = [
+    { value: 'benign', label: 'Benign', shortcut: 'B' },
+    { value: 'malignant', label: 'Malignant', shortcut: 'M' },
+    { value: 'skipped', label: 'Skip', shortcut: 'S' },
+  ];
+
   return (
-    <div className="flex min-h-0 flex-col gap-4 py-4 sm:py-6 text-left">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Case attempt</h1>
-          <p className="text-sm text-muted-foreground">Case {caseItem.id}</p>
+    <div className="flex flex-col gap-6 text-left md:py-2">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-1.5">
+          <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-primary uppercase">
+            Case · {caseItem.id}
+          </p>
+          <h1 className="font-display text-3xl sm:text-4xl leading-tight">
+            What do you see?
+          </h1>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button asChild variant="secondary" className="w-full sm:w-auto">
-            <Link to={paths.app.cases.getHref()}>Case Library</Link>
-          </Button>
-        </div>
+        {headerActionsNode}
       </header>
 
-      <div className="flex-1">
-        <div className="grid gap-4 sm:gap-5 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Image</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CaseLesionFrame
-                imageSrc={caseItem.imageUrl}
-                imageAlt={`Case ${caseItem.id}`}
-              />
-            </CardContent>
-          </Card>
+      <Hairline />
 
-          <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-1">
-            <Collapsible
-              open={showClinicalContext}
-              onOpenChange={setShowClinicalContext}
-              className="lg:hidden rounded-lg border bg-card px-4 py-3"
-            >
-              <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 text-left text-sm font-medium text-muted-foreground">
-                <span>Clinical context</span>
-                <span className="flex items-center gap-2 text-xs">
-                  {showClinicalContext ? 'Hide' : 'Show'}
-                  <ChevronDown
-                    className={`h-4 w-4 transition-transform duration-200 ${showClinicalContext ? 'rotate-180' : ''}`}
-                    aria-hidden="true"
-                  />
-                </span>
-              </CollapsibleTrigger>
+      <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
+        {/* IMAGE — sticky on desktop, hero on mobile */}
+        <figure className="lg:sticky lg:top-20 lg:self-start">
+          <div className="border-hairline shadow-warm overflow-hidden rounded-card border bg-muted/40">
+            <CaseLesionFrame
+              imageSrc={caseItem.imageUrl}
+              imageAlt={`Case ${caseItem.id}`}
+            />
+          </div>
+        </figure>
 
-              <CollapsibleContent className="mt-3 space-y-4 data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-                <div>
-                  <div className="mb-2 text-xs font-medium text-muted-foreground">
-                    Metadata
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">{caseItem.site}</Badge>
-                    {caseItem.patientAge > 0 && (
-                      <Badge variant="outline">{caseItem.patientAge}y</Badge>
-                    )}
-                  </div>
-                </div>
+        {/* RIGHT — context + choices */}
+        <div className="flex flex-col gap-6">
+          <section className="flex flex-col gap-3">
+            <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-muted-foreground uppercase">
+              Clinical context
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">{caseItem.site}</Badge>
+              {caseItem.patientAge > 0 && (
+                <Badge variant="outline">{caseItem.patientAge}y</Badge>
+              )}
+            </div>
+            <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">
+              {caseItem.clinicalNote}
+            </p>
+          </section>
 
-                <div>
-                  <div className="mb-2 text-xs font-medium text-muted-foreground">
-                    Clinical note
-                  </div>
-                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                    {caseItem.clinicalNote}
-                  </p>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-            <div className="hidden lg:block space-y-4 sm:space-y-5">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Case metadata</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">{caseItem.site}</Badge>
-                    {caseItem.patientAge > 0 && (
-                      <Badge variant="outline">{caseItem.patientAge}y</Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+          <Hairline />
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Clinical note</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                    {caseItem.clinicalNote}
-                  </p>
-                </CardContent>
-              </Card>
+          <section className="flex flex-col gap-3">
+            <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-muted-foreground uppercase">
+              Your call · tap to commit
+            </p>
+            <div className="flex flex-col gap-2">
+              {choices.map((c) => (
+                <CaseChoiceCard
+                  key={c.value}
+                  choice={c.value}
+                  label={c.label}
+                  shortcut={c.shortcut}
+                  selected={committed === c.value}
+                  disabled={Boolean(committed) && committed !== c.value}
+                  onSelect={() => onCommit(c.value)}
+                />
+              ))}
             </div>
 
-            <Card className="flex flex-col">
-              <CardHeader>
-                <CardTitle>Your answer</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Time: {elapsedLabel}
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <Button
-                    type="button"
-                    variant={choice === 'benign' ? 'default' : 'secondary'}
-                    onClick={() => setChoice('benign')}
-                    disabled={isPending}
-                  >
-                    <span className="hidden sm:inline-flex">
-                      <Kbd>B</Kbd>
-                    </span>
-                    Benign
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={choice === 'malignant' ? 'default' : 'secondary'}
-                    onClick={() => setChoice('malignant')}
-                    disabled={isPending}
-                  >
-                    <span className="hidden sm:inline-flex">
-                      <Kbd>M</Kbd>
-                    </span>
-                    Malignant
-                  </Button>
-                </div>
+            {isPending && (
+              <p className="text-muted-foreground flex items-center gap-2 text-xs">
+                <Spinner size="sm" variant="muted" />
+                Saving your attempt…
+              </p>
+            )}
 
-                <Button
-                  type="button"
-                  className="w-full"
-                  onClick={onSubmit}
-                  disabled={!canSubmit}
-                >
-                  <span className="hidden sm:inline-flex">
-                    <Kbd>⏎</Kbd>
-                  </span>
-                  {isPending ? 'Submitting…' : 'Submit'}
-                </Button>
-
-                {submitErrorNode}
-
-                <Separator />
-              </CardContent>
-
-              <CardFooter className="mt-auto flex flex-col items-stretch gap-2">
-                {newCaseNode}
-              </CardFooter>
-            </Card>
-          </div>
+            {submitErrorNode}
+          </section>
         </div>
       </div>
     </div>
   );
 };
+
+/* ────────────────────────────────────────────────────────────────────────── */
 
 const CaseAttemptScene = () => {
   const queryClient = useQueryClient();
@@ -226,11 +148,9 @@ const CaseAttemptScene = () => {
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('matchMedia' in window)) return;
-
     const mq = window.matchMedia('(pointer: coarse)');
     const update = () => setIsCoarsePointer(Boolean(mq.matches));
     update();
-
     if ('addEventListener' in mq) {
       mq.addEventListener('change', update);
       return () => mq.removeEventListener('change', update);
@@ -239,7 +159,8 @@ const CaseAttemptScene = () => {
 
   const { data: caseItem, isLoading, isError } = useCase(safeCaseId);
 
-  const [choice, setChoice] = useState<Label | null>(null);
+  const [committed, setCommitted] = useState<CaseChoice | null>(null);
+
   const {
     mutate: submitAttempt,
     isPending,
@@ -248,148 +169,81 @@ const CaseAttemptScene = () => {
     reset,
   } = useCaseSubmitAttempt();
 
-  // Use reusable timer hook
-  const { elapsedLabel, getElapsedMs } = useCaseTimer([safeCaseId]);
+  const { getElapsedMs } = useCaseTimer([safeCaseId]);
+
   useEffect(() => {
-    setChoice(null);
+    setCommitted(null);
   }, [safeCaseId]);
 
-  const canSubmit = Boolean(choice) && !isPending;
+  const onCommit = useCallback(
+    (choice: CaseChoice) => {
+      if (!safeCaseId || committed || isPending) return;
+      reset();
+      setCommitted(choice);
+      const timeToAnswerMs = getElapsedMs();
 
-  const onSubmit = useCallback(() => {
-    if (!choice || !safeCaseId) return;
-
-    // clear any previous mutation error
-    reset();
-
-    const timeToAnswerMs = getElapsedMs();
-
-    submitAttempt(
-      { caseId: safeCaseId, attempt: { chosenLabel: choice, timeToAnswerMs } },
-      {
-        onSuccess: () => {
-          navigate(paths.app['case-review'].getHref(safeCaseId));
+      // Fire submit immediately; let the ring-fill animation play in
+      // parallel. Navigate to review after the longer of (ring-fill,
+      // submit). RING_FILL_MS is the minimum perceptible delay so the user
+      // sees the confirmation animation before the route changes.
+      submitAttempt(
+        {
+          caseId: safeCaseId,
+          attempt: { chosenLabel: choice, timeToAnswerMs },
         },
-      },
-    );
-  }, [choice, safeCaseId, reset, submitAttempt, navigate, getElapsedMs]);
+        {
+          onSuccess: () => {
+            window.setTimeout(() => {
+              navigate(paths.app['case-review'].getHref(safeCaseId));
+            }, RING_FILL_MS);
+          },
+        },
+      );
+    },
+    [
+      committed,
+      isPending,
+      safeCaseId,
+      reset,
+      submitAttempt,
+      getElapsedMs,
+      navigate,
+    ],
+  );
 
   useCaseAttemptShortcuts({
-    enabled: Boolean(caseItem) && !isCoarsePointer,
-    canSubmit,
+    enabled: Boolean(caseItem) && !isCoarsePointer && !committed,
     isPending,
-    onSelectBenign: () => setChoice('benign'),
-    onSelectMalignant: () => setChoice('malignant'),
-    onSubmit,
+    onCommit,
     onNewCase: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys['random-case'] });
-      navigate(0);
+      navigate(paths.app['case-random'].getHref());
     },
     onExit: () => navigate(paths.app.cases.getHref()),
   });
 
-  if (!safeCaseId) {
-    return (
-      <div className="py-4 sm:py-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Case not found</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Missing case id.
-          </CardContent>
-          <CardFooter>
-            <Button asChild>
-              <Link to={paths.app.cases.getHref()}>Back to cases</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="py-4 sm:py-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Loading case…</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Please wait.
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="py-4 sm:py-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Case not found</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            We couldn’t load this case. It may have been removed or you may not
-            have access.
-          </CardContent>
-          <CardFooter>
-            <Button asChild>
-              <Link to={paths.app.cases.getHref()}>Back to cases</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!caseItem) {
-    return (
-      <div className="py-4 sm:py-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Case not found</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Missing case id.
-          </CardContent>
-          <CardFooter>
-            <Button asChild>
-              <Link to={paths.app.cases.getHref()}>Back to cases</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
+  if (!safeCaseId) return <CaseMissing />;
+  if (isLoading) return <CaseLoading />;
+  if (isError || !caseItem) return <CaseMissing />;
 
   return (
     <CaseAttemptView
       caseItem={caseItem}
-      choice={choice}
-      setChoice={setChoice}
-      elapsedLabel={elapsedLabel}
+      committed={committed}
       isPending={isPending}
-      canSubmit={canSubmit}
-      onSubmit={onSubmit}
+      onCommit={onCommit}
       submitErrorNode={
         isSubmitError ? (
-          <p className="text-xs text-red-700">
+          <p className="text-incorrect text-xs">
             {submitError instanceof Error
               ? submitError.message
-              : 'Could not submit attempt. Please try again.'}
+              : 'Couldn’t save your attempt. Retrying in 3s.'}
           </p>
         ) : null
       }
-      newCaseNode={
-        <Button asChild variant="outline">
-          <Link to={paths.app['case-random'].getHref()}>
-            <span className="hidden sm:inline-flex">
-              <Kbd>N</Kbd>
-            </span>
-            New case
-          </Link>
+      headerActionsNode={
+        <Button asChild variant="ghost" size="sm">
+          <Link to={paths.app.cases.getHref()}>← Library</Link>
         </Button>
       }
     />
@@ -397,3 +251,26 @@ const CaseAttemptScene = () => {
 };
 
 export default CaseAttemptScene;
+
+/* ────────────────────────────────────────────────────────────────────────── */
+
+const CaseLoading = () => (
+  <div className="flex flex-col items-center gap-3 py-20">
+    <Spinner size="lg" variant="muted" />
+    <p className="text-muted-foreground font-mono text-xs tracking-wider uppercase">
+      Loading case…
+    </p>
+  </div>
+);
+
+const CaseMissing = () => (
+  <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-20 text-center">
+    <h2 className="font-display text-4xl">Case not found.</h2>
+    <p className="text-muted-foreground text-sm">
+      It may have been removed, or you may not have access.
+    </p>
+    <Button asChild>
+      <Link to={paths.app.cases.getHref()}>Back to library</Link>
+    </Button>
+  </div>
+);
