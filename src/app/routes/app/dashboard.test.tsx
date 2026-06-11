@@ -33,23 +33,7 @@ const daysAgoIso = (n: number) => {
   return d.toISOString();
 };
 
-const stubCasesWithConsecutiveDays = (days: number) =>
-  Array.from({ length: days }, (_, i) => ({
-    id: `case-day-${i}`,
-    imageUrl: `/lesion-${i}.png`,
-    difficulty: 'medium' as const,
-    patientAge: 30 + i,
-    site: 'arm',
-    lastAttempt: {
-      correct: true,
-      chosenLabel: 'benign' as const,
-      createdAt: daysAgoIso(i),
-      totalAttempts: 1,
-      timeToAnswerMs: 2000,
-    },
-  }));
-
-const stubCases = () => [
+const stubAttempts = () => [
   {
     id: 'c1',
     imageUrl: '/a.png',
@@ -78,6 +62,20 @@ const stubCases = () => [
       timeToAnswerMs: 2000,
     },
   },
+  {
+    id: 'c3',
+    imageUrl: '/c.png',
+    difficulty: 'medium' as const,
+    patientAge: 50,
+    site: 'leg',
+    lastAttempt: {
+      correct: false,
+      chosenLabel: 'benign' as const,
+      createdAt: daysAgoIso(1),
+      totalAttempts: 1,
+      timeToAnswerMs: 2500,
+    },
+  },
 ];
 
 const renderDashboard = () =>
@@ -87,82 +85,89 @@ const renderDashboard = () =>
     </MemoryRouter>,
   );
 
-describe('Dashboard', () => {
-  it('exposes accuracy, attempts, avg time, and streak via NumberTicker aria-labels', () => {
+describe('Dashboard (Progress)', () => {
+  it('renders the editorial greeting eyebrow + Instrument Serif headline', () => {
     mockedUseCaseHistory.mockReturnValue({
-      data: stubCases(),
+      data: stubAttempts(),
     } as ReturnType<typeof useCaseHistory>);
 
     renderDashboard();
 
-    expect(screen.getByLabelText('50%')).toBeInTheDocument();
+    expect(screen.getByText(/Progress/i)).toBeInTheDocument();
     expect(
-      screen.getByLabelText('2', { selector: 'span' }),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText('2s')).toBeInTheDocument();
-    expect(
-      screen.getByLabelText('1', { selector: 'span' }),
+      screen.getByRole('heading', { level: 1, name: /Good to see you/i }),
     ).toBeInTheDocument();
   });
 
-  it('renders the streak milestone badge when streak crosses the first threshold', () => {
+  it('surfaces the hero metric (today count) with weekly and monthly context', () => {
     mockedUseCaseHistory.mockReturnValue({
-      data: stubCasesWithConsecutiveDays(3),
+      data: stubAttempts(),
     } as ReturnType<typeof useCaseHistory>);
 
     renderDashboard();
 
-    expect(screen.getByText(/week 1/i)).toBeInTheDocument();
+    // The hero metric block's secondary line is "{week} this week · {month} this month".
+    expect(screen.getByText(/this month/i)).toBeInTheDocument();
   });
 
-  it('marks the streak card data-celebrating="true" on an actual threshold crossing', () => {
-    window.localStorage.setItem('pigmemento.streakMilestone.lastSeen', '2');
+  it('renders the "Where you stumble" pattern panel when at least one site has 2+ attempts', () => {
     mockedUseCaseHistory.mockReturnValue({
-      data: stubCasesWithConsecutiveDays(3),
+      data: stubAttempts(),
     } as ReturnType<typeof useCaseHistory>);
 
     renderDashboard();
 
-    const card = document.querySelector('[data-streak-card]');
-    expect(card).not.toBeNull();
-    expect(card).toHaveAttribute('data-celebrating', 'true');
+    expect(screen.getByText(/Where you stumble/i)).toBeInTheDocument();
+    // "leg" has 2 attempts (c2 + c3), 0 correct → it should surface as the stumble.
+    expect(screen.getByText(/Leg cases — 0%/i)).toBeInTheDocument();
   });
 
-  it('does not celebrate on revisit when streak has not crossed', () => {
-    window.localStorage.setItem('pigmemento.streakMilestone.lastSeen', '3');
+  it('renders the recent attempts journal with rows linked to review', () => {
     mockedUseCaseHistory.mockReturnValue({
-      data: stubCasesWithConsecutiveDays(3),
+      data: stubAttempts(),
     } as ReturnType<typeof useCaseHistory>);
 
     renderDashboard();
 
-    const card = document.querySelector('[data-streak-card]');
-    expect(card).not.toBeNull();
-    expect(card).not.toHaveAttribute('data-celebrating', 'true');
+    expect(screen.getByText(/Recent attempts/i)).toBeInTheDocument();
+    expect(screen.getByText(/CASE · c1/i)).toBeInTheDocument();
+    expect(screen.getByText(/CASE · c2/i)).toBeInTheDocument();
   });
 
-  it('silently backfills on first-ever mount (empty localStorage, streak >= threshold, no celebration)', () => {
+  it('renders the 12-week calendar heatmap', () => {
     mockedUseCaseHistory.mockReturnValue({
-      data: stubCasesWithConsecutiveDays(10),
+      data: stubAttempts(),
     } as ReturnType<typeof useCaseHistory>);
 
     renderDashboard();
 
-    const card = document.querySelector('[data-streak-card]');
-    expect(card).not.toBeNull();
-    expect(card).not.toHaveAttribute('data-celebrating', 'true');
-    // But the badge is still shown — milestone exists, just no celebration.
-    expect(screen.getByText(/first week/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('grid', { name: /activity over the last 12 weeks/i }),
+    ).toBeInTheDocument();
   });
 
-  it('renders a ring-fill SoftCircleReveal next to the accuracy number', () => {
+  it('renders the footer with total cases', () => {
     mockedUseCaseHistory.mockReturnValue({
-      data: stubCases(),
+      data: stubAttempts(),
     } as ReturnType<typeof useCaseHistory>);
 
     renderDashboard();
 
-    const ring = screen.getByRole('progressbar');
-    expect(ring).toHaveAttribute('aria-valuenow', '50');
+    expect(screen.getByText(/total cases: 3/i)).toBeInTheDocument();
+  });
+
+  it('shows an empty state when the user has no attempts yet', () => {
+    mockedUseCaseHistory.mockReturnValue({
+      data: [],
+    } as unknown as ReturnType<typeof useCaseHistory>);
+
+    renderDashboard();
+
+    expect(
+      screen.getByText(/No attempts yet\. Start your first case/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /Start a case/i }),
+    ).toBeInTheDocument();
   });
 });

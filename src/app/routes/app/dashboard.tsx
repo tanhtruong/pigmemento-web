@@ -1,42 +1,15 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router';
+import { jwtDecode } from 'jwt-decode';
+import { ArrowRight, ArrowUpRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Hairline } from '@/components/foundation/hairline';
+import { CalendarHeatmap } from '@/components/signature/calendar-heatmap';
 import { paths } from '@/config/paths';
 import { useCaseHistory } from '@/features/cases/api/use-case-history.ts';
 import type { CaseListItem } from '@/features/cases/types/case-list-item.ts';
-import { Badge } from '@/components/ui/badge.tsx';
-import { NumberTicker } from '@/components/motion/number-ticker.tsx';
-import { SoftCircleReveal } from '@/components/motion/soft-circle-reveal.tsx';
-import { AnimatePresence, LayoutGroup, motion } from 'motion/react';
-
-import { motionTokens } from '@/lib/motion-tokens.ts';
-import { useStreakMilestone } from '@/features/cases/hooks/use-streak-milestone.ts';
-import { milestoneLabel } from '@/lib/streak-milestone.ts';
-
-const formatMs = (ms: number) => {
-  const s = Math.round(ms / 100) / 10;
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  const rem = Math.round((s - m * 60) * 10) / 10;
-  return `${m}m ${rem}s`;
-};
-
-const formatDateTime = (iso: string) => {
-  const d = new Date(iso);
-  return d.toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
-const startOfDay = (d: Date) =>
-  new Date(d.getFullYear(), d.getMonth(), d.getDate());
+import { cn } from '@/lib/utils';
 
 type AttemptedCaseListItem = CaseListItem & {
   lastAttempt: NonNullable<CaseListItem['lastAttempt']>;
@@ -45,19 +18,45 @@ type AttemptedCaseListItem = CaseListItem & {
 const isAttempted = (c: CaseListItem): c is AttemptedCaseListItem =>
   Boolean(c.lastAttempt);
 
-const Dashboard = () => {
-  const todayLabel = useMemo(
-    () =>
-      new Date().toLocaleDateString(undefined, {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }),
-    [],
-  );
+const startOfDay = (d: Date) =>
+  new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
+const isoDay = (d: Date) => startOfDay(d).toISOString().slice(0, 10);
+
+const firstNameFromToken = (): string | null => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    const decoded = jwtDecode<{ name?: string; email?: string }>(token);
+    const first = decoded.name?.split(/\s+/)[0];
+    if (first) return first;
+    if (decoded.email) return decoded.email.split('@')[0];
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const formatRelative = (iso: string): string => {
+  const d = new Date(iso).getTime();
+  const diff = Math.max(0, Date.now() - d);
+  const m = Math.floor(diff / 60_000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const days = Math.floor(h / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: 'short',
+    day: '2-digit',
+  });
+};
+
+const Dashboard = () => {
   const { data: caseHistory = [] } = useCaseHistory();
+
+  const firstName = useMemo(() => firstNameFromToken(), []);
 
   const attemptedCases = useMemo(
     () => caseHistory.filter(isAttempted),
@@ -66,58 +65,87 @@ const Dashboard = () => {
 
   const metrics = useMemo(() => {
     const attempts = attemptedCases.map((c) => c.lastAttempt);
+    const todayStart = startOfDay(new Date()).getTime();
+    const weekStart = todayStart - 6 * 86_400_000;
+    const monthStart = todayStart - 29 * 86_400_000;
 
-    const attempts7d = attempts.filter((a) => {
-      const d = new Date(a.createdAt);
-      return Date.now() - d.getTime() <= 1000 * 60 * 60 * 24 * 7;
-    });
-
-    const attemptsToday = attempts.filter((a) => {
-      const d = new Date(a.createdAt);
-      return d.getTime() >= startOfDay(new Date()).getTime();
-    });
-
-    const correct7d = attempts7d.filter((a) => a.correct).length;
-    const accuracy7d = attempts7d.length
-      ? Math.round((correct7d / attempts7d.length) * 100)
-      : 0;
-
-    const avgTimeMs = attempts7d.length
-      ? Math.round(
-          attempts7d.reduce((sum, a) => sum + a.timeToAnswerMs, 0) /
-            attempts7d.length,
-        )
-      : 0;
-
-    // Simple streak heuristic using attempt dates (replace with server truth later)
-    const uniqueDays = Array.from(
-      new Set(
-        attempts
-          .map((a) => startOfDay(new Date(a.createdAt)).getTime())
-          .sort((x, y) => y - x),
-      ),
+    const today = attempts.filter(
+      (a) => new Date(a.createdAt).getTime() >= todayStart,
+    );
+    const week = attempts.filter(
+      (a) => new Date(a.createdAt).getTime() >= weekStart,
+    );
+    const month = attempts.filter(
+      (a) => new Date(a.createdAt).getTime() >= monthStart,
     );
 
-    let streak = 0;
-    const today = startOfDay(new Date()).getTime();
-    for (let i = 0; i < uniqueDays.length; i += 1) {
-      const expected = today - streak * 24 * 60 * 60 * 1000;
-      if (uniqueDays[i] === expected) streak += 1;
-      else break;
-    }
+    const accuracy = (list: typeof attempts) =>
+      list.length
+        ? Math.round((list.filter((a) => a.correct).length / list.length) * 100)
+        : 0;
 
     return {
-      attempts7d: attempts7d.length,
-      attemptsToday: attemptsToday.length,
-      accuracy7d,
-      avgTimeMs,
-      streak,
+      totalCases: attempts.length,
+      totalMs: attempts.reduce((s, a) => s + (a.timeToAnswerMs ?? 0), 0),
+      today: today.length,
+      week: week.length,
+      month: month.length,
+      accuracy7d: accuracy(week),
+      accuracyPriorWeek: accuracy(
+        attempts.filter((a) => {
+          const t = new Date(a.createdAt).getTime();
+          return t < weekStart && t >= weekStart - 7 * 86_400_000;
+        }),
+      ),
     };
   }, [attemptedCases]);
 
-  const { milestone, isCelebrating } = useStreakMilestone(metrics.streak);
+  // Daily counts for the 14-day sparkline + 12-week heatmap.
+  const dailyCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const c of attemptedCases) {
+      const key = isoDay(new Date(c.lastAttempt.createdAt));
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts;
+  }, [attemptedCases]);
 
-  const recentAttemptedCases = useMemo(() => {
+  const sparkline14d = useMemo(() => {
+    const today = startOfDay(new Date());
+    const values: number[] = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      values.push(dailyCounts[isoDay(d)] ?? 0);
+    }
+    return values;
+  }, [dailyCounts]);
+
+  // Pattern intelligence — accuracy delta by site (proxy for "category").
+  const stumblePanel = useMemo(() => {
+    const bySite: Record<string, { correct: number; total: number }> = {};
+    for (const a of attemptedCases) {
+      const site = a.site || 'other';
+      const slot = bySite[site] ?? { correct: 0, total: 0 };
+      slot.total += 1;
+      if (a.lastAttempt.correct) slot.correct += 1;
+      bySite[site] = slot;
+    }
+    const sites = Object.entries(bySite)
+      .filter(([, s]) => s.total >= 2)
+      .map(([site, s]) => ({
+        site,
+        accuracy: Math.round((s.correct / s.total) * 100),
+        total: s.total,
+      }))
+      .sort((a, b) => a.accuracy - b.accuracy);
+
+    if (sites.length === 0) return null;
+    const lowest = sites[0];
+    return lowest;
+  }, [attemptedCases]);
+
+  const recentAttempts = useMemo(() => {
     return attemptedCases
       .slice()
       .sort(
@@ -125,264 +153,266 @@ const Dashboard = () => {
           new Date(b.lastAttempt.createdAt).getTime() -
           new Date(a.lastAttempt.createdAt).getTime(),
       )
-      .slice(0, 10);
+      .slice(0, 5);
   }, [attemptedCases]);
 
-  return (
-    <div className="flex h-full min-h-0 flex-col gap-5 bg-background py-4 sm:py-6 text-left text-foreground md:overflow-hidden">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Welcome back</h1>
-          <p className="text-muted-foreground">Today is {todayLabel}</p>
-        </div>
+  const accuracyDelta = metrics.accuracy7d - metrics.accuracyPriorWeek;
 
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button asChild variant="secondary" className="w-full sm:w-auto">
-            <Link to={paths.app.profile.getHref()}>Profile</Link>
+  const totalStudyMinutes = Math.round(metrics.totalMs / 60_000);
+
+  return (
+    <article className="flex flex-col gap-12 py-4">
+      {/* 1. Greeting + suggested next */}
+      <header className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <p className="text-primary font-mono text-[0.6875rem] tracking-[0.18em] uppercase">
+            Progress
+          </p>
+          <h1 className="font-display text-4xl leading-tight sm:text-5xl">
+            {firstName ? `Good to see you, ${firstName}.` : 'Good to see you.'}
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            {metrics.today > 0
+              ? `You've completed ${metrics.today} ${metrics.today === 1 ? 'case' : 'cases'} today. Keep the pattern alive.`
+              : 'Start your first case — short sessions compound fast.'}
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Button asChild size="lg" className="sm:w-fit">
+            <Link to={paths.app['case-random'].getHref()}>
+              {metrics.today > 0 ? 'Continue practicing' : 'Start a case'}
+              <ArrowRight />
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="lg" className="sm:w-fit">
+            <Link to={paths.app['case-drill'].getHref()}>Start a drill</Link>
           </Button>
         </div>
       </header>
-      <div className="flex min-h-0 flex-1 flex-col gap-6">
-        <section className="grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <Card className="border-primary/15 bg-primary/5 transition-all duration-150 ease-out hover:bg-primary/10 hover:-translate-y-px hover:shadow-md motion-reduce:transform-none motion-reduce:hover:transform-none">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Accuracy (7d)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <div className="text-2xl font-semibold tabular-nums text-primary sm:text-3xl">
-                  <NumberTicker
-                    value={metrics.accuracy7d}
-                    formatValue={(n) => `${n}%`}
-                  />
-                </div>
-                <SoftCircleReveal
-                  configuration="ring-fill"
-                  percentage={metrics.accuracy7d}
-                  size={48}
-                />
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Based on your last 7 days of attempts.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="border-primary/15 bg-primary/5 transition-all duration-150 ease-out hover:bg-primary/10 hover:-translate-y-px hover:shadow-md motion-reduce:transform-none motion-reduce:hover:transform-none">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Attempts (today)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-primary sm:text-3xl">
-                <NumberTicker value={metrics.attemptsToday} />
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Keep going—short sessions compound.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="border-primary/15 bg-primary/5 transition-all duration-150 ease-out hover:bg-primary/10 hover:-translate-y-px hover:shadow-md motion-reduce:transform-none motion-reduce:hover:transform-none">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Avg time (7d)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-primary sm:text-3xl">
-                {metrics.avgTimeMs ? (
-                  <NumberTicker
-                    value={metrics.avgTimeMs}
-                    formatValue={formatMs}
-                  />
-                ) : (
-                  '—'
-                )}
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Speed matters less than consistency.
-              </p>
-            </CardContent>
-          </Card>
-          <Card
-            data-streak-card
-            data-celebrating={isCelebrating ? 'true' : undefined}
-            className={
-              'relative border-primary/15 bg-primary/5 transition-all duration-150 ease-out hover:bg-primary/10 hover:-translate-y-px hover:shadow-md motion-reduce:transform-none motion-reduce:hover:transform-none ' +
-              (isCelebrating
-                ? '-translate-y-1 shadow-lg ring-2 ring-primary/40 motion-reduce:translate-y-0 motion-reduce:ring-1'
-                : '')
-            }
+
+      <Hairline />
+
+      {/* 2. One hero metric */}
+      <section className="grid gap-8 sm:grid-cols-[1fr_2fr]">
+        <div className="flex flex-col gap-2">
+          <p className="text-muted-foreground font-mono text-[0.6875rem] tracking-[0.18em] uppercase">
+            Today
+          </p>
+          <p className="font-display text-foreground text-6xl leading-none tabular-nums sm:text-7xl">
+            {metrics.today}
+          </p>
+          <p className="text-muted-foreground text-xs">
+            {metrics.week} this week · {metrics.month} this month
+          </p>
+        </div>
+        <div className="flex flex-col justify-end gap-2">
+          <p className="text-muted-foreground font-mono text-[0.6875rem] tracking-[0.18em] uppercase">
+            Last 14 days
+          </p>
+          <Sparkline values={sparkline14d} />
+        </div>
+      </section>
+
+      <Hairline />
+
+      {/* 3. Where you're growing / Where you stumble */}
+      <section className="grid gap-4 sm:grid-cols-2">
+        <PatternPanel
+          eyebrow="Where you're growing"
+          dotClass="bg-correct"
+          headline={
+            metrics.accuracy7d > 0
+              ? `Accuracy this week — ${metrics.accuracy7d}%`
+              : 'No 7-day signal yet.'
+          }
+          detail={
+            metrics.accuracyPriorWeek > 0
+              ? `${accuracyDelta >= 0 ? '+' : ''}${accuracyDelta} pts vs the prior week.`
+              : 'Practice a few more cases to see the trend.'
+          }
+        />
+        <PatternPanel
+          eyebrow="Where you stumble"
+          dotClass="bg-incorrect"
+          headline={
+            stumblePanel
+              ? `${capitalize(stumblePanel.site)} cases — ${stumblePanel.accuracy}%`
+              : 'No pattern yet.'
+          }
+          detail={
+            stumblePanel
+              ? `Across ${stumblePanel.total} attempts. Drilling this category sharpens the call fastest.`
+              : 'Keep going — patterns surface after a few more attempts.'
+          }
+          cta={
+            stumblePanel ? (
+              <Button asChild variant="ghost" size="sm" className="-ml-2 mt-1">
+                <Link to={paths.app.cases.getHref()}>
+                  Drill {stumblePanel.site} cases
+                  <ArrowUpRight />
+                </Link>
+              </Button>
+            ) : null
+          }
+        />
+      </section>
+
+      <Hairline />
+
+      {/* 4. Recent attempts journal */}
+      <section className="flex flex-col gap-4">
+        <div className="flex items-baseline justify-between">
+          <p className="text-muted-foreground font-mono text-[0.6875rem] tracking-[0.18em] uppercase">
+            Recent attempts
+          </p>
+          <Link
+            to={paths.app.cases.getHref()}
+            className="text-muted-foreground hover:text-foreground text-xs transition-colors"
           >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Streak
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-semibold tabular-nums text-primary sm:text-3xl">
-                <NumberTicker value={metrics.streak} /> day
-                {metrics.streak === 1 ? '' : 's'}
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Train daily to build pattern recognition.
-              </p>
-              {milestone && (
-                <Badge
-                  variant="secondary"
-                  className="absolute right-3 top-3 rounded-full text-[10px] font-medium uppercase tracking-wide"
-                >
-                  {milestoneLabel(milestone)}
-                </Badge>
-              )}
-            </CardContent>
-          </Card>
-        </section>
+            See all →
+          </Link>
+        </div>
+        {recentAttempts.length === 0 ? (
+          <p className="text-muted-foreground text-sm">
+            No attempts yet. Start your first case to begin your journal.
+          </p>
+        ) : (
+          <ul className="flex flex-col">
+            {recentAttempts.map((c, i) => {
+              const correct = c.lastAttempt.correct;
+              const skipped = c.lastAttempt.chosenLabel === 'skipped';
+              return (
+                <li key={c.id}>
+                  {i > 0 && <Hairline />}
+                  <Link
+                    to={paths.app['case-review'].getHref(c.id)}
+                    className="hover:bg-accent/40 group/row flex items-center gap-4 py-3 transition-colors"
+                  >
+                    <div className="bg-muted/40 border-hairline relative h-12 w-12 shrink-0 overflow-hidden rounded-input border">
+                      <img
+                        src={c.imageUrl}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-foreground font-mono text-xs">
+                        CASE · {c.id}
+                      </p>
+                      <p className="text-muted-foreground truncate text-xs">
+                        {capitalize(c.site)} · {c.patientAge}y
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        'inline-block h-2 w-2 shrink-0 rounded-full',
+                        skipped
+                          ? 'bg-muted-foreground'
+                          : correct
+                            ? 'bg-correct'
+                            : 'bg-incorrect',
+                      )}
+                      aria-hidden
+                    />
+                    <span className="text-muted-foreground shrink-0 font-mono text-[0.65rem] tabular-nums">
+                      {formatRelative(c.lastAttempt.createdAt)}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
-        <section className="grid min-h-0 gap-4 sm:gap-5 lg:grid-cols-3">
-          <Card className="lg:col-span-2 flex flex-col md:min-h-0">
-            <CardHeader>
-              <CardTitle>Recent activity</CardTitle>
-            </CardHeader>
-            <CardContent className="md:min-h-0 md:flex-1 md:overflow-y-auto md:overscroll-contain">
-              {recentAttemptedCases.length === 0 ? (
-                <div className="text-sm text-muted-foreground">
-                  No attempts yet. Start a quiz to see your activity here.
-                </div>
-              ) : (
-                <LayoutGroup>
-                  <motion.ul layout className="space-y-3 list-none p-0">
-                    <AnimatePresence initial={false}>
-                      {recentAttemptedCases.map((c) => (
-                        <motion.li
-                          key={c.id}
-                          layout
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          transition={motionTokens.normal}
-                          className="rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/40"
-                        >
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-                            <div>
-                              <div className="text-sm font-medium">
-                                Case {c.id}
-                              </div>
-                              <div className="mt-1 text-xs text-muted-foreground">
-                                {formatDateTime(c.lastAttempt.createdAt)}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-sm font-medium">
-                                <Badge
-                                  variant={
-                                    c.lastAttempt.correct
-                                      ? 'default'
-                                      : 'secondary'
-                                  }
-                                  className="rounded-full"
-                                >
-                                  {c.lastAttempt.correct
-                                    ? 'Correct'
-                                    : 'Incorrect'}
-                                </Badge>
-                              </div>
-                              <div className="mt-1 text-xs text-muted-foreground">
-                                {formatMs(c.lastAttempt.timeToAnswerMs)}
-                              </div>
-                            </div>
-                          </div>
+      <Hairline />
 
-                          <Separator className="my-3" />
+      {/* 5. Calendar heatmap */}
+      <section className="flex flex-col gap-4">
+        <div className="flex items-baseline justify-between">
+          <p className="text-muted-foreground font-mono text-[0.6875rem] tracking-[0.18em] uppercase">
+            Last 12 weeks
+          </p>
+          <p className="text-muted-foreground font-mono text-[0.65rem] tabular-nums">
+            {Object.keys(dailyCounts).length} active days
+          </p>
+        </div>
+        <CalendarHeatmap data={dailyCounts} weeks={12} />
+      </section>
 
-                          <div className="flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                            <div className="space-y-1">
-                              <div>
-                                Your answer:{' '}
-                                <span className="font-medium text-foreground">
-                                  {c.lastAttempt.chosenLabel}
-                                </span>
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {c.difficulty} • {c.site} • {c.patientAge}y
-                              </div>
-                            </div>
-                            <div>
-                              <Link
-                                to={paths.app['case-review'].getHref(c.id)}
-                                className="text-primary underline underline-offset-4 transition-opacity hover:opacity-80"
-                              >
-                                Review case
-                              </Link>
-                            </div>
-                          </div>
-                        </motion.li>
-                      ))}
-                    </AnimatePresence>
-                  </motion.ul>
-                </LayoutGroup>
-              )}
-            </CardContent>
-          </Card>
+      <Hairline />
 
-          <Card className="h-fit">
-            <CardHeader>
-              <CardTitle>Next steps</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/40">
-                <div className="text-sm font-medium">Start a case</div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Jump into a random case.
-                </p>
-                <div className="mt-3">
-                  <Button size="sm" asChild className="shadow-sm">
-                    <Link to={paths.app['case-random'].getHref()}>
-                      Start case
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-              <div className="rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/40">
-                <div className="text-sm font-medium">Case drill</div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Choose an amount of cases to do back-to-back. Focus on pattern
-                  recognition, not perfection.
-                </p>
-                <div className="mt-3">
-                  <Button asChild size="sm">
-                    <Link to={paths.app['case-drill'].getHref()}>
-                      Start drill
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-              <div className="rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/40">
-                <div className="text-sm font-medium">Review your misses</div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Revisit incorrect answers—this is where learning happens.
-                </p>
-                <div className="mt-3">
-                  <Button asChild size="sm" variant="secondary">
-                    <Link to={paths.app.profile.getHref()}>Open progress</Link>
-                  </Button>
-                </div>
-              </div>
-
-              <div className="text-xs text-muted-foreground">
-                <p>
-                  Educational use only — not for diagnosis or clinical
-                  decision-making.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-      </div>
-    </div>
+      {/* 6. Footer Geist Mono totals */}
+      <footer className="text-muted-foreground font-mono text-[0.6875rem] tracking-wider uppercase">
+        Total cases: {metrics.totalCases} · Total study time:{' '}
+        {totalStudyMinutes < 60
+          ? `${totalStudyMinutes}m`
+          : `${Math.floor(totalStudyMinutes / 60)}h ${totalStudyMinutes % 60}m`}
+      </footer>
+    </article>
   );
 };
 
 export default Dashboard;
+
+/* ────────────────────────────────────────────────────────────────────────── */
+
+const capitalize = (s: string) =>
+  s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
+const Sparkline = ({ values }: { values: number[] }) => {
+  const max = Math.max(1, ...values);
+  const w = 100;
+  const h = 28;
+  const step = values.length > 1 ? w / (values.length - 1) : 0;
+  const points = values
+    .map((v, i) => `${(i * step).toFixed(2)},${(h - (v / max) * h).toFixed(2)}`)
+    .join(' ');
+  const lastX = (values.length - 1) * step;
+  const lastY = h - (values[values.length - 1] / max) * h;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="text-primary w-full" aria-hidden>
+      <polyline
+        points={points}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.2}
+        vectorEffect="non-scaling-stroke"
+      />
+      <circle
+        cx={lastX}
+        cy={lastY}
+        r={1.6}
+        fill="currentColor"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+};
+
+const PatternPanel = ({
+  eyebrow,
+  dotClass,
+  headline,
+  detail,
+  cta,
+}: {
+  eyebrow: string;
+  dotClass: string;
+  headline: string;
+  detail: string;
+  cta?: React.ReactNode;
+}) => (
+  <div className="border-hairline shadow-warm-sm flex flex-col gap-2 rounded-card border bg-card p-5">
+    <div className="text-muted-foreground flex items-center gap-2 font-mono text-[0.65rem] tracking-wider uppercase">
+      <span className={cn('inline-block h-1.5 w-1.5 rounded-full', dotClass)} />
+      {eyebrow}
+    </div>
+    <p className="font-display text-foreground text-xl leading-tight">
+      {headline}
+    </p>
+    <p className="text-muted-foreground text-sm">{detail}</p>
+    {cta}
+  </div>
+);
