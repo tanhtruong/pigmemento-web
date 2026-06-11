@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { CaseLesionFrame } from '@/components/cases/case-lesion-frame.tsx';
 import { AnswerRevealSweep } from '@/components/motion/answer-reveal-sweep.tsx';
+import { AnnotatedRevealOverlay } from '@/components/motion/annotated-reveal-overlay.tsx';
+import { hasAbcdeFeatures } from '@/features/cases/types/abcde-feature.ts';
 import { Link, useNavigate, useParams } from 'react-router';
 import { CheckCircle2, XCircle } from 'lucide-react';
 
@@ -226,7 +228,13 @@ export const CaseReviewScene = () => {
               <CaseLesionFrame
                 imageSrc={caseItem.imageUrl}
                 imageAlt={`Case ${caseItem.id}`}
-                overlay={<AnswerRevealSweep />}
+                overlay={
+                  hasAbcdeFeatures(caseItem) ? (
+                    <AnnotatedRevealOverlay features={caseItem.abcdeFeatures} />
+                  ) : (
+                    <AnswerRevealSweep />
+                  )
+                }
               />
             </CardContent>
           </Card>
