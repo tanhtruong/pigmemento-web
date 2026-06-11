@@ -1,4 +1,6 @@
 import { Outlet } from 'react-router';
+import { useEffect } from 'react';
+
 import { PublicFooter } from '@/components/layouts/public-footer.tsx';
 import { PublicHeader } from '@/components/layouts/public-header.tsx';
 import { GrainOverlay } from '@/components/foundation/grain-overlay.tsx';
@@ -13,6 +15,14 @@ import { GrainOverlay } from '@/components/foundation/grain-overlay.tsx';
  * deliberate first impression.)
  */
 export const PublicLayout = () => {
+  // Pin `.dark` on <body> so Radix portals (dialogs, popovers etc.) inherit
+  // the cinematic graphite tokens. The `.dark` class on this div alone
+  // doesn't reach portaled content.
+  useEffect(() => {
+    document.body.classList.add('dark');
+    return () => document.body.classList.remove('dark');
+  }, []);
+
   return (
     <div className="dark bg-background text-foreground relative isolate flex min-h-screen flex-col">
       <GrainOverlay intensity={1.4} />

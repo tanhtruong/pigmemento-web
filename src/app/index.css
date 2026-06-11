@@ -91,8 +91,16 @@
 
 /* ---------------------------------------------------------------------------
  * LIGHT — the app surface (Things 3 × iOS, bone-warm, tactile)
+ *
+ * Selectors:
+ *   :root       — global default when next-themes hasn't promoted any class yet.
+ *   .light      — explicit local override. Used by AppShell to force light even
+ *                 when an ancestor (typically <html>) carries `class="dark"`.
+ *                 Per spec section 2, the app is light-first regardless of the
+ *                 user's system preference.
  * ------------------------------------------------------------------------ */
-:root {
+:root,
+.light {
   --radius: 0.625rem;
 
   /* Bone-warm neutrals */
