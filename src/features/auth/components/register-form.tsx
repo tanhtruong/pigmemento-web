@@ -19,7 +19,8 @@ import { paths } from '@/config/paths';
 import { cn } from '@/lib/utils';
 import { RegisterDto } from '../types/auth';
 import { registerSchema } from '../schemas/auth';
-import { useRegister } from '../hooks/use-auth';
+import { useAuthRedirectTarget, useRegister } from '../hooks/use-auth';
+import { useAuthTransition } from './auth-transition-context';
 
 const RegisterForm = ({ className, ...props }: ComponentProps<'div'>) => {
   const form = useForm<RegisterDto>({
@@ -33,11 +34,13 @@ const RegisterForm = ({ className, ...props }: ComponentProps<'div'>) => {
   });
 
   const { mutate: register, isPending, isError } = useRegister();
+  const { fadeToLight } = useAuthTransition();
+  const destination = useAuthRedirectTarget();
 
   const onSubmit = (data: RegisterDto) => {
     const { confirmPassword: _confirmPassword, ...dto } = data;
     void _confirmPassword;
-    register(dto);
+    register(dto, { onSuccess: () => fadeToLight(destination) });
   };
 
   return (

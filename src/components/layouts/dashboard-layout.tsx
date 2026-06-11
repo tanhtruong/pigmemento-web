@@ -8,6 +8,7 @@ import { AppCommandPalette } from '@/components/layouts/app-command-palette.tsx'
 import { AppStartACaseButton } from '@/components/layouts/app-start-a-case-button.tsx';
 import { AmberFAB } from '@/components/signature/amber-fab.tsx';
 import { GrainOverlay } from '@/components/foundation/grain-overlay.tsx';
+import { SkipToContent } from '@/components/foundation/skip-to-content.tsx';
 import { useStreak } from '@/features/cases/hooks/use-streak.ts';
 import { paths } from '@/config/paths.ts';
 import { cn } from '@/lib/utils.ts';
@@ -72,6 +73,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       )}
     >
       <Helmet title="Pigmemento" />
+      <SkipToContent />
       {/* Paper-warm grain — 1% opacity, free, the secret-sauce material texture */}
       <GrainOverlay intensity={0.9} />
 
@@ -80,7 +82,11 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         streak={streak}
       />
 
-      <main className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 md:py-10">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 py-6 focus:outline-none sm:px-6 md:py-10"
+      >
         {children}
       </main>
 

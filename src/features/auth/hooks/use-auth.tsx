@@ -5,11 +5,27 @@ import { toast } from 'sonner';
 import { AuthResponse, LoginDto, RegisterPayload } from '../types/auth';
 import api from '@/lib/axios';
 
-export const useLogin = () => {
-  const navigate = useNavigate();
+/**
+ * Login + register mutations.
+ *
+ * Both return the React-Query mutation as-is and do NOT navigate on
+ * success — the caller decides what to do with the authenticated state.
+ * The AuthLayout uses this to fire its dark→light fade-through before
+ * actually routing to the app shell.
+ *
+ * Callers that just want the legacy behaviour can read the redirect
+ * target from `useAuthRedirectTarget()` and navigate themselves.
+ */
+
+export const useAuthRedirectTarget = (): string => {
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get('redirectTo');
+  return redirectTo && redirectTo.startsWith('/')
+    ? redirectTo
+    : paths.app.dashboard.getHref();
+};
 
+export const useLogin = () => {
   return useMutation({
     mutationFn: async (data: LoginDto) => {
       const res = await api.post<AuthResponse>('/auth/login', data);
@@ -17,12 +33,6 @@ export const useLogin = () => {
       return res.data;
     },
     onSuccess: () => {
-      navigate(
-        `${redirectTo ? `${redirectTo}` : paths.app.dashboard.getHref()}`,
-        {
-          replace: true,
-        },
-      );
       toast('Welcome back!', { closeButton: true });
     },
     onError: (err) => {
@@ -32,24 +42,13 @@ export const useLogin = () => {
 };
 
 export const useRegister = () => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const redirectTo = searchParams.get('redirectTo');
-
   return useMutation({
     mutationFn: async (data: RegisterPayload) => {
       const res = await api.post<AuthResponse>('/auth/register', data);
-      console.log(res.data);
       localStorage.setItem('token', res.data.token);
       return res.data;
     },
     onSuccess: () => {
-      navigate(
-        `${redirectTo ? `${redirectTo}` : paths.app.dashboard.getHref()}`,
-        {
-          replace: true,
-        },
-      );
       toast('Welcome!', { closeButton: true });
     },
     onError: (err) => {

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { PublicFooter } from '@/components/layouts/public-footer.tsx';
 import { PublicHeader } from '@/components/layouts/public-header.tsx';
 import { GrainOverlay } from '@/components/foundation/grain-overlay.tsx';
+import { SkipToContent } from '@/components/foundation/skip-to-content.tsx';
 
 /**
  * Public layout = landing + privacy + any pre-auth surface.
@@ -25,10 +26,15 @@ export const PublicLayout = () => {
 
   return (
     <div className="dark bg-background text-foreground relative isolate flex min-h-screen flex-col">
+      <SkipToContent />
       <GrainOverlay intensity={1.4} />
       <PublicHeader />
 
-      <main className="relative z-10 mx-auto w-full flex-1">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="relative z-10 mx-auto w-full flex-1 focus:outline-none"
+      >
         <Outlet />
       </main>
 

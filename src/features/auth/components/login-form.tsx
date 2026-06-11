@@ -19,7 +19,8 @@ import { paths } from '@/config/paths';
 import { cn } from '@/lib/utils';
 import { LoginDto } from '../types/auth';
 import { loginSchema } from '../schemas/auth';
-import { useLogin } from '../hooks/use-auth';
+import { useAuthRedirectTarget, useLogin } from '../hooks/use-auth';
+import { useAuthTransition } from './auth-transition-context';
 
 export const LoginForm = ({ className, ...props }: ComponentProps<'div'>) => {
   const form = useForm<LoginDto>({
@@ -31,9 +32,11 @@ export const LoginForm = ({ className, ...props }: ComponentProps<'div'>) => {
   });
 
   const { mutate: login, isPending, isError } = useLogin();
+  const { fadeToLight } = useAuthTransition();
+  const destination = useAuthRedirectTarget();
 
   const onSubmit = (data: LoginDto) => {
-    login(data);
+    login(data, { onSuccess: () => fadeToLight(destination) });
   };
 
   return (
