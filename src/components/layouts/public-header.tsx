@@ -1,83 +1,59 @@
-import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { ArrowRight, Menu, X } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useReducedMotion } from 'framer-motion';
 
 import { Button } from '@/components/ui/button.tsx';
 import { paths } from '@/config/paths.ts';
 import { isTokenValid } from '@/lib/auth.tsx';
 
+/**
+ * PublicHeader — the minimal header for non-landing public routes (currently
+ * just /privacy). On the landing route this component renders nothing — the
+ * ScrollRail owns nav there.
+ *
+ * The header strips section-scroll buttons since those anchors only exist on
+ * the landing route. What's left is the brand mark on the left (clickable
+ * "back to home") and the Log in CTA on the right — the two affordances a
+ * user on a legal page actually needs.
+ */
 export const PublicHeader = () => {
   const shouldReduceMotion = useReducedMotion();
   const location = useLocation();
   const navigate = useNavigate();
   const isLoggedIn = isTokenValid();
 
-  const handleStart = () => {
-    return isLoggedIn
-      ? paths.app.dashboard.getHref()
-      : paths.auth.login.getHref();
-  };
+  // Landing owns its own scroll-born rail; suppress the standard header here.
+  if (location.pathname === paths.home.path) {
+    return null;
+  }
 
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-
-  const scrollToId = (id: string) => {
-    // If we're not on the landing page, navigate first and let the landing page scroll on mount
-    if (location.pathname !== paths.home.path) {
-      navigate(paths.home.path, { replace: false, state: { scrollTo: id } });
-      return;
-    }
-
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: shouldReduceMotion ? 'auto' : 'smooth' });
-    }
-  };
-
-  const scrollToIdAndClose = (id: string) => {
-    scrollToId(id);
-    setMobileNavOpen(false);
-  };
-
-  // Close mobile nav when navigating to a new route (e.g., Privacy)
-  useEffect(() => {
-    setMobileNavOpen(false);
-  }, [location.pathname]);
-
-  // Ensure legal pages start at the top (SPA navigation preserves scroll position)
-  useEffect(() => {
-    if (location.pathname === paths.privacy.path) {
-      window.scrollTo({ top: 0, behavior: 'auto' });
-    }
-  }, [location.pathname]);
+  const loginHref = isLoggedIn
+    ? paths.app.dashboard.getHref()
+    : paths.auth.login.getHref();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-hairline bg-background/75 backdrop-blur-md">
+    <header className="border-hairline bg-background/75 sticky top-0 z-50 border-b backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-6 py-4">
         <Link
           to={paths.home.path}
           className="flex items-center gap-2 font-semibold tracking-tight"
           aria-label="Pigmemento home"
           onClick={(e) => {
-            // Ensure the landing page is mounted before attempting to scroll to top
             if (location.pathname !== paths.home.path) {
               e.preventDefault();
               navigate(paths.home.path, {
                 replace: false,
                 state: { scrollTo: '__top__' },
               });
-              setMobileNavOpen(false);
               return;
             }
-
             window.scrollTo({
               top: 0,
               behavior: shouldReduceMotion ? 'auto' : 'smooth',
             });
-            setMobileNavOpen(false);
           }}
         >
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-button bg-primary font-display text-primary-foreground">
+          <span className="bg-primary text-primary-foreground font-display inline-flex h-8 w-8 items-center justify-center rounded-button">
             P
           </span>
           <span className="text-foreground text-sm md:text-base">
@@ -85,117 +61,12 @@ export const PublicHeader = () => {
           </span>
         </Link>
 
-        {/* Desktop nav */}
-        <nav
-          className="hidden items-center gap-6 text-sm text-muted-foreground md:flex"
-          aria-label="Primary"
-        >
-          <button
-            type="button"
-            onClick={() => scrollToId('features')}
-            className="transition-colors hover:text-foreground"
-          >
-            Features
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollToId('how')}
-            className="transition-colors hover:text-foreground"
-          >
-            How it works
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollToId('faq')}
-            className="transition-colors hover:text-foreground"
-          >
-            FAQ
-          </button>
-          <Link
-            to={paths.privacy.path}
-            className="transition-colors hover:text-foreground"
-            onClick={() => window.scrollTo({ top: 0, behavior: 'auto' })}
-          >
-            Privacy
+        <Button asChild size="sm">
+          <Link to={loginHref}>
+            Log in <ArrowRight />
           </Link>
-        </nav>
-
-        {/* Desktop CTA */}
-        <div className="hidden items-center gap-2 md:flex">
-          {/*<Button variant="ghost" onClick={() => scrollToId('waitlist')}>
-            Join waitlist
-          </Button>*/}
-          <Button onClick={() => scrollToId('waitlist')} asChild>
-            <Link to={handleStart()}>
-              Log in <ArrowRight />
-            </Link>
-          </Button>
-        </div>
-
-        {/* Mobile menu button */}
-        <button
-          type="button"
-          className="text-muted-foreground hover:bg-accent hover:text-foreground inline-flex items-center justify-center rounded-input p-2 transition-colors md:hidden"
-          aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
-          aria-expanded={mobileNavOpen}
-          onClick={() => setMobileNavOpen((v) => !v)}
-        >
-          {mobileNavOpen ? (
-            <X className="h-5 w-5" />
-          ) : (
-            <Menu className="h-5 w-5" />
-          )}
-        </button>
+        </Button>
       </div>
-
-      {/* Mobile nav panel */}
-      {mobileNavOpen ? (
-        <div className="border-t border-hairline bg-background/95 backdrop-blur-md md:hidden">
-          <div className="mx-auto w-full max-w-6xl px-6 py-4">
-            <div className="flex flex-col gap-3 text-sm text-muted-foreground">
-              <button
-                type="button"
-                onClick={() => scrollToIdAndClose('features')}
-                className="text-left transition-colors hover:text-foreground"
-              >
-                Features
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollToIdAndClose('how')}
-                className="text-left transition-colors hover:text-foreground"
-              >
-                How it works
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollToIdAndClose('faq')}
-                className="text-left transition-colors hover:text-foreground"
-              >
-                FAQ
-              </button>
-              <Link
-                to={paths.privacy.path}
-                className="transition-colors hover:text-foreground"
-                onClick={() => {
-                  window.scrollTo({ top: 0, behavior: 'auto' });
-                  setMobileNavOpen(false);
-                }}
-              >
-                Privacy
-              </Link>
-              {/*<div className="pt-2">
-                <Button
-                  className="w-full"
-                  onClick={() => scrollToIdAndClose('waitlist')}
-                >
-                  Get early access <ArrowRight />
-                </Button>
-              </div>*/}
-            </div>
-          </div>
-        </div>
-      ) : null}
     </header>
   );
 };

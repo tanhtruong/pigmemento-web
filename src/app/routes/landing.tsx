@@ -1,24 +1,19 @@
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { useCallback, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { faqs, features } from '@/lib/landing-seed-data';
+import { faqs } from '@/lib/landing-seed-data';
 import { paths } from '@/config/paths.ts';
 import { Head } from '@/components/seo/head.tsx';
 import { motionDurations } from '@/lib/motion-tokens.ts';
 import { LandingHero } from '@/components/landing/landing-hero.tsx';
-import {
-  TrustStrip,
-  type TrustStripItem,
-} from '@/components/landing/trust-strip.tsx';
+import { loadGsap } from '@/lib/lazy-gsap.ts';
 import { CenterpiecePinned } from '@/components/signature/centerpiece-pinned.tsx';
+import { ScrollRail } from '@/components/landing/scroll-rail.tsx';
+import { LandingLoginFab } from '@/components/landing/landing-login-fab.tsx';
+import { WhyScrubReel } from '@/components/landing/why-scrub-reel.tsx';
+import { FaqPinnedSplit } from '@/components/landing/faq-pinned-split.tsx';
 import { isTokenValid } from '@/lib/auth.tsx';
 
 const LandingRoute = () => {
@@ -61,22 +56,6 @@ const LandingRoute = () => {
     [],
   );
 
-  const fadeUp = useMemo(
-    () =>
-      ({
-        hidden: { opacity: 0, y: 14 },
-        visible: {
-          opacity: 1,
-          y: 0,
-          transition: {
-            duration: shouldReduceMotion ? 0 : motionDurations.considered,
-            ease: [0.2, 0.8, 0.2, 1],
-          },
-        },
-      }) satisfies Variants,
-    [shouldReduceMotion],
-  );
-
   const fadeIn = useMemo(
     () =>
       ({
@@ -92,47 +71,10 @@ const LandingRoute = () => {
     [shouldReduceMotion],
   );
 
-  const stagger = useMemo(
-    () =>
-      ({
-        hidden: {},
-        visible: {
-          transition: {
-            staggerChildren: shouldReduceMotion ? 0 : 0.08,
-            delayChildren: shouldReduceMotion ? 0 : 0.08,
-          },
-        },
-      }) satisfies Variants,
-    [shouldReduceMotion],
-  );
-
-  // Where "Start a case" routes — auth-state aware. Mirrors PublicHeader logic.
+  // Where "Start a case" routes — auth-state aware.
   const primaryHref = isTokenValid()
     ? paths.app.dashboard.getHref()
     : paths.auth.login.getHref();
-
-  const trustStripItems: TrustStripItem[] = useMemo(
-    () => [
-      {
-        value: '2,000+',
-        label: 'Curated dermoscopic cases',
-      },
-      {
-        value: 'ISIC',
-        label: 'Sourced from the ISIC Archive',
-        href: 'https://www.isic-archive.com/',
-      },
-      {
-        value: 'Built with',
-        label: 'Dermatologists & GPs in the loop',
-      },
-      {
-        value: 'For learning',
-        label: 'Educational use only — not for diagnosis',
-      },
-    ],
-    [],
-  );
 
   const scrollToId = useCallback(
     (id: string) => {
@@ -143,6 +85,52 @@ const LandingRoute = () => {
     },
     [shouldReduceMotion],
   );
+
+  // Three pinned ScrollTriggers initialize independently (centerpiece → Why
+  // → FAQ). During the first ~800ms the layout shifts as each pin spacer
+  // wraps its section, and React Router + GSAP can both attempt to "restore"
+  // a scroll position against a stale layout. We hold the page at the top
+  // through that window, then issue a single ScrollTrigger.refresh so every
+  // trigger computes its start against the final document height. After the
+  // hold we let the browser take over again.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const prevRestoration = history.scrollRestoration;
+    history.scrollRestoration = 'manual';
+
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | null = null;
+    let raf = 0;
+
+    const pinTop = () => {
+      if (window.scrollY !== 0) window.scrollTo(0, 0);
+    };
+    pinTop();
+    interval = setInterval(pinTop, 32);
+
+    loadGsap().then(({ ScrollTrigger }) => {
+      if (cancelled) return;
+      // After 800ms the three pinned components have all created their
+      // triggers and the layout is final. Release the scroll hold, refresh,
+      // and the user can scroll normally from scroll 0.
+      raf = window.setTimeout(() => {
+        if (cancelled) return;
+        if (interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+        window.scrollTo(0, 0);
+        ScrollTrigger.refresh();
+      }, 800);
+    });
+
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+      if (raf) clearTimeout(raf);
+      history.scrollRestoration = prevRestoration;
+    };
+  }, []);
 
   useEffect(() => {
     const state = location.state as { scrollTo?: string } | null;
@@ -187,6 +175,14 @@ const LandingRoute = () => {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <Head title="Pigmemento – Melanoma Recognition Training for Clinicians" />
+
+      {/* Scroll-born film-strip rail — replaces the previous PublicHeader on
+          this route. Hidden at the hero, born once the user scrolls past it. */}
+      <ScrollRail />
+
+      {/* Persistent re-entry affordance — bottom-right from page-load. */}
+      <LandingLoginFab />
+
       {/* Hero — question hero with editorial-framed lesion. */}
       <LandingHero
         primaryHref={primaryHref}
@@ -196,17 +192,12 @@ const LandingRoute = () => {
         sourceCredit="ISIC_0000022 · MELANOMA · COURTESY ISIC ARCHIVE"
       />
 
-      {/* Centerpiece — pinned-scroll case walkthrough (PR6). Replaces the
-          previous HowItWorksSection per spec section 9. The id="how" anchor
-          is preserved on the centerpiece so the hero CTA still works. */}
+      {/* Centerpiece — pinned-scroll case walkthrough. The id="how" anchor is
+          the ScrollRail's CASE frame target. */}
       <CenterpiecePinned />
 
-      {/* Trust strip — replaces the previous Stats card-grid (PR2). */}
-      <TrustStrip items={trustStripItems} />
-
-      {/* SEO intro — moved to sr-only per spec section 9. Crawlers still see it;
-          the visible page stays editorial. Visible re-introduction (if any)
-          happens in PR10. */}
+      {/* SEO intro — sr-only. Crawlers see the framing; the visible page
+          stays editorial. */}
       <section className="sr-only">
         <h2>What is Pigmemento?</h2>
         <p>
@@ -221,129 +212,89 @@ const LandingRoute = () => {
         </p>
       </section>
 
-      {/* Features — 4 cards (PR10). */}
+      {/* Why Pigmemento — horizontal scrub reel of 4 beats. Carries the
+          id="why" anchor for the ScrollRail's WHY frame. */}
+      <WhyScrubReel />
+
+      {/* FAQ — pinned split-screen, film-cut transitions. id="faq" target. */}
+      <FaqPinnedSplit faqs={faqs} />
+
+      {/* CTA band — closes the page's narrative loop. The hero asked "Could
+          you spot it?" and the centerpiece answered it with "Diagnosis:
+          Melanoma" in big serif. This band echoes that lockup: a hairline
+          frame with a single serif "?" inside, mono-caps "DIAGNOSIS ·
+          AWAITING" — the user is now Case 002, and their diagnosis is the
+          one missing. Asymmetric editorial layout matches the Why beats and
+          the FAQ split-screen; no gradient backdrop. id="cta" is the
+          ScrollRail's START frame target. */}
       <motion.section
-        id="features"
+        id="cta"
         initial="hidden"
         whileInView="visible"
         viewport={viewportOnce}
-        variants={stagger}
-        className="mx-auto w-full max-w-6xl px-6 py-20 md:py-28"
+        variants={fadeIn}
+        className="border-hairline relative isolate border-t"
       >
-        <motion.div
-          variants={fadeUp}
-          className="mb-12 flex flex-col gap-3 md:max-w-2xl"
-        >
-          <p className="text-primary font-mono text-xs tracking-[0.2em] uppercase">
-            Why Pigmemento
-          </p>
-          <h2 className="font-display text-foreground text-4xl leading-tight md:text-5xl">
-            A study tool that respects your time and your training.
-          </h2>
-        </motion.div>
-        <motion.div
-          variants={fadeIn}
-          className="grid grid-cols-1 gap-6 md:grid-cols-2"
-        >
-          {features.map((feature) => (
-            <motion.div
-              key={feature.title}
-              variants={fadeUp}
-              className="border-hairline shadow-warm dark:surface-card-dark flex flex-col gap-4 rounded-card border bg-card p-7"
-            >
-              <span className="text-primary [&_svg]:h-5 [&_svg]:w-5">
-                {feature.icon}
-              </span>
-              <h3 className="font-display text-foreground text-2xl leading-tight">
-                {feature.title}
-              </h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                {feature.description}
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-14 px-6 py-24 md:grid-cols-[1.3fr_1fr] md:gap-20 md:py-32">
+          {/* LEFT — the copy stack, left-aligned */}
+          <div className="flex flex-col items-start gap-7">
+            <div className="flex items-baseline gap-3">
+              <p className="text-primary font-mono text-[0.7rem] tabular-nums tracking-[0.22em] uppercase">
+                Case 002
               </p>
-            </motion.div>
-          ))}
-        </motion.div>
-      </motion.section>
+              <span className="bg-hairline h-px w-12" aria-hidden />
+              <p className="text-muted-foreground/70 font-mono text-[0.65rem] tracking-[0.22em] uppercase">
+                Your turn
+              </p>
+            </div>
+            <h2 className="font-display text-foreground text-5xl leading-[1.02] tracking-tight md:text-7xl">
+              Ready to spot it?
+            </h2>
+            <p className="text-muted-foreground max-w-md text-base leading-relaxed">
+              Real dermoscopic cases. Real feedback. Ninety seconds at a time.
+            </p>
+            <Button asChild size="lg">
+              <Link to={primaryHref}>
+                Start your first case
+                <ArrowRight />
+              </Link>
+            </Button>
+            <p className="text-muted-foreground/60 mt-1 font-mono text-[0.65rem] tracking-[0.22em] uppercase">
+              For GPs · For trainees · For OSCE prep · Built with dermatologists
+              &amp; GPs
+            </p>
+          </div>
 
-      {/* Who it's for — mantra band (PR10). Replaces the previous 3-card grid. */}
-      <motion.section
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewportOnce}
-        variants={fadeIn}
-        className="border-hairline border-y"
-      >
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-14 md:flex-row md:items-baseline md:justify-between md:py-16">
-          <p className="text-muted-foreground font-mono text-xs tracking-[0.2em] uppercase">
-            Built for
-          </p>
-          <p className="font-display text-foreground max-w-3xl text-2xl leading-tight md:text-3xl">
-            For GPs. For dermatology trainees.{' '}
-            <span className="text-muted-foreground">For OSCE prep.</span>
-          </p>
-        </div>
-      </motion.section>
-
-      {/* FAQ — restyled to editorial accordion (PR10). */}
-      <motion.section
-        id="faq"
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewportOnce}
-        variants={fadeIn}
-        className="mx-auto w-full max-w-3xl px-6 py-20 md:py-28"
-      >
-        <motion.div variants={fadeUp} className="mb-10 flex flex-col gap-3">
-          <p className="text-primary font-mono text-xs tracking-[0.2em] uppercase">
-            FAQ
-          </p>
-          <h2 className="font-display text-foreground text-4xl leading-tight md:text-5xl">
-            Common questions.
-          </h2>
-        </motion.div>
-        <Accordion type="multiple" className="divide-hairline">
-          {faqs.map((faq) => (
-            <AccordionItem
-              key={faq.id.toString()}
-              value={faq.id.toString()}
-              className="border-hairline border-b"
-            >
-              <AccordionTrigger className="text-foreground text-left font-sans text-base hover:no-underline">
-                {faq.question}
-              </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground text-sm leading-relaxed">
-                {faq.answer}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </motion.section>
-
-      {/* CTA band — single full-width amber moment (PR10). */}
-      <motion.section
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewportOnce}
-        variants={fadeIn}
-        className="border-hairline relative isolate overflow-hidden border-t"
-      >
-        <div className="from-primary/8 absolute inset-0 -z-10 bg-gradient-to-br to-transparent" />
-        <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-8 px-6 py-24 text-center md:py-32">
-          <p className="text-primary font-mono text-xs tracking-[0.2em] uppercase">
-            Pattern recognition, case by case
-          </p>
-          <h2 className="font-display text-foreground text-4xl leading-tight md:text-6xl">
-            Ready to spot it?
-          </h2>
-          <p className="text-muted-foreground max-w-xl text-base leading-relaxed">
-            Real dermoscopic cases. Real feedback. 90 seconds at a time.
-          </p>
-          <Button asChild size="lg">
-            <Link to={primaryHref}>
-              Start your first case
-              <ArrowRight />
-            </Link>
-          </Button>
+          {/* RIGHT — the empty-diagnosis lockup. Mirrors the centerpiece's
+              "Melanoma" reveal with a vacant slot the reader has to fill. The
+              hairline frame uses the same vocabulary as the Why beat 04 ring
+              and the ABCDE annotation circles. */}
+          <figure className="relative hidden flex-col items-center md:flex">
+            <div className="border-hairline relative aspect-[4/5] w-full max-w-xs overflow-hidden rounded-card border">
+              {/* Faint amber wash so the frame doesn't read as empty */}
+              <div
+                aria-hidden
+                className="from-primary/[0.04] absolute inset-0 bg-gradient-to-br to-transparent"
+              />
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                <p className="text-primary font-mono text-[0.65rem] tracking-[0.22em] uppercase">
+                  Diagnosis
+                </p>
+                <span
+                  aria-hidden
+                  className="font-display text-foreground/40 text-8xl leading-none italic"
+                >
+                  ?
+                </span>
+                <p className="text-muted-foreground/60 font-mono text-[0.6rem] tracking-[0.22em] uppercase">
+                  Awaiting
+                </p>
+              </div>
+            </div>
+            <figcaption className="text-muted-foreground/70 mt-3 font-mono text-[0.65rem] tracking-[0.22em] uppercase">
+              Case 002 · You
+            </figcaption>
+          </figure>
         </div>
       </motion.section>
     </>

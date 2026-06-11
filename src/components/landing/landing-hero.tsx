@@ -185,8 +185,11 @@ export const LandingHero = ({
               className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.06)_100%)]"
             />
           </div>
-          <figcaption className="text-muted-foreground font-mono text-[0.6875rem] tracking-wider uppercase">
-            {sourceCredit}
+          <figcaption className="text-muted-foreground flex flex-col gap-1 font-mono text-[0.6875rem] tracking-wider uppercase">
+            <span>{sourceCredit}</span>
+            <span className="text-muted-foreground/70">
+              Database · 2,000+ cases · ISIC Archive
+            </span>
           </figcaption>
         </motion.figure>
       </motion.div>
