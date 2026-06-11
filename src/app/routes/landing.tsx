@@ -1,5 +1,3 @@
-import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import {
   Card,
@@ -14,17 +12,19 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
 import { useCallback, useEffect, useMemo } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
-import { faqs, features, stats } from '@/lib/landing-seed-data';
+import { useLocation, useNavigate } from 'react-router';
+import { faqs, features } from '@/lib/landing-seed-data';
 import { paths } from '@/config/paths.ts';
 import { Head } from '@/components/seo/head.tsx';
-import { LandingHeroDevice } from '@/components/motion/landing-hero-device.tsx';
 import { HowItWorksSection } from '@/components/motion/how-it-works-section.tsx';
-import { NumberTicker } from '@/components/motion/number-ticker.tsx';
-import { SoftCircleReveal } from '@/components/motion/soft-circle-reveal.tsx';
 import { motionDurations } from '@/lib/motion-tokens.ts';
+import { LandingHero } from '@/components/landing/landing-hero.tsx';
+import {
+  TrustStrip,
+  type TrustStripItem,
+} from '@/components/landing/trust-strip.tsx';
+import { isTokenValid } from '@/lib/auth.tsx';
 
 const LandingRoute = () => {
   const shouldReduceMotion = useReducedMotion();
@@ -110,6 +110,35 @@ const LandingRoute = () => {
       }) satisfies Variants,
     [shouldReduceMotion],
   );
+
+  // Where "Start a case" routes — auth-state aware. Mirrors PublicHeader logic.
+  const primaryHref = isTokenValid()
+    ? paths.app.dashboard.getHref()
+    : paths.auth.login.getHref();
+
+  const trustStripItems: TrustStripItem[] = useMemo(
+    () => [
+      {
+        value: '2,000+',
+        label: 'Curated dermoscopic cases',
+      },
+      {
+        value: 'ISIC',
+        label: 'Sourced from the ISIC Archive',
+        href: 'https://www.isic-archive.com/',
+      },
+      {
+        value: 'Built with',
+        label: 'Dermatologists & GPs in the loop',
+      },
+      {
+        value: 'For learning',
+        label: 'Educational use only — not for diagnosis',
+      },
+    ],
+    [],
+  );
+
   const scrollToId = useCallback(
     (id: string) => {
       const el = document.getElementById(id);
@@ -163,123 +192,35 @@ const LandingRoute = () => {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <Head title="Pigmemento – Melanoma Recognition Training for Clinicians" />
-      {/* Hero */}
-      <motion.section
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewportOnce}
-        variants={stagger}
-        className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 px-6 py-16 text-center"
-      >
-        <motion.h1
-          variants={fadeUp}
-          className="mx-auto max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl"
-        >
-          Melanoma recognition training for clinicians.{' '}
-          <span className="bg-gradient-to-r from-neutral-900 to-neutral-600 bg-clip-text text-transparent">
-            Case by case.
-          </span>
-        </motion.h1>
-        <motion.p
-          variants={fadeIn}
-          className="mx-auto max-w-2xl text-balance text-base text-neutral-600 md:text-lg"
-        >
-          Short quizzes using real clinical lesion images, guided feedback, and
-          teaching points to improve visual assessment of pigmented lesions.
-          Built for GPs and dermatology trainees. Educational use only - not for
-          diagnosis.
-        </motion.p>
-        <motion.div
-          variants={fadeIn}
-          className="flex flex-wrap items-center justify-center gap-2"
-        >
-          <Badge variant="secondary">Educational use only</Badge>
-          <Badge variant="secondary">Real cases + guided feedback</Badge>
-          <Badge variant="secondary">Works on iOS, Android, and web</Badge>
-        </motion.div>
-        <motion.div
-          variants={fadeIn}
-          className="flex flex-col items-center gap-4 md:flex-row"
-        >
-          <Button onClick={() => scrollToId('waitlist')} asChild>
-            <Link to={paths.auth.login.getHref()}>
-              Try out Pigmemento <ArrowRight />
-            </Link>
-          </Button>
-          <Button variant="ghost" onClick={() => scrollToId('features')}>
-            See how it works <ArrowRight />
-          </Button>
-        </motion.div>
+      {/* Hero — question hero with editorial-framed lesion (PR2). The drag-scrub
+          will return inside the centerpiece pinned-scroll in PR6. */}
+      <LandingHero
+        primaryHref={primaryHref}
+        onSeeHowItWorks={() => scrollToId('how')}
+        imageSrc="/ISIC_0000022.jpg"
+        imageAlt="Dermoscopic image of a pigmented skin lesion"
+        sourceCredit="ISIC_0000022 · MELANOMA · COURTESY ISIC ARCHIVE"
+      />
 
-        {/* Hero device: drag-to-scrub dermoscopy reveal */}
-        <motion.div variants={fadeUp} className="mt-10 w-full">
-          <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-3">
-            <LandingHeroDevice
-              imageSrc="/ISIC_0000022.jpg"
-              imageAlt="Dermoscopic image of a pigmented skin lesion"
-            />
-            <p className="text-xs text-neutral-500">
-              Drag the circle or use ←/→ to scrub between the naked-eye and
-              dermoscopic view.
-            </p>
-          </div>
-        </motion.div>
-      </motion.section>
+      {/* Trust strip — replaces the previous Stats card-grid (PR2). */}
+      <TrustStrip items={trustStripItems} />
 
-      {/* SEO intro */}
-      <section className="mx-auto w-full max-w-6xl px-6 pb-6">
-        <div className="mx-auto max-w-3xl text-center text-sm text-neutral-600">
-          <h2 className="sr-only">What is Pigmemento?</h2>
-          <p>
-            Pigmemento is an educational melanoma recognition trainer designed
-            for clinicians, general practitioners, and dermatology trainees.
-            Practice pattern recognition with case-based drills and structured
-            feedback to help you spot high-risk features.
-          </p>
-          <p className="mt-3">
-            This product is for medical education only and does not provide
-            diagnosis or treatment recommendations.
-          </p>
-        </div>
+      {/* SEO intro — moved to sr-only per spec section 9. Crawlers still see it;
+          the visible page stays editorial. Visible re-introduction (if any)
+          happens in PR10. */}
+      <section className="sr-only">
+        <h2>What is Pigmemento?</h2>
+        <p>
+          Pigmemento is an educational melanoma recognition trainer designed for
+          clinicians, general practitioners, and dermatology trainees. Practice
+          pattern recognition with case-based drills and structured feedback to
+          help you spot high-risk features.
+        </p>
+        <p>
+          This product is for medical education only and does not provide
+          diagnosis or treatment recommendations.
+        </p>
       </section>
-
-      {/* Stats */}
-      <motion.section
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewportOnce}
-        variants={fadeIn}
-        className="border-y bg-neutral-50/60 py-10"
-      >
-        <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-6 px-6 md:grid-cols-4">
-          {stats.map((stat) => (
-            <Card key={stat.label}>
-              <CardContent className="text-center my-auto">
-                <div className="flex items-center justify-center gap-3">
-                  <CardTitle className="text-2xl font-bold">
-                    {stat.tickerValue !== undefined ? (
-                      <NumberTicker
-                        value={stat.tickerValue}
-                        formatValue={stat.formatValue}
-                      />
-                    ) : (
-                      stat.value
-                    )}
-                  </CardTitle>
-                  {stat.percent !== undefined && (
-                    <SoftCircleReveal
-                      configuration="ring-fill"
-                      percentage={stat.percent}
-                      size={36}
-                    />
-                  )}
-                </div>
-                <CardDescription>{stat.label}</CardDescription>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </motion.section>
 
       {/* Who it's for */}
       <motion.section
