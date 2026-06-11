@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { CaseLesionFrame } from '@/components/cases/case-lesion-frame.tsx';
+import { AnswerRevealSweep } from '@/components/motion/answer-reveal-sweep.tsx';
 import { Link, useNavigate, useParams } from 'react-router';
 import { CheckCircle2, XCircle } from 'lucide-react';
 
@@ -211,7 +213,8 @@ export const CaseReviewScene = () => {
 
       <div className="flex-1">
         <div className="grid gap-4 sm:gap-5 lg:grid-cols-3">
-          {/* Image */}
+          {/* Image — wrapped in CaseLesionFrame for layout parity with /case-attempt.
+              The AnswerRevealSweep overlay plays the centerpiece sweep on mount. */}
           <Card className="group lg:col-span-2 border-border bg-card transition-colors hover:bg-muted/40 hover:shadow-sm">
             <CardHeader className="space-y-1">
               <CardTitle>Case image</CardTitle>
@@ -220,13 +223,11 @@ export const CaseReviewScene = () => {
               </p>
             </CardHeader>
             <CardContent>
-              <div className="overflow-hidden rounded-md border border-border bg-card">
-                <img
-                  src={caseItem.imageUrl}
-                  alt={`Case ${caseItem.id}`}
-                  className="w-full object-contain max-h-[60vh] sm:max-h-none transition-transform duration-200 group-hover:scale-[1.01]"
-                />
-              </div>
+              <CaseLesionFrame
+                imageSrc={caseItem.imageUrl}
+                imageAlt={`Case ${caseItem.id}`}
+                overlay={<AnswerRevealSweep />}
+              />
             </CardContent>
           </Card>
 

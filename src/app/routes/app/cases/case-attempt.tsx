@@ -25,6 +25,7 @@ import { useCaseAttemptShortcuts } from '@/features/cases/hooks/use-case-attempt
 import { useQueryClient } from '@tanstack/react-query';
 import { useCaseTimer } from '@/features/cases/hooks/use-case-timer.ts';
 import { queryKeys } from '@/lib/query-keys.ts';
+import { CaseLesionFrame } from '@/components/cases/case-lesion-frame.tsx';
 
 export type Label = 'benign' | 'malignant';
 
@@ -79,14 +80,10 @@ export const CaseAttemptView = ({
               <CardTitle>Image</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="overflow-hidden rounded-lg border">
-                <img
-                  src={caseItem.imageUrl}
-                  alt={`Case ${caseItem.id}`}
-                  className="w-full object-contain max-h-[60vh] sm:max-h-none"
-                  loading="eager"
-                />
-              </div>
+              <CaseLesionFrame
+                imageSrc={caseItem.imageUrl}
+                imageAlt={`Case ${caseItem.id}`}
+              />
             </CardContent>
           </Card>
 
