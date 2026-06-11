@@ -356,47 +356,49 @@ const CaseDrillScene = () => {
 
   if (phase === 'setup') {
     return (
-      <div className="py-4 sm:py-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Case drill</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-3">
-              <div className="text-xs font-medium text-muted-foreground">
-                Number of cases
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-                {[5, 10, 20, 50].map((n) => (
-                  <Button
-                    key={n}
-                    type="button"
-                    variant={targetCount === n ? 'default' : 'secondary'}
-                    onClick={() => setTargetCount(n)}
-                  >
-                    {n}
-                  </Button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Tip: 5–10 cases is a great daily drill.
-              </p>
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-2 sm:flex-row">
-            <Button
-              variant="secondary"
-              className="w-full sm:w-auto"
-              onClick={() => navigate(paths.app.dashboard.getHref())}
-            >
-              Back
-            </Button>
-            <Button className="w-full sm:w-auto" onClick={startDrill}>
-              Start drill
-            </Button>
-          </CardFooter>
-        </Card>
+      <div className="mx-auto flex max-w-2xl flex-col gap-8 py-8 sm:py-12">
+        <header className="flex flex-col gap-2">
+          <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-primary uppercase">
+            Drill
+          </p>
+          <h1 className="font-display text-4xl leading-tight sm:text-5xl">
+            Start a drill.
+          </h1>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            Back-to-back cases that train pattern recognition. 5-10 is a great
+            daily session.
+          </p>
+        </header>
+        <section className="flex flex-col gap-3">
+          <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-muted-foreground uppercase">
+            How many cases
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {[5, 10, 20, 50].map((n) => (
+              <Button
+                key={n}
+                type="button"
+                variant={targetCount === n ? 'default' : 'outline'}
+                onClick={() => setTargetCount(n)}
+              >
+                {n}
+              </Button>
+            ))}
+          </div>
+        </section>
+        <footer className="flex flex-col gap-2 sm:flex-row">
+          <Button size="lg" onClick={startDrill} className="sm:w-fit">
+            Start drill
+          </Button>
+          <Button
+            variant="ghost"
+            size="lg"
+            className="sm:w-fit"
+            onClick={() => navigate(paths.app.dashboard.getHref())}
+          >
+            ← Back
+          </Button>
+        </footer>
       </div>
     );
   }
@@ -407,16 +409,21 @@ const CaseDrillScene = () => {
         <Card>
           <CardHeader className="space-y-2">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <CardTitle>Drill complete</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Nice work — keep it consistent for the best training effect.
+              <div className="flex flex-col gap-1.5">
+                <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-primary uppercase">
+                  Session complete
+                </p>
+                <CardTitle className="font-display text-4xl leading-tight">
+                  Drill complete.
+                </CardTitle>
+                <p className="text-muted-foreground text-sm">
+                  Keep it consistent — short sessions compound.
                 </p>
               </div>
-              <div className="inline-flex items-center gap-2 rounded-full border bg-muted/30 px-2.5 py-1 text-xs font-medium">
-                <CheckCircle2 size={16} />
-                Completed
-              </div>
+              <span className="border-hairline text-muted-foreground inline-flex items-center gap-2 rounded-full border px-2.5 py-1 font-mono text-xs">
+                <CheckCircle2 size={14} />
+                {results.length} / {safeTarget}
+              </span>
             </div>
           </CardHeader>
 
@@ -648,38 +655,35 @@ const CaseDrillScene = () => {
 
   // Running
   return (
-    <div className="flex min-h-0 flex-col gap-4 bg-background py-4 sm:py-6 text-left text-foreground">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Case drill</h1>
-          <div className="space-y-1">
-            <p className="text-muted-foreground">Progress: {progressLabel}</p>
-            <Progress value={Math.round(((index + 1) / safeTarget) * 100)} />
-          </div>
+    <div className="text-foreground flex min-h-0 flex-col gap-6 py-2 text-left">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span className="border-hairline text-foreground inline-flex items-center rounded-full border px-2.5 py-1 font-mono text-xs tabular-nums">
+            {progressLabel}
+          </span>
+          <Progress
+            value={Math.round(((index + 1) / safeTarget) * 100)}
+            className="h-1 w-32"
+          />
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button
-            variant="secondary"
-            className="w-full sm:w-auto"
-            onClick={() => {
-              const ok = window.confirm(
-                'Exit the drill? Your current session will be lost.',
-              );
-              if (!ok) return;
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            const ok = window.confirm(
+              'Exit the drill? Your current session will be lost.',
+            );
+            if (!ok) return;
 
-              setPhase('setup');
-              setResults([]);
-              setIndex(0);
-              setChoice(null);
-              setReveal(null);
-            }}
-          >
-            <span className="hidden sm:inline-flex">
-              <Kbd>ESC</Kbd>
-            </span>{' '}
-            Exit
-          </Button>
-        </div>
+            setPhase('setup');
+            setResults([]);
+            setIndex(0);
+            setChoice(null);
+            setReveal(null);
+          }}
+        >
+          ← Exit drill
+        </Button>
       </header>
       <div className="flex-1">
         {isCaseLoading ? (
