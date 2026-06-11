@@ -1,12 +1,21 @@
 import { useEffect } from 'react';
 
+type Choice = 'benign' | 'malignant' | 'skipped';
+
+/**
+ * Keyboard shortcuts for the case-attempt flow.
+ *
+ * Per spec section 11: tap (or key) = commit. There is no separate Submit
+ * button — pressing B / M / S commits the chosen answer directly.
+ *   N      → load a new random case
+ *   Escape → return to the Library
+ */
 export const useCaseAttemptShortcuts = (opts: {
   enabled: boolean;
-  canSubmit: boolean;
+  /** Disabled when a commit is in-flight. */
   isPending: boolean;
-  onSelectBenign: () => void;
-  onSelectMalignant: () => void;
-  onSubmit: () => void;
+  /** Direct-commit handler. Receives the chosen label. */
+  onCommit: (choice: Choice) => void;
   onNewCase: () => void;
   onExit: () => void;
 }) => {
@@ -18,7 +27,7 @@ export const useCaseAttemptShortcuts = (opts: {
       tag === 'input' ||
       tag === 'textarea' ||
       tag === 'select' ||
-      (node as any).isContentEditable
+      Boolean(node.isContentEditable)
     );
   };
 
@@ -33,20 +42,19 @@ export const useCaseAttemptShortcuts = (opts: {
 
       if (key === 'b') {
         e.preventDefault();
-        if (!opts.isPending) opts.onSelectBenign();
+        if (!opts.isPending) opts.onCommit('benign');
         return;
       }
 
       if (key === 'm') {
         e.preventDefault();
-        if (!opts.isPending) opts.onSelectMalignant();
+        if (!opts.isPending) opts.onCommit('malignant');
         return;
       }
 
-      if (key === 'enter') {
-        if (!opts.canSubmit) return;
+      if (key === 's') {
         e.preventDefault();
-        if (!opts.isPending) opts.onSubmit();
+        if (!opts.isPending) opts.onCommit('skipped');
         return;
       }
 
