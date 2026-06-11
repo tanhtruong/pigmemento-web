@@ -17,13 +17,13 @@ import { useLocation, useNavigate } from 'react-router';
 import { faqs, features } from '@/lib/landing-seed-data';
 import { paths } from '@/config/paths.ts';
 import { Head } from '@/components/seo/head.tsx';
-import { HowItWorksSection } from '@/components/motion/how-it-works-section.tsx';
 import { motionDurations } from '@/lib/motion-tokens.ts';
 import { LandingHero } from '@/components/landing/landing-hero.tsx';
 import {
   TrustStrip,
   type TrustStripItem,
 } from '@/components/landing/trust-strip.tsx';
+import { CenterpiecePinned } from '@/components/signature/centerpiece-pinned.tsx';
 import { isTokenValid } from '@/lib/auth.tsx';
 
 const LandingRoute = () => {
@@ -192,8 +192,7 @@ const LandingRoute = () => {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <Head title="Pigmemento – Melanoma Recognition Training for Clinicians" />
-      {/* Hero — question hero with editorial-framed lesion (PR2). The drag-scrub
-          will return inside the centerpiece pinned-scroll in PR6. */}
+      {/* Hero — question hero with editorial-framed lesion. */}
       <LandingHero
         primaryHref={primaryHref}
         onSeeHowItWorks={() => scrollToId('how')}
@@ -201,6 +200,11 @@ const LandingRoute = () => {
         imageAlt="Dermoscopic image of a pigmented skin lesion"
         sourceCredit="ISIC_0000022 · MELANOMA · COURTESY ISIC ARCHIVE"
       />
+
+      {/* Centerpiece — pinned-scroll case walkthrough (PR6). Replaces the
+          previous HowItWorksSection per spec section 9. The id="how" anchor
+          is preserved on the centerpiece so the hero CTA still works. */}
+      <CenterpiecePinned />
 
       {/* Trust strip — replaces the previous Stats card-grid (PR2). */}
       <TrustStrip items={trustStripItems} />
@@ -312,8 +316,7 @@ const LandingRoute = () => {
         </motion.div>
       </motion.section>
 
-      {/* How it works — pinned scroll narrative (slice #9) */}
-      <HowItWorksSection />
+      {/* How it works — the centerpiece pinned-scroll above replaces this. */}
 
       {/* Waitlist */}
       {/* <motion.section

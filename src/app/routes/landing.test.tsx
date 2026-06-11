@@ -70,11 +70,14 @@ describe('landing route', () => {
     expect(document.querySelector('[data-how-pinned]')).not.toBeNull();
   });
 
-  it('exposes the ISIC source credit beneath the hero lesion', () => {
+  it('exposes the ISIC source credit beneath each lesion image', () => {
     renderLandingRoute();
 
-    expect(
-      screen.getByText(/ISIC_0000022 · MELANOMA · COURTESY ISIC ARCHIVE/),
-    ).toBeInTheDocument();
+    // The hero + centerpiece both render the source credit; that's the
+    // brand-credibility move, both should be present.
+    const credits = screen.getAllByText(
+      /ISIC_0000022 · MELANOMA · COURTESY ISIC ARCHIVE/,
+    );
+    expect(credits.length).toBeGreaterThanOrEqual(1);
   });
 });
