@@ -19,3 +19,20 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
     dispatchEvent: vi.fn(),
   }));
 }
+
+// jsdom doesn't ship IntersectionObserver. Components that use framer-motion's
+// whileInView (e.g. landing route sections) need a no-op so render doesn't throw.
+class MockIntersectionObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+  takeRecords = vi.fn(() => []);
+  root = null;
+  rootMargin = '';
+  thresholds: number[] = [];
+}
+
+if (typeof window !== 'undefined' && !window.IntersectionObserver) {
+  window.IntersectionObserver =
+    MockIntersectionObserver as unknown as typeof IntersectionObserver;
+}

@@ -1,5 +1,11 @@
-import { useState, type CSSProperties, type KeyboardEvent } from 'react';
-import { useReducedMotion } from 'motion/react';
+import {
+  useEffect,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type PointerEvent,
+} from 'react';
+import { animate, useReducedMotion } from 'motion/react';
 
 export type AbcdeFeature = {
   letter: 'A' | 'B' | 'C' | 'D' | 'E';
@@ -19,6 +25,7 @@ type SilentProps = {
   imageAlt: string;
   size?: number;
   interactive?: boolean;
+  autoplay?: boolean;
 };
 
 type AnnotatedProps = {
@@ -34,6 +41,9 @@ type SoftCircleRevealProps = RingFillProps | SilentProps | AnnotatedProps;
 const DEFAULT_SIZE = 800;
 const KEYBOARD_STEP = 5;
 const INITIAL_POSITION = 50;
+const AUTOPLAY_SWEEP_S = 0.48;
+const AUTOPLAY_SETTLE_S = 0.24;
+const SOFT_CIRCLE_EASE: [number, number, number, number] = [0.2, 0.8, 0.2, 1];
 
 const clamp = (value: number) => Math.max(0, Math.min(100, value));
 
@@ -105,6 +115,20 @@ const StaticMask = () => (
   />
 );
 
+const visibleMarkStyle = (position: number): CSSProperties => ({
+  position: 'absolute',
+  left: `${position}%`,
+  top: '50%',
+  transform: 'translate(-50%, -50%)',
+  width: '30%',
+  aspectRatio: '1 / 1',
+  borderRadius: '50%',
+  border: '1px solid color-mix(in oklch, var(--primary) 35%, transparent)',
+  boxShadow:
+    '0 0 0 4px color-mix(in oklch, var(--primary) 8%, transparent), inset 0 0 24px color-mix(in oklch, var(--primary) 6%, transparent)',
+  pointerEvents: 'none',
+});
+
 type SilentRevealInternalProps = SilentProps & {
   boxStyle: CSSProperties;
 };
@@ -113,11 +137,37 @@ const SilentReveal = ({
   imageSrc,
   imageAlt,
   interactive: requestedInteractive,
+  autoplay = false,
   boxStyle,
 }: SilentRevealInternalProps) => {
   const reducedMotion = useReducedMotion();
   const interactive = (requestedInteractive ?? false) && !reducedMotion;
   const [position, setPosition] = useState(INITIAL_POSITION);
+  const [dragging, setDragging] = useState(false);
+
+  useEffect(() => {
+    if (reducedMotion || !autoplay) return;
+
+    setPosition(0);
+    let settleRef: ReturnType<typeof animate> | null = null;
+    const sweep = animate(0, 100, {
+      duration: AUTOPLAY_SWEEP_S,
+      ease: SOFT_CIRCLE_EASE,
+      onUpdate: setPosition,
+      onComplete: () => {
+        settleRef = animate(100, INITIAL_POSITION, {
+          duration: AUTOPLAY_SETTLE_S,
+          ease: SOFT_CIRCLE_EASE,
+          onUpdate: setPosition,
+        });
+      },
+    });
+
+    return () => {
+      sweep.stop();
+      settleRef?.stop();
+    };
+  }, [autoplay, reducedMotion]);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'ArrowRight') {
@@ -129,17 +179,52 @@ const SilentReveal = ({
     }
   };
 
+  const updateFromPointer = (event: PointerEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (rect.width === 0) return;
+    const x = event.clientX - rect.left;
+    setPosition(clamp((x / rect.width) * 100));
+  };
+
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (!interactive) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDragging(true);
+    updateFromPointer(event);
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (!dragging) return;
+    updateFromPointer(event);
+  };
+
+  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    setDragging(false);
+  };
+
+  const roundedPosition = Math.round(position);
+
   const mask = interactive ? (
     <div
       data-testid="soft-circle-mask"
       role="slider"
       aria-label="Reveal position"
-      aria-valuenow={position}
+      aria-valuenow={roundedPosition}
       aria-valuemin={0}
       aria-valuemax={100}
       tabIndex={0}
       onKeyDown={handleKeyDown}
-      style={{ ...STATIC_MASK_STYLE, pointerEvents: 'auto' }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      style={{
+        ...STATIC_MASK_STYLE,
+        pointerEvents: 'auto',
+        cursor: dragging ? 'grabbing' : 'grab',
+        touchAction: 'none',
+      }}
     />
   ) : (
     <StaticMask />
@@ -151,6 +236,7 @@ const SilentReveal = ({
       imageAlt={imageAlt}
       boxStyle={boxStyle}
       mask={mask}
+      overlays={<div aria-hidden="true" style={visibleMarkStyle(position)} />}
     />
   );
 };

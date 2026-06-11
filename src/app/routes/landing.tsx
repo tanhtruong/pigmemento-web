@@ -21,6 +21,7 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import { faqs, features, stats } from '@/lib/landing-seed-data';
 import { paths } from '@/config/paths.ts';
 import { Head } from '@/components/seo/head.tsx';
+import { LandingHeroDevice } from '@/components/motion/landing-hero-device.tsx';
 
 const LandingRoute = () => {
   const shouldReduceMotion = useReducedMotion();
@@ -207,41 +208,17 @@ const LandingRoute = () => {
           </Button>
         </motion.div>
 
-        {/* App preview */}
+        {/* Hero device: drag-to-scrub dermoscopy reveal */}
         <motion.div variants={fadeUp} className="mt-10 w-full">
-          <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-6 md:grid-cols-2">
-            <Card>
-              <CardContent>
-                <img
-                  src="/dashboard-drill-mock.png"
-                  alt="Dashboard showing a timed drill attempt"
-                  className="w-full h-auto rounded-lg"
-                  loading="lazy"
-                  decoding="async"
-                  width={1200}
-                  height={800}
-                />
-              </CardContent>
-              <CardFooter className="text-sm justify-center">
-                Timed drills dashboard (training mode)
-              </CardFooter>
-            </Card>
-            <Card>
-              <CardContent>
-                <img
-                  src="/library-review-mock.png"
-                  alt="Case library with guided case review"
-                  className="w-full h-auto rounded-lg"
-                  loading="lazy"
-                  decoding="async"
-                  width={1200}
-                  height={800}
-                />
-              </CardContent>
-              <CardFooter className="text-sm justify-center">
-                Case library with guided review and teaching points
-              </CardFooter>
-            </Card>
+          <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-3">
+            <LandingHeroDevice
+              imageSrc="/dashboard-drill-mock.png"
+              imageAlt="Placeholder showcase lesion — pending real dermoscopic image"
+            />
+            <p className="text-xs text-neutral-500">
+              Drag the circle or use ←/→ to scrub between the naked-eye and
+              dermoscopic view.
+            </p>
           </div>
         </motion.div>
       </motion.section>
