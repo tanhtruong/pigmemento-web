@@ -1,14 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
+import { Search, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -18,10 +12,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Hairline } from '@/components/foundation/hairline';
+import { Badge } from '@/components/ui/badge';
 import { paths } from '@/config/paths';
 import type { CaseListItem } from '@/features/cases/types/case-list-item.ts';
 import { useCases } from '@/features/cases/api/use-cases.ts';
-import { Badge } from '@/components/ui/badge.tsx';
+import { cn } from '@/lib/utils';
+
+type Difficulty = 'all' | 'easy' | 'medium' | 'hard';
+type Attempted = 'all' | 'attempted' | 'unattempted';
+type Sort = 'recommended' | 'newest' | 'difficulty' | 'id';
 
 const safeLower = (v: string) => v.trim().toLowerCase();
 
@@ -30,7 +30,6 @@ const formatAttemptMeta = (c: CaseListItem) => {
     return {
       label: 'Not attempted',
       when: null as string | null,
-      time: null as string | null,
       attempted: false,
       correct: null as boolean | null,
     };
@@ -43,14 +42,9 @@ const formatAttemptMeta = (c: CaseListItem) => {
     day: '2-digit',
   });
 
-  // timeToAnswerMs may not exist on all list payloads, so guard it
-  const tta = (c.lastAttempt as any)?.timeToAnswerMs as number | undefined;
-  const time = typeof tta === 'number' ? `${Math.round(tta / 1000)}s` : null;
-
   return {
     label: c.lastAttempt.correct ? 'Correct' : 'Incorrect',
     when,
-    time,
     attempted: true,
     correct: Boolean(c.lastAttempt.correct),
   };
@@ -61,17 +55,9 @@ const CasesScene = () => {
 
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-
-  const [difficulty, setDifficulty] = useState<
-    'all' | 'easy' | 'medium' | 'hard'
-  >('all');
-  const [attempted, setAttempted] = useState<
-    'all' | 'attempted' | 'unattempted'
-  >('all');
-
-  const [sort, setSort] = useState<
-    'recommended' | 'newest' | 'difficulty' | 'id'
-  >('recommended');
+  const [difficulty, setDifficulty] = useState<Difficulty>('all');
+  const [attempted, setAttempted] = useState<Attempted>('all');
+  const [sort, setSort] = useState<Sort>('recommended');
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query), 200);
@@ -88,10 +74,9 @@ const CasesScene = () => {
     };
 
     const base = cases
-      .filter((c) => {
-        if (difficulty === 'all') return true;
-        return String(c.difficulty) === difficulty;
-      })
+      .filter((c) =>
+        difficulty === 'all' ? true : String(c.difficulty) === difficulty,
+      )
       .filter((c) => {
         if (attempted === 'all') return true;
         return attempted === 'attempted'
@@ -100,7 +85,6 @@ const CasesScene = () => {
       })
       .filter((c) => {
         if (!q) return true;
-        // Search by id, site, and age
         return (
           safeLower(String(c.id)).includes(q) ||
           safeLower(String(c.site)).includes(q) ||
@@ -125,7 +109,6 @@ const CasesScene = () => {
         const bd = b.lastAttempt
           ? new Date(b.lastAttempt.createdAt).getTime()
           : -1;
-        // attempted with newer dates first; unattempted last
         return bd - ad;
       }
 
@@ -148,47 +131,57 @@ const CasesScene = () => {
     return sorted;
   }, [attempted, cases, debouncedQuery, difficulty, sort]);
 
+  const filtersActive =
+    query ||
+    difficulty !== 'all' ||
+    attempted !== 'all' ||
+    sort !== 'recommended';
+
+  const clearFilters = () => {
+    setQuery('');
+    setDebouncedQuery('');
+    setDifficulty('all');
+    setAttempted('all');
+    setSort('recommended');
+  };
+
   return (
-    <div className="flex min-h-0 flex-col gap-4 bg-background py-4 sm:py-6 text-left text-foreground">
+    <article className="flex flex-col gap-8 py-2">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Case Library</h1>
-          <p className="text-sm text-muted-foreground">
-            Explore the case library, filter by difficulty and status, and jump
-            into a random case when you’re ready to train.
+        <div className="flex flex-col gap-1.5">
+          <p className="text-primary font-mono text-[0.6875rem] tracking-[0.18em] uppercase">
+            Library
           </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-          <Button asChild className="shadow-sm w-full sm:w-auto">
-            <Link to={paths.app['case-random'].getHref()}>Random case</Link>
-          </Button>
-          <Button asChild variant="secondary" className="w-full sm:w-auto">
-            <Link to={paths.app['case-drill'].getHref()}>Start drill</Link>
-          </Button>
-          <Button asChild variant="outline" className="w-full sm:w-auto">
-            <Link to={paths.app.dashboard.getHref()}>Back to dashboard</Link>
-          </Button>
+          <h1 className="font-display text-4xl leading-tight sm:text-5xl">
+            Every case, browsable.
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            {cases.length > 0
+              ? `${cases.length} curated dermoscopic cases from the ISIC archive.`
+              : 'Curated dermoscopic cases from the ISIC archive.'}
+          </p>
         </div>
       </header>
 
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
-          <div className="flex-1">
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
-              Search
-            </label>
+      <Hairline />
+
+      {/* Search + sort */}
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search
+              aria-hidden
+              className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
+            />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by id, site, age…"
+              placeholder="Search case ID, site, or age…"
+              className="pl-9"
             />
           </div>
-
-          <div className="w-full sm:w-64">
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
-              Sort
-            </label>
-            <Select value={sort} onValueChange={(v) => setSort(v as any)}>
+          <div className="w-full sm:w-56">
+            <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Recommended" />
               </SelectTrigger>
@@ -200,177 +193,245 @@ const CasesScene = () => {
               </SelectContent>
             </Select>
           </div>
-
-          {(query ||
-            difficulty !== 'all' ||
-            attempted !== 'all' ||
-            sort !== 'recommended') && (
-            <div className="sm:ml-auto">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setQuery('');
-                  setDebouncedQuery('');
-                  setDifficulty('all');
-                  setAttempted('all');
-                  setSort('recommended');
-                }}
-              >
-                Clear
-              </Button>
-            </div>
-          )}
         </div>
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:gap-8">
-          <div>
-            <div className="mb-1 text-xs font-medium text-muted-foreground">
-              Difficulty
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {(['all', 'easy', 'medium', 'hard'] as const).map((v) => (
-                <Button
-                  key={v}
-                  type="button"
-                  size="sm"
-                  variant={difficulty === v ? 'default' : 'outline'}
-                  onClick={() => setDifficulty(v)}
-                  aria-pressed={difficulty === v}
-                >
-                  {v === 'all' ? 'All' : v.charAt(0).toUpperCase() + v.slice(1)}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <div className="mb-1 text-xs font-medium text-muted-foreground">
-              Status
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {(['all', 'unattempted', 'attempted'] as const).map((v) => (
-                <Button
-                  key={v}
-                  type="button"
-                  size="sm"
-                  variant={attempted === v ? 'default' : 'outline'}
-                  onClick={() => setAttempted(v)}
-                  aria-pressed={attempted === v}
-                >
-                  {v === 'all'
+        {/* Filter chips */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6">
+          <FilterRow label="Difficulty">
+            {(['all', 'easy', 'medium', 'hard'] as const).map((v) => (
+              <FilterChip
+                key={v}
+                active={difficulty === v}
+                onClick={() => setDifficulty(v)}
+                label={
+                  v === 'all' ? 'All' : v.charAt(0).toUpperCase() + v.slice(1)
+                }
+              />
+            ))}
+          </FilterRow>
+          <FilterRow label="Status">
+            {(['all', 'unattempted', 'attempted'] as const).map((v) => (
+              <FilterChip
+                key={v}
+                active={attempted === v}
+                onClick={() => setAttempted(v)}
+                label={
+                  v === 'all'
                     ? 'All'
                     : v === 'unattempted'
                       ? 'Unattempted'
-                      : 'Attempted'}
-                </Button>
-              ))}
-            </div>
-          </div>
+                      : 'Attempted'
+                }
+              />
+            ))}
+          </FilterRow>
+
+          {filtersActive && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={clearFilters}
+              className="self-start sm:ml-auto"
+            >
+              <X />
+              Clear filters
+            </Button>
+          )}
         </div>
 
-        <div className="text-xs text-muted-foreground">
-          Showing{' '}
-          <span className="font-medium text-foreground">{filtered.length}</span>{' '}
-          of <span className="font-medium text-foreground">{cases.length}</span>{' '}
-          cases
-        </div>
+        <p className="text-muted-foreground font-mono text-[0.6875rem] tracking-wider uppercase">
+          Showing <span className="text-foreground">{filtered.length}</span> of{' '}
+          <span className="text-foreground">{cases.length}</span>
+        </p>
       </section>
 
-      <div className="flex-1">
+      {/* Grid */}
+      <section className="flex-1">
         {isLoading ? (
-          <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 9 }).map((_, i) => (
-              <Card key={i}>
-                <CardHeader>
-                  <Skeleton className="h-4 w-32" />
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Skeleton className="aspect-square w-full" />
-                  <Skeleton className="h-4 w-40" />
-                </CardContent>
-                <CardFooter>
-                  <Skeleton className="h-9 w-28" />
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+          <CaseGridSkeleton />
         ) : isError ? (
-          <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-            Could not load cases. Please try again.
-          </div>
+          <CaseEmpty
+            title="Couldn’t load the library."
+            description="The case archive isn’t responding. Try again in a moment."
+            cta={
+              <Button asChild>
+                <Link to={paths.app.dashboard.getHref()}>Back to Progress</Link>
+              </Button>
+            }
+          />
         ) : filtered.length === 0 ? (
-          <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-            No cases match your filters.
-          </div>
+          <CaseEmpty
+            title={
+              filtersActive
+                ? 'Nothing matches that filter.'
+                : 'Your library is empty.'
+            }
+            description={
+              filtersActive
+                ? 'Try widening the difficulty or status filters.'
+                : 'Start your first case to populate your library.'
+            }
+            cta={
+              filtersActive ? (
+                <Button variant="ghost" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              ) : (
+                <Button asChild>
+                  <Link to={paths.app['case-random'].getHref()}>
+                    Start your first case
+                  </Link>
+                </Button>
+              )
+            }
+          />
         ) : (
-          <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((c) => (
-              <Card
-                key={c.id}
-                className="group flex flex-col border-border bg-card transition-colors hover:bg-muted/40 hover:shadow-sm"
-              >
-                <CardHeader className="py-2 sm:py-1.5">
-                  <CardTitle className="text-sm">Case {c.id}</CardTitle>
-                  {(() => {
-                    const meta = formatAttemptMeta(c);
-                    return (
-                      <div className="mt-0.5 flex flex-wrap items-center gap-1 text-muted-foreground">
-                        {meta.attempted ? (
-                          <Badge
-                            variant={meta.correct ? 'default' : 'secondary'}
-                          >
-                            {meta.label}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline">{meta.label}</Badge>
-                        )}
-                        {meta.when && <span>{meta.when}</span>}
-                        {meta.time && (
-                          <span className="tabular-nums text-muted-foreground">
-                            • {meta.time}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </CardHeader>
-
-                <CardContent className="space-y-2 sm:space-y-1.5">
-                  <div className="overflow-hidden rounded-md border">
-                    <img
-                      src={c.imageUrl}
-                      alt={`Case ${c.id}`}
-                      className="aspect-[4/3] w-full object-cover transition-transform duration-200 group-hover:scale-[1.05]"
-                      loading="lazy"
-                    />
-                  </div>
-
-                  <div className="flex flex-wrap gap-1">
-                    <Badge variant="outline">
-                      {String(c.difficulty).toUpperCase()}
-                    </Badge>
-                    <Badge variant="outline">{c.site}</Badge>
-                    {c.patientAge > 0 && (
-                      <Badge variant="outline">{c.patientAge}y</Badge>
-                    )}
-                  </div>
-                </CardContent>
-
-                <CardFooter className="mt-auto pt-2 sm:pt-1">
-                  <Button asChild size="sm" className="h-8 w-full">
-                    <Link to={paths.app['case-attempt'].getHref(c.id)}>
-                      {c.lastAttempt ? 'Try again' : 'Start case'}
-                    </Link>
-                  </Button>
-                </CardFooter>
-              </Card>
+              <CaseCard key={c.id} item={c} />
             ))}
           </div>
         )}
-      </div>
-    </div>
+      </section>
+    </article>
   );
 };
 
 export default CasesScene;
+
+/* ────────────────────────────────────────────────────────────────────────── */
+
+const FilterRow = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <div className="flex items-center gap-2">
+    <span className="text-muted-foreground font-mono text-[0.65rem] tracking-wider uppercase">
+      {label}
+    </span>
+    <div className="flex flex-wrap gap-1.5">{children}</div>
+  </div>
+);
+
+const FilterChip = ({
+  active,
+  onClick,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-pressed={active}
+    className={cn(
+      'border-hairline rounded-full border px-2.5 py-0.5 text-xs',
+      'transition-colors ease-considered duration-150',
+      active
+        ? 'bg-primary text-primary-foreground border-primary'
+        : 'text-muted-foreground hover:text-foreground hover:bg-accent',
+    )}
+  >
+    {label}
+  </button>
+);
+
+const CaseCard = ({ item }: { item: CaseListItem }) => {
+  const meta = formatAttemptMeta(item);
+  return (
+    <Link
+      to={paths.app['case-attempt'].getHref(item.id)}
+      className={cn(
+        'group/case-card border-hairline relative isolate flex flex-col overflow-hidden rounded-card border bg-card',
+        'shadow-warm-sm transition-all ease-considered duration-200',
+        'hover:shadow-warm hover:-translate-y-0.5',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+      )}
+    >
+      <div className="bg-muted/40 aspect-square w-full overflow-hidden">
+        <img
+          src={item.imageUrl}
+          alt={`Case ${item.id}`}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover/case-card:scale-[1.04]"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+      <div className="flex flex-col gap-2 p-4">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-foreground font-mono text-xs tabular-nums">
+            CASE · {item.id}
+          </span>
+          {meta.attempted ? (
+            <Badge
+              variant={meta.correct ? 'correct' : 'incorrect'}
+              className="text-[0.65rem]"
+            >
+              {meta.label}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-[0.65rem]">
+              New
+            </Badge>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge variant="mono">{String(item.difficulty)}</Badge>
+          <Badge variant="outline" className="text-[0.65rem] font-normal">
+            {item.site}
+          </Badge>
+          {item.patientAge > 0 && (
+            <Badge variant="outline" className="text-[0.65rem] font-normal">
+              {item.patientAge}y
+            </Badge>
+          )}
+        </div>
+
+        {meta.when && (
+          <p className="text-muted-foreground text-[0.65rem]">
+            Last attempted {meta.when}
+          </p>
+        )}
+      </div>
+    </Link>
+  );
+};
+
+const CaseGridSkeleton = () => (
+  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {Array.from({ length: 9 }).map((_, i) => (
+      <div
+        key={i}
+        className="border-hairline overflow-hidden rounded-card border bg-card"
+      >
+        <Skeleton className="aspect-square w-full rounded-none border-0" />
+        <div className="flex flex-col gap-2 p-4">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const CaseEmpty = ({
+  title,
+  description,
+  cta,
+}: {
+  title: string;
+  description: string;
+  cta?: React.ReactNode;
+}) => (
+  <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
+    <h2 className="font-display text-3xl">{title}</h2>
+    <p className="text-muted-foreground text-sm">{description}</p>
+    {cta}
+  </div>
+);
