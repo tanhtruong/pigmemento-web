@@ -35,6 +35,22 @@ const stubCase = {
   clinicalNote: '...',
 };
 
+const stubAnnotatedCase = {
+  ...stubCase,
+  abcdeFeatures: [
+    {
+      letter: 'A' as const,
+      centerPoint: [0.3, 0.4] as [number, number],
+      reasoning: 'Asymmetric across the long axis',
+    },
+    {
+      letter: 'B' as const,
+      centerPoint: [0.6, 0.55] as [number, number],
+      reasoning: 'Irregular border on the medial edge',
+    },
+  ],
+};
+
 const stubAttempt = {
   correct: true,
   correctLabel: 'benign' as const,
@@ -110,5 +126,70 @@ describe('CaseReviewScene', () => {
     // "Correct" verdict label exists).
     expect(screen.getByRole('img', { name: /case 42/i })).toBeInTheDocument();
     expect(screen.getAllByText(/correct/i).length).toBeGreaterThan(0);
+  });
+
+  it('renders one ABCDE marker per feature when the case is annotated', () => {
+    mockedUseCase.mockReturnValue({
+      data: stubAnnotatedCase,
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useCase>);
+    mockedUseLatestAttempt.mockReturnValue({
+      data: stubAttempt,
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useCaseLatestAttempt>);
+
+    renderRoute();
+
+    expect(
+      screen.getByLabelText(/A.*asymmetric across the long axis/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/B.*irregular border on the medial edge/i),
+    ).toBeInTheDocument();
+  });
+
+  it('renders no ABCDE markers when the case has no annotations (slice #5 baseline)', () => {
+    mockedUseCase.mockReturnValue({
+      data: stubCase,
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useCase>);
+    mockedUseLatestAttempt.mockReturnValue({
+      data: stubAttempt,
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useCaseLatestAttempt>);
+
+    renderRoute();
+
+    expect(document.querySelector('[data-abcde-marker]')).toBeNull();
+    // And the baseline sweep is still present.
+    expect(screen.getByTestId('answer-reveal-sweep')).toBeInTheDocument();
+  });
+
+  it('shows ABCDE markers immediately under prefers-reduced-motion on an annotated case', () => {
+    mockedUseReducedMotion.mockReturnValue(true);
+    mockedUseCase.mockReturnValue({
+      data: stubAnnotatedCase,
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useCase>);
+    mockedUseLatestAttempt.mockReturnValue({
+      data: stubAttempt,
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useCaseLatestAttempt>);
+
+    renderRoute();
+
+    expect(screen.queryByTestId('answer-reveal-sweep')).toBeNull();
+    expect(
+      screen.getByLabelText(/A.*asymmetric across the long axis/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/B.*irregular border on the medial edge/i),
+    ).toBeInTheDocument();
   });
 });
