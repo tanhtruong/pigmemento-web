@@ -50,4 +50,29 @@ describe('landing route', () => {
     // the inline (now-removed) "How it works" section never carried this attr.
     expect(document.querySelector('[data-how-pinned]')).not.toBeNull();
   });
+
+  it('exposes the percentage retain stat via a ring-fill SoftCircleReveal', () => {
+    renderLandingRoute();
+
+    // The retain-percent stat carries a progressbar with the percentage echoing
+    // the dashboard's Accuracy ring (the landing/app motif echo).
+    const rings = screen.getAllByRole('progressbar');
+    const retainRing = rings.find(
+      (r) => r.getAttribute('aria-valuenow') === '85',
+    );
+    expect(retainRing).toBeDefined();
+  });
+
+  it('exposes the practice-cases stat via NumberTicker aria-label', () => {
+    renderLandingRoute();
+
+    // Ticker animates 0 → 1000 with the formatter producing "1k+".
+    expect(screen.getByLabelText('1k+')).toBeInTheDocument();
+  });
+
+  it('exposes the percentage retain stat via NumberTicker aria-label too', () => {
+    renderLandingRoute();
+
+    expect(screen.getByLabelText('85%')).toBeInTheDocument();
+  });
 });
