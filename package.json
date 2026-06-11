@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "check:bundles": "node scripts/check-bundles.mjs"
   },
   "dependencies": {
     "@dr.pogodin/react-helmet": "^3.0.4",
@@ -49,6 +50,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
+    "gsap": "^3.15.0",
     "input-otp": "^1.4.2",
     "js-cookie": "^3.0.5",
     "jwt-decode": "^4.0.0",
