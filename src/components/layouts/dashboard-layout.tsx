@@ -8,6 +8,7 @@ import { AppCommandPalette } from '@/components/layouts/app-command-palette.tsx'
 import { AppStartACaseButton } from '@/components/layouts/app-start-a-case-button.tsx';
 import { AmberFAB } from '@/components/signature/amber-fab.tsx';
 import { GrainOverlay } from '@/components/foundation/grain-overlay.tsx';
+import { useStreak } from '@/features/cases/hooks/use-streak.ts';
 import { paths } from '@/config/paths.ts';
 import { cn } from '@/lib/utils.ts';
 
@@ -51,6 +52,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   const [commandOpen, setCommandOpen] = useState(false);
   const [startACaseOpen, setStartACaseOpen] = useState(false);
   const { pathname } = useLocation();
+  const streak = useStreak();
 
   /**
    * Pin `.light` on <body> while inside the app shell so Radix portals
@@ -73,7 +75,10 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       {/* Paper-warm grain — 1% opacity, free, the secret-sauce material texture */}
       <GrainOverlay intensity={0.9} />
 
-      <AppTopBar onOpenCommandPalette={() => setCommandOpen(true)} />
+      <AppTopBar
+        onOpenCommandPalette={() => setCommandOpen(true)}
+        streak={streak}
+      />
 
       <main className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 md:py-10">
         {children}
