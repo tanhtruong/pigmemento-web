@@ -35,44 +35,46 @@ const renderLandingRoute = () =>
   );
 
 describe('landing route', () => {
-  it('renders the LandingHeroDevice with the placeholder showcase image', () => {
+  it('renders the question hero headline', () => {
+    renderLandingRoute();
+
+    // The Instrument Serif hero — split across <span>s for italic + amber
+    // accent — exposes itself via accessible level-1 heading text content.
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading.textContent).toMatch(/Could you\s+spot\s+it\??/);
+  });
+
+  it('renders the primary "Start a case" CTA pointing to the auth entry point', () => {
+    renderLandingRoute();
+
+    const cta = screen.getByRole('link', { name: /start a case/i });
+    expect(cta).toBeInTheDocument();
+    // Unauthenticated visitor (no token) routes to /auth/login.
+    expect(cta.getAttribute('href')).toMatch(/\/auth\/login/);
+  });
+
+  it('renders the trust strip with the ISIC source attribution', () => {
     renderLandingRoute();
 
     expect(
-      screen.getByRole('slider', { name: /reveal position/i }),
+      screen.getByRole('region', { name: /why you can trust pigmemento/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /sourced from the isic archive/i }),
+    ).toHaveAttribute('href', 'https://www.isic-archive.com/');
   });
 
-  it('renders the HowItWorksSection in the page', () => {
+  it('keeps the existing HowItWorksSection mounted (PR2 leaves it for PR6)', () => {
     renderLandingRoute();
 
-    // HowItWorksSection's pinned variant marks itself with data-how-pinned —
-    // the inline (now-removed) "How it works" section never carried this attr.
     expect(document.querySelector('[data-how-pinned]')).not.toBeNull();
   });
 
-  it('exposes the percentage retain stat via a ring-fill SoftCircleReveal', () => {
+  it('exposes the ISIC source credit beneath the hero lesion', () => {
     renderLandingRoute();
 
-    // The retain-percent stat carries a progressbar with the percentage echoing
-    // the dashboard's Accuracy ring (the landing/app motif echo).
-    const rings = screen.getAllByRole('progressbar');
-    const retainRing = rings.find(
-      (r) => r.getAttribute('aria-valuenow') === '85',
-    );
-    expect(retainRing).toBeDefined();
-  });
-
-  it('exposes the practice-cases stat via NumberTicker aria-label', () => {
-    renderLandingRoute();
-
-    // Ticker animates 0 → 1000 with the formatter producing "1k+".
-    expect(screen.getByLabelText('1k+')).toBeInTheDocument();
-  });
-
-  it('exposes the percentage retain stat via NumberTicker aria-label too', () => {
-    renderLandingRoute();
-
-    expect(screen.getByLabelText('85%')).toBeInTheDocument();
+    expect(
+      screen.getByText(/ISIC_0000022 · MELANOMA · COURTESY ISIC ARCHIVE/),
+    ).toBeInTheDocument();
   });
 });
