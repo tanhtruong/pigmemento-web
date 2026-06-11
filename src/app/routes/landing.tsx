@@ -22,6 +22,9 @@ import { paths } from '@/config/paths.ts';
 import { Head } from '@/components/seo/head.tsx';
 import { LandingHeroDevice } from '@/components/motion/landing-hero-device.tsx';
 import { HowItWorksSection } from '@/components/motion/how-it-works-section.tsx';
+import { NumberTicker } from '@/components/motion/number-ticker.tsx';
+import { SoftCircleReveal } from '@/components/motion/soft-circle-reveal.tsx';
+import { motionDurations } from '@/lib/motion-tokens.ts';
 
 const LandingRoute = () => {
   const shouldReduceMotion = useReducedMotion();
@@ -71,8 +74,8 @@ const LandingRoute = () => {
           opacity: 1,
           y: 0,
           transition: {
-            duration: shouldReduceMotion ? 0 : 0.55,
-            ease: 'easeOut',
+            duration: shouldReduceMotion ? 0 : motionDurations.considered,
+            ease: [0.2, 0.8, 0.2, 1],
           },
         },
       }) satisfies Variants,
@@ -86,8 +89,8 @@ const LandingRoute = () => {
         visible: {
           opacity: 1,
           transition: {
-            duration: shouldReduceMotion ? 0 : 0.75,
-            ease: 'easeOut',
+            duration: shouldReduceMotion ? 0 : motionDurations.hero,
+            ease: [0.2, 0.8, 0.2, 1],
           },
         },
       }) satisfies Variants,
@@ -248,13 +251,29 @@ const LandingRoute = () => {
         variants={fadeIn}
         className="border-y bg-neutral-50/60 py-10"
       >
-        <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-6 px-6 md:grid-cols-3">
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-6 px-6 md:grid-cols-4">
           {stats.map((stat) => (
             <Card key={stat.label}>
               <CardContent className="text-center my-auto">
-                <CardTitle className="text-2xl font-bold">
-                  {stat.value}
-                </CardTitle>
+                <div className="flex items-center justify-center gap-3">
+                  <CardTitle className="text-2xl font-bold">
+                    {stat.tickerValue !== undefined ? (
+                      <NumberTicker
+                        value={stat.tickerValue}
+                        formatValue={stat.formatValue}
+                      />
+                    ) : (
+                      stat.value
+                    )}
+                  </CardTitle>
+                  {stat.percent !== undefined && (
+                    <SoftCircleReveal
+                      configuration="ring-fill"
+                      percentage={stat.percent}
+                      size={36}
+                    />
+                  )}
+                </div>
                 <CardDescription>{stat.label}</CardDescription>
               </CardContent>
             </Card>

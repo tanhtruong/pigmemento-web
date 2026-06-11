@@ -35,6 +35,8 @@ export const stats: Stat[] = [
     id: 1,
     label: 'Practice cases',
     value: '1k+',
+    tickerValue: 1000,
+    formatValue: (n) => (n >= 1000 ? '1k+' : String(n)),
   },
   {
     id: 2,
@@ -45,6 +47,14 @@ export const stats: Stat[] = [
     id: 3,
     label: 'Platforms',
     value: 'iOS • Android • Web',
+  },
+  {
+    id: 4,
+    label: 'Retain after 1 month',
+    value: '85%',
+    tickerValue: 85,
+    formatValue: (n) => `${n}%`,
+    percent: 85,
   },
 ];
 
