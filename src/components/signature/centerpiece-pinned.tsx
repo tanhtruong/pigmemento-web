@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useReducedMotion } from 'motion/react';
 
 import { cn } from '@/lib/utils';
@@ -111,11 +111,11 @@ const CenterpieceAnimated = ({
   const imageWrapRef = useRef<HTMLDivElement>(null);
   const eyebrowRef = useRef<HTMLParagraphElement>(null);
   const introRef = useRef<HTMLParagraphElement>(null);
+  const annotationListRef = useRef<HTMLUListElement>(null);
   const diagnosisRef = useRef<HTMLDivElement>(null);
   const teachingRef = useRef<HTMLParagraphElement>(null);
   const annotationRefs = useRef<(SVGCircleElement | null)[]>([]);
   const labelRefs = useRef<(HTMLLIElement | null)[]>([]);
-  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     let killed = false;
@@ -132,7 +132,6 @@ const CenterpieceAnimated = ({
             start: 'top top',
             end: '+=500%',
             scrub: 0.4,
-            onUpdate: (self) => setProgress(self.progress),
           },
         });
 
@@ -174,15 +173,12 @@ const CenterpieceAnimated = ({
           0.55,
         );
 
-        // Beat 5 (70-100%): diagnosis + teaching
+        // Beat 5 (70-100%): diagnosis + teaching.
+        // The intro state (eyebrow, intro line, AND the annotation list) must
+        // ALL fade together — otherwise the list stays on top of the diagnosis
+        // overlay and the right column becomes unreadable at climax.
         tl.fromTo(
-          eyebrowRef.current,
-          { opacity: 1 },
-          { opacity: 0, duration: 0.4 },
-          0.62,
-        );
-        tl.fromTo(
-          introRef.current,
+          [eyebrowRef.current, introRef.current, annotationListRef.current],
           { opacity: 1 },
           { opacity: 0, duration: 0.4 },
           0.62,
@@ -291,8 +287,10 @@ const CenterpieceAnimated = ({
                 See what a trained eye sees.
               </p>
 
-              {/* ABCDE annotation labels — animate in alongside circles */}
-              <ul className="flex flex-col gap-2">
+              {/* ABCDE annotation labels — animate in alongside circles, fade
+                  out together at beat 5 so the diagnosis lockup can claim the
+                  right column without text overlap. */}
+              <ul ref={annotationListRef} className="flex flex-col gap-2">
                 {ANNOTATIONS.map((a, i) => (
                   <li
                     key={a.letter}
@@ -336,21 +334,9 @@ const CenterpieceAnimated = ({
           </div>
         </div>
 
-        {/* Progress affordance — quiet, bottom-center */}
-        <div
-          aria-hidden
-          className="absolute bottom-8 left-1/2 hidden -translate-x-1/2 items-center gap-2 md:flex"
-        >
-          <span className="bg-hairline h-px w-24">
-            <span
-              className="bg-primary block h-px transition-[width] duration-150 ease-out"
-              style={{ width: `${Math.round(progress * 100)}%` }}
-            />
-          </span>
-          <span className="text-muted-foreground font-mono text-[0.65rem] tracking-wider uppercase">
-            {Math.round(progress * 100)}%
-          </span>
-        </div>
+        {/* Progress is expressed globally by the ScrollRail playhead — no
+            local indicator inside the centerpiece. Removing it lets the
+            pinned image command the full viewport. */}
       </div>
     </section>
   );
