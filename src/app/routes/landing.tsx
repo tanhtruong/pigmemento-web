@@ -1,11 +1,10 @@
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Smartphone } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -22,6 +21,7 @@ import { faqs, features, stats } from '@/lib/landing-seed-data';
 import { paths } from '@/config/paths.ts';
 import { Head } from '@/components/seo/head.tsx';
 import { LandingHeroDevice } from '@/components/motion/landing-hero-device.tsx';
+import { HowItWorksSection } from '@/components/motion/how-it-works-section.tsx';
 
 const LandingRoute = () => {
   const shouldReduceMotion = useReducedMotion();
@@ -352,66 +352,8 @@ const LandingRoute = () => {
         </motion.div>
       </motion.section>
 
-      {/* How it works */}
-      <motion.section
-        id="how"
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewportOnce}
-        variants={stagger}
-        className="mx-auto grid w-full max-w-6xl items-center gap-5 px-6 py-16 md:grid-cols-2 md:py-20"
-      >
-        <motion.div variants={fadeUp}>
-          <div>
-            <h2 className="text-3xl font-bold md:text-4xl">How it works</h2>
-            <ol className="mt-5 space-y-4 text-sm text-neutral-700">
-              <li>
-                <span className="font-semibold">1) Pick a track.</span> Melanoma
-                focus, mixed lesions, or exam-style OSCEs.
-              </li>
-              <li>
-                <span className="font-semibold">2) Review the case.</span>{' '}
-                Clinical + dermoscopic images with relevant history.
-              </li>
-              <li>
-                <span className="font-semibold">3) Decide & justify.</span>{' '}
-                Benign vs malignant choice, ABCDE/7-point notes, and next-step
-                reasoning (training).
-              </li>
-              <li>
-                <span className="font-semibold">4) Get feedback.</span> See
-                expert reasoning, key features, and pitfalls.
-              </li>
-              <li>
-                <span className="font-semibold">5) Track progress.</span>{' '}
-                Accuracy trends, streaks, and calibration over time.
-              </li>
-            </ol>
-            <div className="mt-6 flex items-center gap-3 text-sm text-neutral-600">
-              <Smartphone className="h-4 w-4" aria-hidden />
-              <span>Works on iOS, Android, and web - no setup required.</span>
-            </div>
-          </div>
-        </motion.div>
-        <motion.div variants={fadeIn}>
-          <Card>
-            <CardContent>
-              <img
-                src="/pigmemento-showcase-1.gif"
-                alt="Mobile demo of a melanoma recognition training quiz with guided feedback"
-                className="w-full max-w-[220px] mx-auto h-auto rounded-xl shadow-sm border"
-                loading="lazy"
-                decoding="async"
-                width={440}
-                height={956}
-              />
-            </CardContent>
-            <CardFooter className="text-sm justify-center">
-              Pigmemento Demo
-            </CardFooter>
-          </Card>
-        </motion.div>
-      </motion.section>
+      {/* How it works — pinned scroll narrative (slice #9) */}
+      <HowItWorksSection />
 
       {/* Waitlist */}
       {/* <motion.section

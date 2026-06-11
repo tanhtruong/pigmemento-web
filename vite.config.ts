@@ -12,6 +12,17 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // Keep GSAP (core + plugins) in its own chunk so it stays out of the
+          // main bundle. The bundle-guard allowlist accepts `gsap-` filenames.
+          if (id.includes('node_modules/gsap')) return 'gsap-vendor';
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,
