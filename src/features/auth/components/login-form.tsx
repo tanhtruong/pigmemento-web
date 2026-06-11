@@ -1,3 +1,9 @@
+import { ComponentProps } from 'react';
+import { useForm } from 'react-hook-form';
+import { Link } from 'react-router';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ArrowRight } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -8,12 +14,9 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import { paths } from '@/config/paths';
 import { cn } from '@/lib/utils';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { ComponentProps } from 'react';
-import { useForm } from 'react-hook-form';
-import { Link } from 'react-router';
 import { LoginDto } from '../types/auth';
 import { loginSchema } from '../schemas/auth';
 import { useLogin } from '../hooks/use-auth';
@@ -34,19 +37,26 @@ export const LoginForm = ({ className, ...props }: ComponentProps<'div'>) => {
   };
 
   return (
-    <div className={cn('flex flex-col gap-6', className)} {...props}>
+    <div className={cn('flex flex-col gap-5', className)} {...props}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
             control={form.control}
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel className="text-foreground text-xs font-medium tracking-wide uppercase">
+                  Email
+                </FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="Email" {...field} />
+                  <Input
+                    type="email"
+                    placeholder="you@hospital.org"
+                    autoComplete="email"
+                    {...field}
+                  />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-incorrect text-xs" />
               </FormItem>
             )}
           />
@@ -55,62 +65,66 @@ export const LoginForm = ({ className, ...props }: ComponentProps<'div'>) => {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <div className="flex justify-between">
-                  <FormLabel>Password</FormLabel>
+                <div className="flex items-baseline justify-between">
+                  <FormLabel className="text-foreground text-xs font-medium tracking-wide uppercase">
+                    Password
+                  </FormLabel>
                   <Link
                     to="/"
-                    className="text-sm underline-offset-2 hover:underline"
+                    className="text-muted-foreground hover:text-foreground text-xs transition-colors"
                   >
-                    Forgot your password?
+                    Trouble signing in?
                   </Link>
                 </div>
                 <FormControl>
                   <Input
-                    className="w-full"
                     type="password"
-                    placeholder="Password"
+                    placeholder="••••••••"
+                    autoComplete="current-password"
                     {...field}
                   />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-incorrect text-xs" />
               </FormItem>
             )}
           />
 
-          <Button type="submit" disabled={isPending}>
-            {isPending ? 'Logging in...' : 'Login'}
+          <Button
+            type="submit"
+            disabled={isPending}
+            className="w-full justify-center"
+            size="lg"
+          >
+            {isPending ? (
+              <>
+                <Spinner size="sm" variant="inherit" />
+                Signing in…
+              </>
+            ) : (
+              <>
+                Sign in
+                <ArrowRight />
+              </>
+            )}
           </Button>
+
           {isError && (
-            <p className="text-destructive">Login failed. Try again.</p>
+            <p role="alert" className="text-incorrect text-center text-xs">
+              Couldn’t sign you in. Check your email and password.
+            </p>
           )}
-          <p className="text-sm ">
-            Don't have an account and want to join Pigmemento?{' '}
-            <Link
-              to={paths.auth.register.getHref()}
-              className="underline underline-offset-2"
-            >
-              Sign up here!
-            </Link>
-          </p>
         </form>
       </Form>
-      <div className="text-pretty text-center text-xs text-muted-foreground">
-        By continuing, you agree to our{' '}
+
+      <p className="text-muted-foreground text-center text-xs">
+        New here?{' '}
         <Link
-          to="/tos"
-          className="underline underline-offset-2 hover:text-primary"
+          to={paths.auth.register.getHref()}
+          className="text-foreground underline-offset-4 hover:underline"
         >
-          Terms of Service
-        </Link>{' '}
-        and{' '}
-        <Link
-          to="/privacy"
-          className="underline underline-offset-2 hover:text-primary"
-        >
-          Privacy Policy
+          Create an account
         </Link>
-        .
-      </div>
+      </p>
     </div>
   );
 };
