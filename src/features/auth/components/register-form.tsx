@@ -1,3 +1,9 @@
+import { ComponentProps } from 'react';
+import { useForm } from 'react-hook-form';
+import { Link } from 'react-router';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ArrowRight } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -8,12 +14,9 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import { paths } from '@/config/paths';
 import { cn } from '@/lib/utils';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { ComponentProps } from 'react';
-import { useForm } from 'react-hook-form';
-import { Link } from 'react-router';
 import { RegisterDto } from '../types/auth';
 import { registerSchema } from '../schemas/auth';
 import { useRegister } from '../hooks/use-auth';
@@ -32,24 +35,32 @@ const RegisterForm = ({ className, ...props }: ComponentProps<'div'>) => {
   const { mutate: register, isPending, isError } = useRegister();
 
   const onSubmit = (data: RegisterDto) => {
-    const { confirmPassword, ...dto } = data;
+    const { confirmPassword: _confirmPassword, ...dto } = data;
+    void _confirmPassword;
     register(dto);
   };
 
   return (
-    <div className={cn('flex flex-col gap-6', className)} {...props}>
+    <div className={cn('flex flex-col gap-5', className)} {...props}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Name</FormLabel>
+                <FormLabel className="text-foreground text-xs font-medium tracking-wide uppercase">
+                  Name
+                </FormLabel>
                 <FormControl>
-                  <Input type="text" placeholder="Name" {...field} />
+                  <Input
+                    type="text"
+                    placeholder="Your name"
+                    autoComplete="name"
+                    {...field}
+                  />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-incorrect text-xs" />
               </FormItem>
             )}
           />
@@ -58,11 +69,18 @@ const RegisterForm = ({ className, ...props }: ComponentProps<'div'>) => {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel className="text-foreground text-xs font-medium tracking-wide uppercase">
+                  Email
+                </FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="Email" {...field} />
+                  <Input
+                    type="email"
+                    placeholder="you@hospital.org"
+                    autoComplete="email"
+                    {...field}
+                  />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-incorrect text-xs" />
               </FormItem>
             )}
           />
@@ -71,11 +89,18 @@ const RegisterForm = ({ className, ...props }: ComponentProps<'div'>) => {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel className="text-foreground text-xs font-medium tracking-wide uppercase">
+                  Password
+                </FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="Password" {...field} />
+                  <Input
+                    type="password"
+                    placeholder="At least 8 characters"
+                    autoComplete="new-password"
+                    {...field}
+                  />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-incorrect text-xs" />
               </FormItem>
             )}
           />
@@ -84,52 +109,58 @@ const RegisterForm = ({ className, ...props }: ComponentProps<'div'>) => {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Confirm password</FormLabel>
+                <FormLabel className="text-foreground text-xs font-medium tracking-wide uppercase">
+                  Confirm password
+                </FormLabel>
                 <FormControl>
                   <Input
                     type="password"
-                    placeholder="Confirm Password"
+                    placeholder="Type it again"
+                    autoComplete="new-password"
                     {...field}
                   />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-incorrect text-xs" />
               </FormItem>
             )}
           />
-          <Button type="submit" disabled={isPending}>
-            {isPending ? 'Signing up...' : 'Sign up'}
+
+          <Button
+            type="submit"
+            disabled={isPending}
+            className="w-full justify-center"
+            size="lg"
+          >
+            {isPending ? (
+              <>
+                <Spinner size="sm" variant="inherit" />
+                Creating your account…
+              </>
+            ) : (
+              <>
+                Create an account
+                <ArrowRight />
+              </>
+            )}
           </Button>
+
           {isError && (
-            <p className="text-destructive">Registration failed. Try again.</p>
+            <p role="alert" className="text-incorrect text-center text-xs">
+              Couldn’t create your account. Try a different email.
+            </p>
           )}
-          <p className="text-sm">
-            Already have an account?{' '}
-            <Link
-              to={paths.auth.login.getHref()}
-              className="underline underline-offset-2"
-            >
-              Log in here!
-            </Link>
-          </p>
         </form>
       </Form>
-      <div className="text-pretty text-center text-xs text-muted-foreground">
-        By continuing, you agree to our{' '}
+
+      <p className="text-muted-foreground text-center text-xs">
+        Already have an account?{' '}
         <Link
-          to="/tos"
-          className="underline underline-offset-2 hover:text-primary"
+          to={paths.auth.login.getHref()}
+          className="text-foreground underline-offset-4 hover:underline"
         >
-          Terms of Service
-        </Link>{' '}
-        and{' '}
-        <Link
-          to="/privacy"
-          className="underline underline-offset-2 hover:text-primary"
-        >
-          Privacy Policy
+          Sign in
         </Link>
-        .
-      </div>
+      </p>
     </div>
   );
 };

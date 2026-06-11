@@ -3,7 +3,10 @@ import RegisterForm from '@/features/auth/components/register-form';
 
 const RegisterRoute = () => {
   return (
-    <AuthLayout title="Register your account">
+    <AuthLayout
+      title="Create an account"
+      subtitle="Start training your pattern recognition in under a minute."
+    >
       <RegisterForm />
     </AuthLayout>
   );
