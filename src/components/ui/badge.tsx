@@ -5,18 +5,32 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const badgeVariants = cva(
-  'inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden',
+  [
+    'inline-flex items-center justify-center gap-1 rounded-full px-2.5 py-0.5',
+    'text-xs font-medium whitespace-nowrap w-fit shrink-0 overflow-hidden',
+    '[&>svg]:size-3 [&>svg]:pointer-events-none',
+    'border border-transparent',
+    'transition-[color,background-color,box-shadow] ease-considered duration-150',
+    'focus-visible:ring-2 focus-visible:ring-ring/40',
+  ].join(' '),
   {
     variants: {
       variant: {
         default:
-          'border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90',
+          'bg-primary text-primary-foreground [a&]:hover:brightness-[1.04]',
         secondary:
-          'border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90',
-        destructive:
-          'border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
+          'bg-secondary text-secondary-foreground [a&]:hover:bg-accent',
+        /** Outlined badge — hairline border, no fill. The premium-editorial chip. */
         outline:
-          'text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
+          'border-hairline bg-transparent text-foreground [a&]:hover:bg-accent',
+        /** Dampened mint — correct, never bright "WIN" green. */
+        correct: 'bg-correct/15 text-correct border-correct/30',
+        /** Dampened coral — incorrect, never alarm red. */
+        incorrect: 'bg-incorrect/15 text-incorrect border-incorrect/30',
+        /** Alias kept for callers still passing 'destructive'. */
+        destructive: 'bg-incorrect/15 text-incorrect border-incorrect/30',
+        /** Geist Mono caption chip — case IDs, source credits. */
+        mono: 'font-mono text-[0.6875rem] tracking-wider uppercase border-hairline text-muted-foreground bg-transparent',
       },
     },
     defaultVariants: {

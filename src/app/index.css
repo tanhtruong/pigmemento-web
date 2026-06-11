@@ -1,123 +1,319 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+@import '@fontsource/instrument-serif/400.css';
+@import '@fontsource/instrument-serif/400-italic.css';
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --radius-sm: calc(var(--radius) - 4px);
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) + 4px);
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
-    --color-card: var(--card);
-    --color-card-foreground: var(--card-foreground);
-    --color-popover: var(--popover);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-primary: var(--primary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-secondary: var(--secondary);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-muted: var(--muted);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-accent: var(--accent);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-destructive: var(--destructive);
-    --color-border: var(--border);
-    --color-input: var(--input);
-    --color-ring: var(--ring);
-    --color-chart-1: var(--chart-1);
-    --color-chart-2: var(--chart-2);
-    --color-chart-3: var(--chart-3);
-    --color-chart-4: var(--chart-4);
-    --color-chart-5: var(--chart-5);
-    --color-sidebar: var(--sidebar);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-ring: var(--sidebar-ring);
+  --font-display:
+    'Instrument Serif', 'Tobias', Georgia, 'Times New Roman', serif;
+  --font-sans:
+    'Geist Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --radius-input: var(--radius-sm);
+  --radius-button: var(--radius-md);
+  --radius-card: var(--radius-lg);
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-correct: var(--correct);
+  --color-correct-foreground: var(--correct-foreground);
+  --color-incorrect: var(--incorrect);
+  --color-incorrect-foreground: var(--incorrect-foreground);
+
+  --color-border: var(--border);
+  --color-hairline: var(--hairline);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --shadow-warm-sm: 0 1px 2px rgba(60, 35, 0, 0.04);
+  --shadow-warm:
+    0 1px 2px rgba(60, 35, 0, 0.04), 0 6px 24px -8px rgba(60, 35, 0, 0.06);
+  --shadow-warm-lifted:
+    0 2px 4px rgba(60, 35, 0, 0.05), 0 14px 38px -10px rgba(60, 35, 0, 0.1);
+  --shadow-amber-glow:
+    0 0 0 1px rgba(255, 120, 73, 0.18), 0 8px 28px -8px rgba(255, 120, 73, 0.4);
+  --shadow-cinematic: 0 30px 80px -20px rgba(0, 0, 0, 0.55);
+
+  --ease-considered: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-quick: 120ms;
+  --duration-normal: 240ms;
+  --duration-considered: 420ms;
+  --duration-hero: 720ms;
 }
 
+/* ---------------------------------------------------------------------------
+ * LIGHT — the app surface (Things 3 × iOS, bone-warm, tactile)
+ * ------------------------------------------------------------------------ */
 :root {
-    --radius: 0.625rem;
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    /* Brand primary: #6F2DA8 */
-    --primary: oklch(0.4553 0.1865 304.334);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.4553 0.1865 304.334);
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
-    --chart-3: oklch(0.398 0.07 227.392);
-    --chart-4: oklch(0.828 0.189 84.429);
-    --chart-5: oklch(0.769 0.188 70.08);
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.4553 0.1865 304.334);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0.625rem;
+
+  /* Bone-warm neutrals */
+  --paper: oklch(0.97 0.008 80); /* #F8F5F0 page */
+  --ink: oklch(0.21 0.005 60); /* #1A1815 text */
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+
+  --card: oklch(0.99 0.005 80); /* #FFFEFB */
+  --card-foreground: var(--ink);
+  --popover: oklch(0.99 0.005 80);
+  --popover-foreground: var(--ink);
+
+  /* Amber accent — burnt amber #FF7849 */
+  --primary: oklch(0.7 0.17 42);
+  --primary-foreground: oklch(0.18 0.005 60);
+  --primary-soft: oklch(0.92 0.05 50);
+
+  --secondary: oklch(0.94 0.008 70);
+  --secondary-foreground: oklch(0.27 0.006 60);
+  --muted: oklch(0.94 0.008 70);
+  --muted-foreground: oklch(0.5 0.012 60);
+  --accent: oklch(0.93 0.012 65);
+  --accent-foreground: oklch(0.27 0.006 60);
+
+  /* Dampened semantics — never shouty */
+  --destructive: oklch(0.6 0.1 25); /* muted coral */
+  --destructive-foreground: oklch(0.99 0 0);
+  --correct: oklch(0.62 0.09 165); /* muted mint */
+  --correct-foreground: oklch(0.99 0 0);
+  --incorrect: oklch(0.6 0.1 25); /* muted coral */
+  --incorrect-foreground: oklch(0.99 0 0);
+
+  /* Barely-there hairlines */
+  --border: oklch(0 0 0 / 6%);
+  --hairline: oklch(0 0 0 / 8%);
+  --input: oklch(0 0 0 / 10%);
+  --ring: oklch(0.7 0.17 42); /* amber focus */
+
+  /* Charts — analogous warm range */
+  --chart-1: oklch(0.7 0.17 42); /* amber */
+  --chart-2: oklch(0.62 0.09 165); /* mint */
+  --chart-3: oklch(0.5 0.012 60); /* ink-muted */
+  --chart-4: oklch(0.78 0.12 65); /* warm gold */
+  --chart-5: oklch(0.6 0.1 25); /* coral */
+
+  --sidebar: oklch(0.985 0.008 80);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: oklch(0.7 0.17 42);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.94 0.012 65);
+  --sidebar-accent-foreground: oklch(0.27 0.006 60);
+  --sidebar-border: oklch(0 0 0 / 6%);
+  --sidebar-ring: oklch(0.7 0.17 42);
+
+  color-scheme: light;
 }
 
+/* ---------------------------------------------------------------------------
+ * DARK — the landing surface (Linear × Vercel × Aesop, cinematic graphite)
+ * ------------------------------------------------------------------------ */
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    /* Brand primary: #6F2DA8 (slightly brighter for dark UI) */
-    --primary: oklch(0.62 0.19 304.334);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.62 0.19 304.334);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.62 0.19 304.334);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+  /* Cool graphite/ink neutrals */
+  --paper: oklch(0.13 0.004 280); /* #0A0A0B */
+  --ink: oklch(0.97 0.005 80); /* #FAFAF7 */
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+
+  --card: oklch(0.18 0.005 280); /* faint lift */
+  --card-foreground: var(--ink);
+  --popover: oklch(0.18 0.005 280);
+  --popover-foreground: var(--ink);
+
+  /* Amber — slightly brighter on dark for luminance match */
+  --primary: oklch(0.75 0.18 42);
+  --primary-foreground: oklch(0.13 0.004 280);
+  --primary-soft: oklch(0.32 0.08 42);
+
+  --secondary: oklch(0.22 0.006 280);
+  --secondary-foreground: var(--ink);
+  --muted: oklch(0.22 0.006 280);
+  --muted-foreground: oklch(0.65 0.008 80);
+  --accent: oklch(0.25 0.008 280);
+  --accent-foreground: var(--ink);
+
+  --destructive: oklch(0.65 0.11 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --correct: oklch(0.7 0.1 165);
+  --correct-foreground: oklch(0.13 0.004 280);
+  --incorrect: oklch(0.65 0.11 25);
+  --incorrect-foreground: oklch(0.99 0 0);
+
+  --border: oklch(1 0 0 / 8%);
+  --hairline: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.75 0.18 42);
+
+  --chart-1: oklch(0.75 0.18 42);
+  --chart-2: oklch(0.7 0.1 165);
+  --chart-3: oklch(0.65 0.008 80);
+  --chart-4: oklch(0.78 0.12 65);
+  --chart-5: oklch(0.65 0.11 25);
+
+  --sidebar: oklch(0.16 0.005 280);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: oklch(0.75 0.18 42);
+  --sidebar-primary-foreground: oklch(0.13 0.004 280);
+  --sidebar-accent: oklch(0.22 0.006 280);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: oklch(0.75 0.18 42);
+
+  color-scheme: dark;
 }
 
 @layer base {
-    * {
-        @apply border-border outline-ring/50;
-    }
+  * {
+    @apply border-border outline-ring/50;
+  }
 
-    body {
-        @apply bg-background text-foreground;
-    }
+  html {
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss03';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+
+  /* Tabular numerals for data — applies to Geist Sans/Mono uniformly */
+  .tabular-nums,
+  [data-tabular] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Display serif — the meaning-marker */
+  .font-display {
+    font-family: var(--font-display);
+    font-feature-settings: 'liga', 'dlig';
+    letter-spacing: -0.015em;
+  }
+
+  /* Selection — amber tint, dampened */
+  ::selection {
+    background-color: oklch(from var(--primary) l c h / 0.28);
+    color: var(--foreground);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * UTILITIES — material vocabulary
+ * ------------------------------------------------------------------------ */
+@layer utilities {
+  /* Warm-tinted shadow stacks (never gray-black) */
+  .shadow-warm {
+    box-shadow: var(--shadow-warm);
+  }
+  .shadow-warm-sm {
+    box-shadow: var(--shadow-warm-sm);
+  }
+  .shadow-warm-lifted {
+    box-shadow: var(--shadow-warm-lifted);
+  }
+  .shadow-amber-glow {
+    box-shadow: var(--shadow-amber-glow);
+  }
+  .shadow-cinematic {
+    box-shadow: var(--shadow-cinematic);
+  }
+
+  /* Hairline dividers — barely-there, semantic */
+  .hairline {
+    border-color: var(--hairline);
+  }
+
+  /* The amber radial glow — used behind hero headlines, beneath the
+       diagnosis reveal, and as a streak-milestone halo */
+  .glow-amber {
+    background-image: radial-gradient(
+      ellipse at center,
+      oklch(from var(--primary) l c h / 0.22) 0%,
+      oklch(from var(--primary) l c h / 0.08) 35%,
+      transparent 70%
+    );
+  }
+  .glow-amber-soft {
+    background-image: radial-gradient(
+      ellipse at center,
+      oklch(from var(--primary) l c h / 0.12) 0%,
+      transparent 60%
+    );
+  }
+
+  /* Stripe noise-card — top-light/bottom-dark inner gradient on cards (dark) */
+  .surface-card-dark {
+    background-image: linear-gradient(
+      to bottom,
+      oklch(1 0 0 / 0.03) 0%,
+      transparent 40%,
+      oklch(0 0 0 / 0.18) 100%
+    );
+  }
+
+  /* Page-level gradient wash at section transitions (dark landing) */
+  .surface-wash-dark {
+    background-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      oklch(from var(--primary) l c h / 0.04) 50%,
+      transparent 100%
+    );
+  }
+
+  /* Considered ease — the house easing for fades */
+  .ease-considered {
+    transition-timing-function: var(--ease-considered);
+  }
 }
