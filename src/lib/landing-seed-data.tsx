@@ -1,32 +1,31 @@
 import { FAQ } from '@/types/faq';
 import { Feature } from '@/types/feature';
 import { Stat } from '@/types/stat';
-import { Brain, LineChart, Shield, Sparkles } from 'lucide-react';
+import { Microscope, MessageSquareText, Crosshair, Timer } from 'lucide-react';
 
 export const features: Feature[] = [
   {
-    icon: <Brain />,
-    title: 'Case-Based Training',
+    icon: <Microscope />,
+    title: 'Real dermoscopic cases',
     description:
-      'Instant, case-by-case guidance on your differential and malignancy risk estimation.',
+      'Curated from the ISIC Archive, not stock photos. Each lesion is the actual image a clinician would see.',
   },
   {
-    icon: <Sparkles />,
-    title: 'Realistic Case Library',
+    icon: <MessageSquareText />,
+    title: 'Feedback that teaches',
     description:
-      'Diverse dermoscopic and clinical images curated with domain experts.',
+      'Every answer comes with the pattern reasoning — not just right or wrong.',
   },
   {
-    icon: <LineChart />,
-    title: 'Progress & Benchmarks',
+    icon: <Crosshair />,
+    title: 'ABCDE-aware',
     description:
-      'Track accuracy, sensitivity/specificity, and compare with peer cohorts.',
+      'Annotations call out the features that actually drive the decision, on the image itself.',
   },
   {
-    icon: <Shield />,
-    title: 'Privacy & Compliance',
-    description:
-      'De-identified data, GDPR-friendly workflows, and role-based access.',
+    icon: <Timer />,
+    title: 'Respects your time',
+    description: '90-second drills. Sessions that fit a coffee break.',
   },
 ];
 

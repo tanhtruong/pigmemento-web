@@ -1,19 +1,14 @@
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { ArrowRight } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { Button } from '@/components/ui/button';
 import { useCallback, useEffect, useMemo } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { faqs, features } from '@/lib/landing-seed-data';
 import { paths } from '@/config/paths.ts';
 import { Head } from '@/components/seo/head.tsx';
@@ -226,142 +221,130 @@ const LandingRoute = () => {
         </p>
       </section>
 
-      {/* Who it's for */}
-      <motion.section
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewportOnce}
-        variants={stagger}
-        className="mx-auto w-full max-w-6xl px-6 py-16"
-      >
-        <motion.div variants={fadeUp} className="mb-10 text-center">
-          <h2 className="text-3xl font-bold md:text-4xl">Who it’s for</h2>
-          <p className="mx-auto mt-2 max-w-2xl text-neutral-600">
-            Pigmemento is designed for clinicians and trainees who want to
-            improve visual recognition of melanoma.
-          </p>
-        </motion.div>
-        <motion.div
-          variants={fadeIn}
-          className="grid grid-cols-1 gap-6 md:grid-cols-3"
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle>General Practice</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Build confidence triaging suspicious lesions and recognizing
-                common pitfalls.
-              </CardDescription>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Dermatology trainees</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Practice pattern recognition with curated cases and expert-style
-                feedback.
-              </CardDescription>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Students & exam prep</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Prepare for OSCEs and exams using realistic, case-based drills.
-              </CardDescription>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </motion.section>
-
-      {/* Features */}
+      {/* Features — 4 cards (PR10). */}
       <motion.section
         id="features"
         initial="hidden"
         whileInView="visible"
         viewport={viewportOnce}
         variants={stagger}
-        className="mx-auto w-full max-w-6xl px-6 py-16 md:py-20"
+        className="mx-auto w-full max-w-6xl px-6 py-20 md:py-28"
       >
-        <motion.div variants={fadeUp} className="mb-10 text-center">
-          <h2 className="text-3xl font-bold md:text-4xl">Why Pigmemento?</h2>
-          <p className="mx-auto mt-2 max-w-2xl text-neutral-600">
-            Practice with high-quality cases, get actionable feedback, and see
-            your skills grow session by session.
+        <motion.div
+          variants={fadeUp}
+          className="mb-12 flex flex-col gap-3 md:max-w-2xl"
+        >
+          <p className="text-primary font-mono text-xs tracking-[0.2em] uppercase">
+            Why Pigmemento
           </p>
+          <h2 className="font-display text-foreground text-4xl leading-tight md:text-5xl">
+            A study tool that respects your time and your training.
+          </h2>
         </motion.div>
         <motion.div
           variants={fadeIn}
           className="grid grid-cols-1 gap-6 md:grid-cols-2"
         >
           {features.map((feature) => (
-            <Card key={feature.title}>
-              <CardHeader>
-                <div className="w-fit p-3 bg-neutral-100 rounded-2xl">
-                  {feature.icon}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <CardTitle>{feature.title}</CardTitle>
-                <CardDescription>{feature.description}</CardDescription>
-              </CardContent>
-            </Card>
+            <motion.div
+              key={feature.title}
+              variants={fadeUp}
+              className="border-hairline shadow-warm dark:surface-card-dark flex flex-col gap-4 rounded-card border bg-card p-7"
+            >
+              <span className="text-primary [&_svg]:h-5 [&_svg]:w-5">
+                {feature.icon}
+              </span>
+              <h3 className="font-display text-foreground text-2xl leading-tight">
+                {feature.title}
+              </h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                {feature.description}
+              </p>
+            </motion.div>
           ))}
         </motion.div>
       </motion.section>
 
-      {/* How it works — the centerpiece pinned-scroll above replaces this. */}
-
-      {/* Waitlist */}
-      {/* <motion.section
-        id="waitlist"
+      {/* Who it's for — mantra band (PR10). Replaces the previous 3-card grid. */}
+      <motion.section
         initial="hidden"
         whileInView="visible"
         viewport={viewportOnce}
-        variants={fadeUp}
-        className="mx-auto w-full max-w-6xl px-6 py-16"
+        variants={fadeIn}
+        className="border-hairline border-y"
       >
-        <Card>
-          <CardHeader>
-            <h3 className="text-2xl font-bold">Get early access</h3>
-            <CardDescription>
-              Join the waitlist to be the first to try Pigmemento and help shape
-              the roadmap.
-            </CardDescription>
-            <div className="mt-3 text-sm text-neutral-600">
-              No spam. Unsubscribe anytime.
-            </div>
-          </CardHeader>
-          <CardContent>
-            <WaitlistForm />
-          </CardContent>
-        </Card>
-      </motion.section>*/}
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-14 md:flex-row md:items-baseline md:justify-between md:py-16">
+          <p className="text-muted-foreground font-mono text-xs tracking-[0.2em] uppercase">
+            Built for
+          </p>
+          <p className="font-display text-foreground max-w-3xl text-2xl leading-tight md:text-3xl">
+            For GPs. For dermatology trainees.{' '}
+            <span className="text-muted-foreground">For OSCE prep.</span>
+          </p>
+        </div>
+      </motion.section>
 
-      {/* FAQ */}
+      {/* FAQ — restyled to editorial accordion (PR10). */}
       <motion.section
         id="faq"
         initial="hidden"
         whileInView="visible"
         viewport={viewportOnce}
         variants={fadeIn}
-        className="mx-auto w-full max-w-6xl px-6 pb-20"
+        className="mx-auto w-full max-w-3xl px-6 py-20 md:py-28"
       >
-        <h2 className="mb-6 text-3xl font-bold md:text-4xl">FAQs</h2>
-        <Accordion type="multiple">
+        <motion.div variants={fadeUp} className="mb-10 flex flex-col gap-3">
+          <p className="text-primary font-mono text-xs tracking-[0.2em] uppercase">
+            FAQ
+          </p>
+          <h2 className="font-display text-foreground text-4xl leading-tight md:text-5xl">
+            Common questions.
+          </h2>
+        </motion.div>
+        <Accordion type="multiple" className="divide-hairline">
           {faqs.map((faq) => (
-            <AccordionItem key={faq.id.toString()} value={faq.id.toString()}>
-              <AccordionTrigger>{faq.question}</AccordionTrigger>
-              <AccordionContent>{faq.answer}</AccordionContent>
+            <AccordionItem
+              key={faq.id.toString()}
+              value={faq.id.toString()}
+              className="border-hairline border-b"
+            >
+              <AccordionTrigger className="text-foreground text-left font-sans text-base hover:no-underline">
+                {faq.question}
+              </AccordionTrigger>
+              <AccordionContent className="text-muted-foreground text-sm leading-relaxed">
+                {faq.answer}
+              </AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
+      </motion.section>
+
+      {/* CTA band — single full-width amber moment (PR10). */}
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={viewportOnce}
+        variants={fadeIn}
+        className="border-hairline relative isolate overflow-hidden border-t"
+      >
+        <div className="from-primary/8 absolute inset-0 -z-10 bg-gradient-to-br to-transparent" />
+        <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-8 px-6 py-24 text-center md:py-32">
+          <p className="text-primary font-mono text-xs tracking-[0.2em] uppercase">
+            Pattern recognition, case by case
+          </p>
+          <h2 className="font-display text-foreground text-4xl leading-tight md:text-6xl">
+            Ready to spot it?
+          </h2>
+          <p className="text-muted-foreground max-w-xl text-base leading-relaxed">
+            Real dermoscopic cases. Real feedback. 90 seconds at a time.
+          </p>
+          <Button asChild size="lg">
+            <Link to={primaryHref}>
+              Start your first case
+              <ArrowRight />
+            </Link>
+          </Button>
+        </div>
       </motion.section>
     </>
   );
