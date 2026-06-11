@@ -25,18 +25,29 @@ afterEach(() => {
   mockedUseReducedMotion.mockReturnValue(false);
 });
 
+const renderLandingRoute = () =>
+  render(
+    <HelmetProvider>
+      <MemoryRouter>
+        <LandingRoute />
+      </MemoryRouter>
+    </HelmetProvider>,
+  );
+
 describe('landing route', () => {
   it('renders the LandingHeroDevice with the placeholder showcase image', () => {
-    render(
-      <HelmetProvider>
-        <MemoryRouter>
-          <LandingRoute />
-        </MemoryRouter>
-      </HelmetProvider>,
-    );
+    renderLandingRoute();
 
     expect(
       screen.getByRole('slider', { name: /reveal position/i }),
     ).toBeInTheDocument();
+  });
+
+  it('renders the HowItWorksSection in the page', () => {
+    renderLandingRoute();
+
+    // HowItWorksSection's pinned variant marks itself with data-how-pinned —
+    // the inline (now-removed) "How it works" section never carried this attr.
+    expect(document.querySelector('[data-how-pinned]')).not.toBeNull();
   });
 });
