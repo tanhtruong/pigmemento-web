@@ -1,5 +1,5 @@
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
-import { Outlet } from 'react-router';
+import { RouteTransitionOutlet } from '@/components/motion/route-transition-outlet';
 
 export const ErrorBoundary = () => {
   return <div>Something went wrong!</div>;
@@ -8,7 +8,7 @@ export const ErrorBoundary = () => {
 const AppRoot = () => {
   return (
     <DashboardLayout>
-      <Outlet />
+      <RouteTransitionOutlet />
     </DashboardLayout>
   );
 };
