@@ -212,8 +212,8 @@ const LandingRoute = () => {
         <motion.div variants={fadeUp} className="mt-10 w-full">
           <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-3">
             <LandingHeroDevice
-              imageSrc="/dashboard-drill-mock.png"
-              imageAlt="Placeholder showcase lesion — pending real dermoscopic image"
+              imageSrc="/ISIC_0000022.jpg"
+              imageAlt="Dermoscopic image of a pigmented skin lesion"
             />
             <p className="text-xs text-neutral-500">
               Drag the circle or use ←/→ to scrub between the naked-eye and
