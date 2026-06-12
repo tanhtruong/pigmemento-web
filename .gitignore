@@ -44,3 +44,6 @@ coverage/
 
 # Optional: other cache
 .cache/
+
+# Agent worktrees (nested checkouts)
+.worktrees/
