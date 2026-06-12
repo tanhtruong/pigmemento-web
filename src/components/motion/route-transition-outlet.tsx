@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Outlet, useLocation } from 'react-router';
+import { Outlet, useLocation, useNavigation } from 'react-router';
 
-import { developVariants } from '@/lib/motion-tokens';
+import { developVariants, PENDING_HOLD_MS } from '@/lib/motion-tokens';
 import {
   classifyRouteTransition,
+  shouldAnimateRouteTransition,
   type RouteTransitionVariant,
 } from '@/lib/route-transition';
 
@@ -29,9 +30,39 @@ import {
 
 type LatchedHop = { path: string; variant: RouteTransitionVariant };
 
+/**
+ * Pending fix-out dim (#54). While a route loader holds navigation past
+ * PENDING_HOLD_MS, the still-mounted outgoing surface eases into the held
+ * fix — the click acknowledged without a spinner. Resolves under the
+ * threshold (the react-query cached majority) never trigger it, and hops
+ * whose grammar is `none` (the attempt → review centerpiece) never dim.
+ */
+const usePendingHold = (currentPath: string): boolean => {
+  const navigation = useNavigation();
+  const [held, setHeld] = useState(false);
+
+  const pendingPath =
+    navigation.state === 'loading' &&
+    shouldAnimateRouteTransition(currentPath, navigation.location.pathname)
+      ? navigation.location.pathname
+      : undefined;
+
+  useEffect(() => {
+    if (pendingPath === undefined) {
+      setHeld(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setHeld(true), PENDING_HOLD_MS);
+    return () => window.clearTimeout(timer);
+  }, [pendingPath]);
+
+  return held;
+};
+
 export const RouteTransitionOutlet = () => {
   const reducedMotion = useReducedMotion();
   const location = useLocation();
+  const held = usePendingHold(location.pathname);
 
   const [latched, setLatched] = useState<LatchedHop>({
     path: location.pathname,
@@ -61,11 +92,12 @@ export const RouteTransitionOutlet = () => {
         custom={variant}
         variants={developVariants}
         initial="latent"
-        animate="developed"
+        animate={held ? 'held' : 'developed'}
         exit="fixed"
         data-motion-wrapper
         data-animates={variant === 'none' ? 'false' : 'true'}
         data-variant={variant}
+        data-held={held ? 'true' : 'false'}
       >
         <Outlet />
       </motion.div>
