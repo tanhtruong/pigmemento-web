@@ -1,6 +1,6 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Sparkles, Sun, MoonStar } from 'lucide-react';
 
 import { SoftCircleReveal } from '@/components/motion/soft-circle-reveal';
@@ -28,7 +28,8 @@ import { DiagnosisReveal } from '@/components/signature/diagnosis-reveal';
 import { CalendarHeatmap } from '@/components/signature/calendar-heatmap';
 import { StartACasePicker } from '@/components/signature/start-a-case-picker';
 
-import { motionTokens } from '@/lib/motion-tokens';
+import { developVariants, motionTokens } from '@/lib/motion-tokens';
+import type { RouteTransitionVariant } from '@/lib/route-transition';
 import { useTransitionNavigate } from '@/components/motion/transition-conductor';
 import { commitOrigin } from '@/lib/commit-origin';
 
@@ -115,6 +116,76 @@ const ConductorTrigger = ({
     >
       {label}
     </Button>
+  );
+};
+
+const GRAMMAR_VARIANTS = [
+  'lateral-forward',
+  'lateral-back',
+  'descend',
+  'ascend',
+  'advance',
+  'neutral',
+] as const satisfies readonly RouteTransitionVariant[];
+
+/**
+ * Replays the in-app Develop (#53) on a mock surface without real
+ * navigation — same `developVariants` the RouteTransitionOutlet conjugates,
+ * one button per grammar variant.
+ */
+const DevelopGrammarDemo = () => {
+  const [stage, setStage] = useState<{
+    frame: number;
+    variant: RouteTransitionVariant;
+  }>({ frame: 0, variant: 'neutral' });
+  const surface = stage.frame % 2 === 0;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap gap-2">
+        {GRAMMAR_VARIANTS.map((variant) => (
+          <Button
+            key={variant}
+            variant="outline"
+            size="sm"
+            onClick={() => setStage((s) => ({ frame: s.frame + 1, variant }))}
+          >
+            {variant}
+          </Button>
+        ))}
+      </div>
+      <div className="relative min-h-56 overflow-hidden rounded-lg border border-hairline bg-background">
+        <AnimatePresence mode="wait" initial={false} custom={stage.variant}>
+          <motion.div
+            key={stage.frame}
+            custom={stage.variant}
+            variants={developVariants}
+            initial="latent"
+            animate="developed"
+            exit="fixed"
+            className="flex items-center gap-6 p-8"
+          >
+            <img
+              src={LESION_IMAGE}
+              alt=""
+              className="size-24 rounded-md object-cover"
+            />
+            <div className="flex flex-col gap-1.5">
+              <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-primary uppercase">
+                {surface ? 'Library' : 'Progress'}
+              </p>
+              <p className="font-display text-2xl leading-tight">
+                {surface ? 'Mock surface A.' : 'Mock surface B.'}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                latent → developed on entry, developed → fixed on exit — last
+                hop: {stage.variant}
+              </p>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
   );
 };
 
@@ -550,6 +621,16 @@ const DevMotionRoute = () => {
               bloom → hold → graphite settle → dissolve
             </span>
           </div>
+        </Section>
+
+        <Hairline />
+
+        <Section
+          eyebrow="10 · Route grammar"
+          title="The Develop."
+          description="The bloom's quieter sibling — every in-app hop develops the incoming surface from a warm latent print and fixes the outgoing one. Conjugated by the relationship between routes: lateral along the tab strip, descend into a case, ascend back out, advance to the next."
+        >
+          <DevelopGrammarDemo />
         </Section>
 
         <Hairline />

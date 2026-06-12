@@ -1,4 +1,6 @@
-import type { Transition } from 'motion/react';
+import type { Transition, Variants } from 'motion/react';
+
+import type { RouteTransitionVariant } from '@/lib/route-transition';
 
 /**
  * Shared motion vocabulary for the Pigmemento motion system.
@@ -91,3 +93,82 @@ export const revealSequence = {
 
 /** Streak-milestone glow decay (amber halo around the punched number). */
 export const STREAK_GLOW_DECAY_MS = 1400;
+
+/**
+ * The Develop — the in-app route gesture (#53), the bloom conductor's quieter
+ * sibling. The incoming surface is a *latent* print: faintly warm (sub-amber
+ * safelight cast via sepia), washed-out, and it develops to full contrast.
+ * The outgoing surface is *fixed*: cooled, dimmed, done.
+ *
+ * Filter lists keep identical function order across all three states so
+ * motion can interpolate them. Color-matrix filters only (no blur) — these
+ * stay compositor-friendly on full route trees.
+ */
+const LATENT_FILTER =
+  'contrast(0.82) saturate(0.72) sepia(0.18) brightness(1.05)';
+const DEVELOPED_FILTER = 'contrast(1) saturate(1) sepia(0) brightness(1)';
+const FIXED_FILTER = 'contrast(0.94) saturate(0.55) sepia(0) brightness(0.92)';
+
+type DevelopDrift = { x?: number; y?: number };
+
+/**
+ * Drift conjugation per grammar variant. Enter and exit continue the same
+ * camera motion: lateral hops flow along the tab strip, descend washes
+ * downward into the case, ascend lifts back out, advance presses forward.
+ */
+const ENTER_DRIFT: Record<RouteTransitionVariant, DevelopDrift> = {
+  'lateral-forward': { x: 20 },
+  'lateral-back': { x: -20 },
+  descend: { y: -16 },
+  ascend: { y: 16 },
+  advance: { x: 16 },
+  neutral: {},
+  none: {},
+};
+
+const EXIT_DRIFT: Record<RouteTransitionVariant, DevelopDrift> = {
+  'lateral-forward': { x: -10 },
+  'lateral-back': { x: 10 },
+  descend: { y: 8 },
+  ascend: { y: -8 },
+  advance: { x: -8 },
+  neutral: {},
+  none: {},
+};
+
+const INSTANT: Transition = { duration: 0 };
+
+/**
+ * Dynamic variants for the route outlet. Pass the hop's grammar variant as
+ * `custom` on BOTH the motion element and its AnimatePresence so the exiting
+ * surface fixes with the current hop's drift, not the one that brought it in.
+ * `none` collapses every state to an instant no-op (centerpiece hop).
+ */
+export const developVariants: Variants = {
+  latent: (variant: RouteTransitionVariant) =>
+    variant === 'none'
+      ? { opacity: 1, x: 0, y: 0, filter: DEVELOPED_FILTER }
+      : {
+          opacity: 0,
+          filter: LATENT_FILTER,
+          x: 0,
+          y: 0,
+          ...ENTER_DRIFT[variant],
+        },
+  developed: (variant: RouteTransitionVariant) => ({
+    opacity: 1,
+    x: 0,
+    y: 0,
+    filter: DEVELOPED_FILTER,
+    transition: variant === 'none' ? INSTANT : motionTokens.normal,
+  }),
+  fixed: (variant: RouteTransitionVariant) =>
+    variant === 'none'
+      ? { opacity: 1, transition: INSTANT }
+      : {
+          opacity: 0,
+          filter: FIXED_FILTER,
+          ...EXIT_DRIFT[variant],
+          transition: motionTokens.quick,
+        },
+};
