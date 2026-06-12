@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { paths } from '@/config/paths';
 import type { CaseListItem } from '@/features/cases/types/case-list-item.ts';
 import { useCases } from '@/features/cases/api/use-cases.ts';
+import { captureLesionFlight } from '@/lib/lesion-flight';
 import { cn } from '@/lib/utils';
 
 type Difficulty = 'all' | 'easy' | 'medium' | 'hard';
@@ -346,6 +347,9 @@ const CaseCard = ({ item }: { item: CaseListItem }) => {
   return (
     <Link
       to={paths.app['case-attempt'].getHref(item.id)}
+      onClick={(event) =>
+        captureLesionFlight(event.currentTarget, item.id, item.imageUrl)
+      }
       className={cn(
         'group/case-card border-hairline relative isolate flex flex-col overflow-hidden rounded-card border bg-card',
         'shadow-warm-sm transition-all ease-considered duration-200',
@@ -353,7 +357,10 @@ const CaseCard = ({ item }: { item: CaseListItem }) => {
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
       )}
     >
-      <div className="bg-muted/40 aspect-square w-full overflow-hidden">
+      <div
+        data-case-thumb
+        className="bg-muted/40 aspect-square w-full overflow-hidden"
+      >
         <img
           src={item.imageUrl}
           alt={`Case ${item.id}`}
