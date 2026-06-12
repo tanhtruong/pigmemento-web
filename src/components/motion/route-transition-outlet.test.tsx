@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 
@@ -77,10 +77,15 @@ describe('RouteTransitionOutlet', () => {
       await router.navigate('/app/cases/42/review');
     });
 
-    const review = screen.getByText('Review content');
-    const wrapper = review.closest('[data-motion-wrapper]');
-    expect(wrapper).not.toBeNull();
-    expect(wrapper).toHaveAttribute('data-animates', 'false');
+    // The exiting wrapper is retained until its (instant) exit completes —
+    // assert on the post-swap wrapper.
+    await waitFor(() => {
+      const wrapper = screen
+        .getByText('Review content')
+        .closest('[data-motion-wrapper]');
+      expect(wrapper).toHaveAttribute('data-animates', 'false');
+      expect(wrapper).toHaveAttribute('data-variant', 'none');
+    });
   });
 
   it('marks the wrapper data-animates="true" on normal navigation', async () => {
@@ -90,9 +95,40 @@ describe('RouteTransitionOutlet', () => {
       await router.navigate('/app/profile');
     });
 
-    const profile = screen.getByText('Profile content');
-    const wrapper = profile.closest('[data-motion-wrapper]');
-    expect(wrapper).not.toBeNull();
-    expect(wrapper).toHaveAttribute('data-animates', 'true');
+    await waitFor(() => {
+      const wrapper = screen
+        .getByText('Profile content')
+        .closest('[data-motion-wrapper]');
+      expect(wrapper).toHaveAttribute('data-animates', 'true');
+    });
+  });
+
+  it('conjugates the wrapper with the grammar variant of the hop', async () => {
+    const { router } = renderWithRoute('/app/dashboard');
+
+    await act(async () => {
+      await router.navigate('/app/profile');
+    });
+
+    await waitFor(() => {
+      const wrapper = screen
+        .getByText('Profile content')
+        .closest('[data-motion-wrapper]');
+      expect(wrapper).toHaveAttribute('data-variant', 'lateral-forward');
+    });
+  });
+
+  it('resets scroll to top under the exit on an animated hop', async () => {
+    const scrollSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    const { router } = renderWithRoute('/app/dashboard');
+
+    await act(async () => {
+      await router.navigate('/app/profile');
+    });
+
+    await waitFor(() => {
+      expect(scrollSpy).toHaveBeenCalledWith(0, 0);
+    });
+    scrollSpy.mockRestore();
   });
 });
