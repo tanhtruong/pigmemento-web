@@ -146,7 +146,7 @@ describe('conductorTimings', () => {
   it('draws every duration from the shared motion vocabulary', () => {
     const timings = conductorTimings(false);
 
-    expect(timings.bloomMs).toBe(motionDurations.considered * 1000);
+    expect(timings.bloomMs).toBe(motionDurations.hero * 1000);
     expect(timings.dissolveMs).toBe(motionDurations.hero * 1000);
   });
 
