@@ -95,7 +95,7 @@ const ConductorTrigger = ({
   kind,
   label,
 }: {
-  kind: 'enter-app' | 'enter-auth';
+  kind: 'enter-app' | 'enter-auth' | 'exit-app';
   label: string;
 }) => {
   const startTransition = useTransitionNavigate();
@@ -542,6 +542,12 @@ const DevMotionRoute = () => {
             <ConductorTrigger kind="enter-auth" label="Bloom enter-auth" />
             <span className="text-xs text-muted-foreground">
               bloom → hold → dissolve into the dark surface (no wash)
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <ConductorTrigger kind="exit-app" label="Bloom exit-app" />
+            <span className="text-xs text-muted-foreground">
+              bloom → hold → graphite settle → dissolve
             </span>
           </div>
         </Section>

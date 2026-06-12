@@ -24,7 +24,9 @@ import {
   CommandShortcut,
 } from '@/components/ui/command.tsx';
 import { paths } from '@/config/paths.ts';
-import { useLogout } from '@/features/auth/hooks/use-auth.tsx';
+import { useLogoutTransition } from '@/features/auth/hooks/use-logout-transition.ts';
+import { prefetchLandingRoute } from '@/app/prefetch-routes.ts';
+import { commitOrigin } from '@/lib/commit-origin.ts';
 
 type AppCommandPaletteProps = {
   open: boolean;
@@ -40,7 +42,7 @@ type AppCommandPaletteProps = {
  * - Start a case  (delegates to the picker sheet)
  * - Jump to Practice / Library / Progress / Profile
  * - Toggle theme  (system → light → dark cycle)
- * - Sign out      (uses existing useLogout)
+ * - Sign out      (conductor exit-app bloom back to the landing)
  *
  * Mounted globally inside AppShell. The ⌘K (⌃K on non-mac) keydown listener
  * lives here so we keep the open-state logic colocated.
@@ -52,7 +54,7 @@ export const AppCommandPalette = ({
 }: AppCommandPaletteProps) => {
   const navigate = useNavigate();
   const { resolvedTheme, setTheme } = useTheme();
-  const logout = useLogout();
+  const logoutWithBloom = useLogoutTransition();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -64,6 +66,11 @@ export const AppCommandPalette = ({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onOpenChange]);
+
+  // Sign out lives here too — warm the landing chunk while the palette is up.
+  useEffect(() => {
+    if (open) void prefetchLandingRoute();
+  }, [open]);
 
   const run = (fn: () => void) => () => {
     onOpenChange(false);
@@ -140,7 +147,11 @@ export const AppCommandPalette = ({
         <CommandSeparator />
 
         <CommandGroup heading="Account">
-          <CommandItem onSelect={run(() => logout())}>
+          {/* cmdk's onSelect passes no event — the centered dialog makes
+              the viewport-center fallback the honest origin. */}
+          <CommandItem
+            onSelect={run(() => logoutWithBloom(commitOrigin(null)))}
+          >
             <LogOut />
             Sign out
           </CommandItem>

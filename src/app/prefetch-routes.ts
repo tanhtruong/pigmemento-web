@@ -12,6 +12,8 @@ import {
 
 export const prefetchLoginRoute = () => import('./routes/auth/login');
 
+export const prefetchLandingRoute = () => import('./routes/landing');
+
 const APP_CHUNKS: Record<AppRoutePrefetchKey, () => Promise<unknown>> = {
   dashboard: () => import('./routes/app/dashboard'),
   cases: () => import('./routes/app/cases/cases'),

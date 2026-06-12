@@ -122,3 +122,12 @@ export const shouldFireNavigate = (
 ): boolean => {
   return prev.phase !== 'holding' && next.phase === 'holding';
 };
+
+/**
+ * History semantics per transition kind. Crossing the auth boundary spends
+ * the step — back must not replay a sign-in or re-enter a dead session.
+ * Only landing → auth keeps a history entry behind it.
+ */
+export const shouldReplaceHistory = (kind: TransitionKind): boolean => {
+  return kind !== 'enter-auth';
+};
