@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { useCallback, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { faqs } from '@/lib/landing-seed-data';
-import { paths } from '@/config/paths.ts';
 import { Head } from '@/components/seo/head.tsx';
 import { motionDurations } from '@/lib/motion-tokens.ts';
 import { LandingHero } from '@/components/landing/landing-hero.tsx';
@@ -14,7 +13,7 @@ import { ScrollRail } from '@/components/landing/scroll-rail.tsx';
 import { LandingLoginFab } from '@/components/landing/landing-login-fab.tsx';
 import { WhyScrubReel } from '@/components/landing/why-scrub-reel.tsx';
 import { FaqPinnedSplit } from '@/components/landing/faq-pinned-split.tsx';
-import { isTokenValid } from '@/lib/auth.tsx';
+import { useAuthEntry } from '@/features/auth/hooks/use-auth-entry.ts';
 
 const LandingRoute = () => {
   const shouldReduceMotion = useReducedMotion();
@@ -71,10 +70,10 @@ const LandingRoute = () => {
     [shouldReduceMotion],
   );
 
-  // Where "Start a case" routes — auth-state aware.
-  const primaryHref = isTokenValid()
-    ? paths.app.dashboard.getHref()
-    : paths.auth.login.getHref();
+  // The "Start a case" gesture — auth-state-aware href, enter-auth bloom
+  // when signed out, auth-chunk prefetch on hover/focus. Shared by the
+  // hero and the CTA band.
+  const primaryCta = useAuthEntry();
 
   const scrollToId = useCallback(
     (id: string) => {
@@ -185,7 +184,7 @@ const LandingRoute = () => {
 
       {/* Hero — question hero with editorial-framed lesion. */}
       <LandingHero
-        primaryHref={primaryHref}
+        primaryCta={primaryCta}
         onSeeHowItWorks={() => scrollToId('how')}
         imageSrc="/ISIC_0000022.jpg"
         imageAlt="Dermoscopic image of a pigmented skin lesion"
@@ -254,7 +253,12 @@ const LandingRoute = () => {
               Real dermoscopic cases. Real feedback. Ninety seconds at a time.
             </p>
             <Button asChild size="lg">
-              <Link to={primaryHref}>
+              <Link
+                to={primaryCta.href}
+                onClick={primaryCta.onClick}
+                onMouseEnter={primaryCta.onMouseEnter}
+                onFocus={primaryCta.onFocus}
+              >
                 Start your first case
                 <ArrowRight />
               </Link>

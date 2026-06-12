@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import { MemoryRouter } from 'react-router';
+import { createMemoryRouter, RouterProvider } from 'react-router';
 import { HelmetProvider } from '@dr.pogodin/react-helmet';
 
 vi.mock('motion/react', async () => {
@@ -18,6 +18,7 @@ vi.mock('framer-motion', async () => {
 import { useReducedMotion } from 'motion/react';
 
 import LandingRoute from './landing';
+import { TransitionConductor } from '@/components/motion/transition-conductor';
 
 const mockedUseReducedMotion = vi.mocked(useReducedMotion);
 
@@ -25,14 +26,22 @@ afterEach(() => {
   mockedUseReducedMotion.mockReturnValue(false);
 });
 
-const renderLandingRoute = () =>
-  render(
+// The landing renders inside the conductor route shell in production
+// (pathless root route in router.tsx) — mirror that here so the amber
+// CTAs' useAuthEntry gesture has its context.
+const renderLandingRoute = () => {
+  const router = createMemoryRouter([
+    {
+      element: <TransitionConductor />,
+      children: [{ path: '/', element: <LandingRoute /> }],
+    },
+  ]);
+  return render(
     <HelmetProvider>
-      <MemoryRouter>
-        <LandingRoute />
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </HelmetProvider>,
   );
+};
 
 describe('landing route', () => {
   it('renders the question hero headline', () => {
@@ -53,21 +62,21 @@ describe('landing route', () => {
     expect(cta.getAttribute('href')).toMatch(/\/auth\/login/);
   });
 
-  it('renders the trust strip with the ISIC source attribution', () => {
+  it('closes the narrative loop with the CTA band', () => {
     renderLandingRoute();
 
     expect(
-      screen.getByRole('region', { name: /why you can trust pigmemento/i }),
+      screen.getByRole('heading', { name: /ready to spot it\?/i }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /sourced from the isic archive/i }),
-    ).toHaveAttribute('href', 'https://www.isic-archive.com/');
+    const cta = screen.getByRole('link', { name: /start your first case/i });
+    expect(cta.getAttribute('href')).toMatch(/\/auth\/login/);
   });
 
-  it('keeps the existing HowItWorksSection mounted (PR2 leaves it for PR6)', () => {
+  it('keeps the persistent login FAB available from page-load', () => {
     renderLandingRoute();
 
-    expect(document.querySelector('[data-how-pinned]')).not.toBeNull();
+    const fab = screen.getByRole('link', { name: /^log in$/i });
+    expect(fab.getAttribute('href')).toMatch(/\/auth\/login/);
   });
 
   it('exposes the ISIC source credit beneath each lesion image', () => {

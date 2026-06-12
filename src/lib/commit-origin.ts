@@ -12,3 +12,19 @@ export const commitOrigin = (
   }
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 };
+
+/**
+ * Bloom origin from a click-like event: the pointer position for mouse and
+ * touch, the element center for keyboard activation (whose synthesized
+ * clicks report clientX/clientY as 0,0).
+ */
+export const gestureOrigin = (event: {
+  clientX: number;
+  clientY: number;
+  currentTarget: Element;
+}): { x: number; y: number } => {
+  if (event.clientX || event.clientY) {
+    return { x: event.clientX, y: event.clientY };
+  }
+  return commitOrigin(event.currentTarget);
+};

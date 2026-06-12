@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { motion, useReducedMotion, type Variants } from 'motion/react';
 
 import { paths } from '@/config/paths';
+import { prefetchAppRoute } from '@/app/prefetch-routes';
 import { Head } from '../seo/head';
 import { isTokenValid } from '@/lib/auth';
 import { GrainOverlay } from '@/components/foundation/grain-overlay';
@@ -52,6 +53,12 @@ export const AuthLayout = ({ children, title, subtitle }: LayoutProps) => {
     document.body.classList.add('dark');
     return () => document.body.classList.remove('dark');
   }, []);
+
+  // Warm the post-auth destination chunk while the user types, so the
+  // conductor's bloom settles onto a mounted app — never a spinner.
+  useEffect(() => {
+    prefetchAppRoute(redirectTo ?? paths.app.dashboard.getHref());
+  }, [redirectTo]);
 
   const fadeUp: Variants = {
     hidden: { opacity: 0, y: 12 },
