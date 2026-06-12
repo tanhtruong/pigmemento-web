@@ -1,6 +1,13 @@
-import { type ReactNode, useCallback, useEffect, useState } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
+import { useReducedMotion } from 'motion/react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +24,11 @@ import { useCaseAttemptShortcuts } from '@/features/cases/hooks/use-case-attempt
 import { useCaseTimer } from '@/features/cases/hooks/use-case-timer.ts';
 import { queryKeys } from '@/lib/query-keys.ts';
 import { CaseLesionFrame } from '@/components/cases/case-lesion-frame.tsx';
+import { LesionFlight } from '@/components/motion/lesion-flight';
+import {
+  consumeLesionFlight,
+  type LesionFlightOrigin,
+} from '@/lib/lesion-flight';
 import { RING_FILL_MS } from '@/lib/motion-tokens';
 
 export type Label = CaseChoice;
@@ -46,6 +58,22 @@ export const CaseAttemptView = ({
   submitErrorNode,
   headerActionsNode,
 }: CaseAttemptViewProps) => {
+  const reducedMotion = useReducedMotion();
+  const heroRef = useRef<HTMLDivElement>(null);
+
+  // Consume the flight origin exactly once per mount, during the first
+  // render — before first paint, so a click-originated entry never flashes
+  // the hero ahead of the flight. Non-click entries (deep link, refresh,
+  // history pop) find the module empty and render plain.
+  const consumedRef = useRef<LesionFlightOrigin | null | undefined>(undefined);
+  if (consumedRef.current === undefined) {
+    consumedRef.current = consumeLesionFlight(String(caseItem.id));
+  }
+  const [flight, setFlight] = useState<LesionFlightOrigin | null>(
+    reducedMotion ? null : consumedRef.current,
+  );
+  const landFlight = useCallback(() => setFlight(null), []);
+
   const choices: {
     value: CaseChoice;
     label: string;
@@ -75,12 +103,25 @@ export const CaseAttemptView = ({
       <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
         {/* IMAGE — sticky on desktop, hero on mobile */}
         <figure className="lg:sticky lg:top-20 lg:self-start">
-          <div className="border-hairline shadow-warm overflow-hidden rounded-card border bg-muted/40">
+          <div
+            ref={heroRef}
+            data-flight-target
+            data-flight-hidden={flight ? 'true' : 'false'}
+            style={flight ? { visibility: 'hidden' } : undefined}
+            className="border-hairline shadow-warm overflow-hidden rounded-card border bg-muted/40"
+          >
             <CaseLesionFrame
               imageSrc={caseItem.imageUrl}
               imageAlt={`Case ${caseItem.id}`}
             />
           </div>
+          {flight && (
+            <LesionFlight
+              origin={flight}
+              targetRef={heroRef}
+              onLanded={landFlight}
+            />
+          )}
         </figure>
 
         {/* RIGHT — context + choices */}
