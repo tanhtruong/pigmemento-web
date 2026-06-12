@@ -1,4 +1,4 @@
-import { ComponentProps } from 'react';
+import { ComponentProps, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,7 +20,8 @@ import { cn } from '@/lib/utils';
 import { LoginDto } from '../types/auth';
 import { loginSchema } from '../schemas/auth';
 import { useAuthRedirectTarget, useLogin } from '../hooks/use-auth';
-import { useAuthTransition } from './auth-transition-context';
+import { useTransitionNavigate } from '@/components/motion/transition-conductor';
+import { commitOrigin } from '@/lib/commit-origin';
 
 export const LoginForm = ({ className, ...props }: ComponentProps<'div'>) => {
   const form = useForm<LoginDto>({
@@ -32,11 +33,19 @@ export const LoginForm = ({ className, ...props }: ComponentProps<'div'>) => {
   });
 
   const { mutate: login, isPending, isError } = useLogin();
-  const { fadeToLight } = useAuthTransition();
+  const startTransition = useTransitionNavigate();
   const destination = useAuthRedirectTarget();
+  const submitRef = useRef<HTMLButtonElement>(null);
 
   const onSubmit = (data: LoginDto) => {
-    login(data, { onSuccess: () => fadeToLight(destination) });
+    login(data, {
+      onSuccess: () =>
+        startTransition({
+          kind: 'enter-app',
+          origin: commitOrigin(submitRef.current),
+          destination,
+        }),
+    });
   };
 
   return (
@@ -93,6 +102,7 @@ export const LoginForm = ({ className, ...props }: ComponentProps<'div'>) => {
           />
 
           <Button
+            ref={submitRef}
             type="submit"
             disabled={isPending}
             className="w-full justify-center"

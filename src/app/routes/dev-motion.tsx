@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion } from 'motion/react';
 import { Sparkles, Sun, MoonStar } from 'lucide-react';
@@ -28,6 +29,8 @@ import { CalendarHeatmap } from '@/components/signature/calendar-heatmap';
 import { StartACasePicker } from '@/components/signature/start-a-case-picker';
 
 import { motionTokens } from '@/lib/motion-tokens';
+import { useTransitionNavigate } from '@/components/motion/transition-conductor';
+import { commitOrigin } from '@/lib/commit-origin';
 
 const SHOWCASE_IMAGE = '/dashboard-drill-mock.png';
 const LESION_IMAGE = '/ISIC_0000022.jpg';
@@ -87,6 +90,26 @@ const Swatch = ({ token, label }: { token: string; label: string }) => (
     </div>
   </div>
 );
+
+const ConductorTrigger = () => {
+  const startTransition = useTransitionNavigate();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  return (
+    <Button
+      ref={triggerRef}
+      onClick={() =>
+        startTransition({
+          kind: 'enter-app',
+          origin: commitOrigin(triggerRef.current),
+          destination: '/dev/motion',
+        })
+      }
+    >
+      Bloom enter-app
+    </Button>
+  );
+};
 
 const ThemeToggle = () => {
   const { resolvedTheme, setTheme } = useTheme();
@@ -491,6 +514,22 @@ const DevMotionRoute = () => {
                 <CalendarHeatmap data={heatmapData} endDateIso="2026-06-11" />
               </CardContent>
             </Card>
+          </div>
+        </Section>
+
+        <Hairline />
+
+        {/* TRANSITION CONDUCTOR ------------------------------------------ */}
+        <Section
+          eyebrow="09 · TransitionConductor"
+          title="The darkroom lamp."
+          description="Amber bloom from the commit point, hold while the route swaps, settle into bone-warm daylight. Routes back to this page so the full sequence runs without auth."
+        >
+          <div className="flex flex-wrap items-center gap-4">
+            <ConductorTrigger />
+            <span className="text-xs text-muted-foreground">
+              enter-app · bloom → hold → paper settle → dissolve
+            </span>
           </div>
         </Section>
 

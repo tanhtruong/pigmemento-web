@@ -8,10 +8,10 @@ import api from '@/lib/axios';
 /**
  * Login + register mutations.
  *
- * Both return the React-Query mutation as-is and do NOT navigate on
- * success — the caller decides what to do with the authenticated state.
- * The AuthLayout uses this to fire its dark→light fade-through before
- * actually routing to the app shell.
+ * Both return the React-Query mutation as-is and do NOT navigate or toast
+ * on success — the caller decides what to do with the authenticated state.
+ * The auth forms start the TransitionConductor's amber bloom-to-light;
+ * the bloom IS the welcome, so no success toast competes with it.
  *
  * Callers that just want the legacy behaviour can read the redirect
  * target from `useAuthRedirectTarget()` and navigate themselves.
@@ -32,9 +32,6 @@ export const useLogin = () => {
       localStorage.setItem('token', res.data.token);
       return res.data;
     },
-    onSuccess: () => {
-      toast('Welcome back!', { closeButton: true });
-    },
     onError: (err) => {
       console.error('Login failed', err);
     },
@@ -47,9 +44,6 @@ export const useRegister = () => {
       const res = await api.post<AuthResponse>('/auth/register', data);
       localStorage.setItem('token', res.data.token);
       return res.data;
-    },
-    onSuccess: () => {
-      toast('Welcome!', { closeButton: true });
     },
     onError: (err) => {
       console.error('Registration failed', err);

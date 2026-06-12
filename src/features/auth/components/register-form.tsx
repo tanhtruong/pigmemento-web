@@ -1,4 +1,4 @@
-import { ComponentProps } from 'react';
+import { ComponentProps, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,7 +20,8 @@ import { cn } from '@/lib/utils';
 import { RegisterDto } from '../types/auth';
 import { registerSchema } from '../schemas/auth';
 import { useAuthRedirectTarget, useRegister } from '../hooks/use-auth';
-import { useAuthTransition } from './auth-transition-context';
+import { useTransitionNavigate } from '@/components/motion/transition-conductor';
+import { commitOrigin } from '@/lib/commit-origin';
 
 const RegisterForm = ({ className, ...props }: ComponentProps<'div'>) => {
   const form = useForm<RegisterDto>({
@@ -34,13 +35,21 @@ const RegisterForm = ({ className, ...props }: ComponentProps<'div'>) => {
   });
 
   const { mutate: register, isPending, isError } = useRegister();
-  const { fadeToLight } = useAuthTransition();
+  const startTransition = useTransitionNavigate();
   const destination = useAuthRedirectTarget();
+  const submitRef = useRef<HTMLButtonElement>(null);
 
   const onSubmit = (data: RegisterDto) => {
     const { confirmPassword: _confirmPassword, ...dto } = data;
     void _confirmPassword;
-    register(dto, { onSuccess: () => fadeToLight(destination) });
+    register(dto, {
+      onSuccess: () =>
+        startTransition({
+          kind: 'enter-app',
+          origin: commitOrigin(submitRef.current),
+          destination,
+        }),
+    });
   };
 
   return (
@@ -129,6 +138,7 @@ const RegisterForm = ({ className, ...props }: ComponentProps<'div'>) => {
           />
 
           <Button
+            ref={submitRef}
             type="submit"
             disabled={isPending}
             className="w-full justify-center"
