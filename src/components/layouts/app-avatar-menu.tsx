@@ -18,7 +18,9 @@ import { Badge } from '@/components/ui/badge.tsx';
 import { Hairline } from '@/components/foundation/hairline.tsx';
 import { ThemeSwitch } from '@/components/layouts/theme-switch.tsx';
 import { useProfile } from '@/features/profile/api/use-profile.ts';
-import { useLogout } from '@/features/auth/hooks/use-auth.tsx';
+import { useLogoutTransition } from '@/features/auth/hooks/use-logout-transition.ts';
+import { prefetchLandingRoute } from '@/app/prefetch-routes.ts';
+import { commitOrigin } from '@/lib/commit-origin.ts';
 import { paths } from '@/config/paths.ts';
 import { cn } from '@/lib/utils.ts';
 
@@ -42,17 +44,24 @@ const initialsFrom = (name?: string, email?: string) =>
  *   - User identity row (avatar + name + role badge)
  *   - ThemeSwitch (system / light / dark) — per spec Q10d
  *   - Profile link
- *   - Sign out (calls useLogout)
+ *   - Sign out (conductor exit-app bloom back to the landing)
+ *
+ * Opening the menu prefetches the landing chunk so a fresh-session user
+ * who never visited the landing still gets a warm chunk on sign-out.
  */
 export const AppAvatarMenu = ({ className }: AppAvatarMenuProps) => {
   const { data: user } = useProfile();
-  const logout = useLogout();
+  const logoutWithBloom = useLogoutTransition();
 
   const initials = initialsFrom(user?.name, user?.email);
   const displayName = user?.name || 'Pigmemento user';
 
   return (
-    <DropdownMenu>
+    <DropdownMenu
+      onOpenChange={(open) => {
+        if (open) void prefetchLandingRoute();
+      }}
+    >
       <DropdownMenuTrigger asChild>
         <button
           type="button"
@@ -132,7 +141,11 @@ export const AppAvatarMenu = ({ className }: AppAvatarMenuProps) => {
 
         <DropdownMenuItem
           className="text-destructive focus:text-destructive flex items-center gap-2"
-          onSelect={() => logout()}
+          onSelect={(event) =>
+            // Capture the item's position before the dropdown unmounts —
+            // the exit-app bloom originates from the gesture.
+            logoutWithBloom(commitOrigin(event.target as Element))
+          }
         >
           <LogOut className="h-4 w-4" />
           Sign out

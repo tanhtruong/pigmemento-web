@@ -18,6 +18,7 @@ import {
   initialConductorState,
   reduceConductor,
   shouldFireNavigate,
+  shouldReplaceHistory,
   type TransitionRequest,
 } from '@/lib/transition-conductor';
 import { GrainOverlay } from '@/components/foundation/grain-overlay';
@@ -60,8 +61,16 @@ export const useTransitionNavigate = (): TransitionNavigate => {
 /** The house ease — cubic-bezier(0.2, 0.8, 0.2, 1), as a CSS string. */
 const EASE_CSS = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 
-/** Paper — must match the light theme's resting `--background`. */
-const SETTLE_PAPER = 'oklch(0.97 0.008 80)';
+/**
+ * Settle wash per transition kind — the surface the amber resolves into.
+ * Values must match the destination's resting `--background`: light paper
+ * for the app, dark graphite for the landing. `enter-auth` has no wash —
+ * landing and auth share the dark surface, so the amber dissolves directly.
+ */
+const SETTLE_COLORS: Partial<Record<TransitionRequest['kind'], string>> = {
+  'enter-app': 'oklch(0.97 0.008 80)' /* paper */,
+  'exit-app': 'oklch(0.13 0.004 280)' /* graphite */,
+};
 
 export const TransitionConductor = () => {
   const [state, dispatch] = useReducer(reduceConductor, initialConductorState);
@@ -78,7 +87,7 @@ export const TransitionConductor = () => {
     prevStateRef.current = state;
     if (shouldFireNavigate(prev, state) && state.transition) {
       navigate(state.transition.destination, {
-        replace: state.transition.kind === 'enter-app',
+        replace: shouldReplaceHistory(state.transition.kind),
       });
     }
   }, [state, navigate]);
@@ -196,14 +205,14 @@ const ConductorOverlay = ({
         }}
       />
 
-      {/* The settle wash — amber developing into bone-warm daylight once
-          the bloom holds. Only `enter-app` resolves light (#43); the dark
-          settles arrive with #44/#46. */}
-      {transition.kind === 'enter-app' && (
+      {/* The settle wash — the amber developing into the destination's
+          resting surface once the bloom holds: bone-warm daylight entering
+          the app, graphite night leaving it. */}
+      {SETTLE_COLORS[transition.kind] && (
         <div
           className="absolute inset-0"
           style={{
-            backgroundColor: SETTLE_PAPER,
+            backgroundColor: SETTLE_COLORS[transition.kind],
             opacity: blooming ? 0 : 1,
             transition: `opacity ${timings.dissolveMs}ms ${EASE_CSS}`,
           }}

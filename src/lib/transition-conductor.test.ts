@@ -6,6 +6,7 @@ import {
   initialConductorState,
   reduceConductor,
   shouldFireNavigate,
+  shouldReplaceHistory,
 } from './transition-conductor';
 import { motionDurations } from './motion-tokens';
 
@@ -124,6 +125,20 @@ describe('transition conductor state machine', () => {
     const next = reduceConductor(blooming, { type: 'LOCATION_CHANGED' });
 
     expect(next.phase).toBe('blooming');
+  });
+});
+
+describe('shouldReplaceHistory', () => {
+  it('replaces history when entering the app — the auth step is spent', () => {
+    expect(shouldReplaceHistory('enter-app')).toBe(true);
+  });
+
+  it('replaces history when exiting the app — back must not re-enter a dead session', () => {
+    expect(shouldReplaceHistory('exit-app')).toBe(true);
+  });
+
+  it('pushes history when entering auth — back returns to the landing', () => {
+    expect(shouldReplaceHistory('enter-auth')).toBe(false);
   });
 });
 
