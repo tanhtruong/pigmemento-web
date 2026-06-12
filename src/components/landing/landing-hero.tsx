@@ -6,11 +6,12 @@ import { useMemo } from 'react';
 import { Button } from '@/components/ui/button.tsx';
 import { AmberGlow } from '@/components/foundation/amber-glow.tsx';
 import { motionDurations } from '@/lib/motion-tokens.ts';
+import type { AuthEntryGesture } from '@/features/auth/hooks/use-auth-entry';
 
 type LandingHeroProps = {
-  /** Primary CTA destination. Defaults to wherever "Start a case" should go
-   *  given the user's auth state — the landing route resolves and passes it. */
-  primaryHref: string;
+  /** Primary CTA gesture — href + bloom click handler + chunk prefetch.
+   *  The landing route resolves it once and shares it with the CTA band. */
+  primaryCta: AuthEntryGesture;
   /** Click handler for the ghost "See how it works" CTA — scrolls to the
    *  centerpiece (PR6) or, until then, the existing "How it works" section. */
   onSeeHowItWorks: () => void;
@@ -37,7 +38,7 @@ type LandingHeroProps = {
  * invites the user to become someone who can answer it themselves.
  */
 export const LandingHero = ({
-  primaryHref,
+  primaryCta,
   onSeeHowItWorks,
   imageSrc,
   imageAlt,
@@ -154,7 +155,12 @@ export const LandingHero = ({
             className="flex flex-col gap-3 sm:flex-row sm:items-center"
           >
             <Button asChild size="lg">
-              <Link to={primaryHref}>
+              <Link
+                to={primaryCta.href}
+                onClick={primaryCta.onClick}
+                onMouseEnter={primaryCta.onMouseEnter}
+                onFocus={primaryCta.onFocus}
+              >
                 Start a case
                 <ArrowRight />
               </Link>

@@ -8,8 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { paths } from '@/config/paths';
-import { isTokenValid } from '@/lib/auth';
+import { useAuthEntry } from '@/features/auth/hooks/use-auth-entry';
 import { motionDurations } from '@/lib/motion-tokens';
 
 /**
@@ -26,14 +25,14 @@ import { motionDurations } from '@/lib/motion-tokens';
  */
 export const LandingLoginFab = () => {
   const shouldReduceMotion = useReducedMotion();
-
-  const href = isTokenValid()
-    ? paths.app.dashboard.getHref()
-    : paths.auth.login.getHref();
+  const entry = useAuthEntry();
 
   const button = (
     <Link
-      to={href}
+      to={entry.href}
+      onClick={entry.onClick}
+      onMouseEnter={entry.onMouseEnter}
+      onFocus={entry.onFocus}
       aria-label="Log in"
       className="group/fab bg-primary text-primary-foreground shadow-amber-glow ease-considered hover:brightness-[1.04] active:scale-95 motion-reduce:active:scale-100 focus-visible:ring-ring focus-visible:ring-offset-background fixed right-5 bottom-[calc(env(safe-area-inset-bottom,0)+1.25rem)] z-30 inline-flex h-12 w-12 items-center justify-center rounded-full transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 md:h-12 md:w-12"
     >

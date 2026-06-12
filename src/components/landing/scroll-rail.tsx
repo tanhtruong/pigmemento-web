@@ -12,8 +12,7 @@ import {
 import { ArrowRight, ChevronDown } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { paths } from '@/config/paths';
-import { isTokenValid } from '@/lib/auth';
+import { useAuthEntry } from '@/features/auth/hooks/use-auth-entry';
 import { motionDurations } from '@/lib/motion-tokens';
 
 /**
@@ -111,9 +110,7 @@ export const ScrollRail = () => {
     return () => window.removeEventListener('scroll', close);
   }, [mobileMenuOpen]);
 
-  const loginHref = isTokenValid()
-    ? paths.app.dashboard.getHref()
-    : paths.auth.login.getHref();
+  const loginEntry = useAuthEntry();
 
   const handleFrameClick = (sectionId: string) => {
     const el = document.getElementById(sectionId);
@@ -214,7 +211,10 @@ export const ScrollRail = () => {
 
             {/* Terminal LOG IN frame — amber-tinted from page-load */}
             <Link
-              to={loginHref}
+              to={loginEntry.href}
+              onClick={loginEntry.onClick}
+              onMouseEnter={loginEntry.onMouseEnter}
+              onFocus={loginEntry.onFocus}
               className="border-hairline group/login bg-primary/10 hover:bg-primary/15 ease-considered inline-flex items-center gap-1.5 rounded-sm border px-3 py-1 font-mono text-[0.65rem] tracking-[0.22em] uppercase transition-colors duration-200 focus-visible:ring-1 focus-visible:ring-primary focus:outline-none"
             >
               <span className="text-primary">Log in</span>
@@ -248,7 +248,10 @@ export const ScrollRail = () => {
 
             <div className="flex items-center gap-2">
               <Link
-                to={loginHref}
+                to={loginEntry.href}
+                onClick={loginEntry.onClick}
+                onMouseEnter={loginEntry.onMouseEnter}
+                onFocus={loginEntry.onFocus}
                 className="border-hairline bg-primary/10 inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 font-mono text-[0.6rem] tracking-[0.22em] uppercase"
               >
                 <span className="text-primary">Log in</span>

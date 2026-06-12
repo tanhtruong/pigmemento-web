@@ -91,22 +91,29 @@ const Swatch = ({ token, label }: { token: string; label: string }) => (
   </div>
 );
 
-const ConductorTrigger = () => {
+const ConductorTrigger = ({
+  kind,
+  label,
+}: {
+  kind: 'enter-app' | 'enter-auth';
+  label: string;
+}) => {
   const startTransition = useTransitionNavigate();
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   return (
     <Button
       ref={triggerRef}
+      variant={kind === 'enter-app' ? 'default' : 'outline'}
       onClick={() =>
         startTransition({
-          kind: 'enter-app',
+          kind,
           origin: commitOrigin(triggerRef.current),
           destination: '/dev/motion',
         })
       }
     >
-      Bloom enter-app
+      {label}
     </Button>
   );
 };
@@ -526,9 +533,15 @@ const DevMotionRoute = () => {
           description="Amber bloom from the commit point, hold while the route swaps, settle into bone-warm daylight. Routes back to this page so the full sequence runs without auth."
         >
           <div className="flex flex-wrap items-center gap-4">
-            <ConductorTrigger />
+            <ConductorTrigger kind="enter-app" label="Bloom enter-app" />
             <span className="text-xs text-muted-foreground">
-              enter-app · bloom → hold → paper settle → dissolve
+              bloom → hold → paper settle → dissolve
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <ConductorTrigger kind="enter-auth" label="Bloom enter-auth" />
+            <span className="text-xs text-muted-foreground">
+              bloom → hold → dissolve into the dark surface (no wash)
             </span>
           </div>
         </Section>
