@@ -108,6 +108,15 @@ const LATENT_FILTER =
   'contrast(0.82) saturate(0.72) sepia(0.18) brightness(1.05)';
 const DEVELOPED_FILTER = 'contrast(1) saturate(1) sepia(0) brightness(1)';
 const FIXED_FILTER = 'contrast(0.94) saturate(0.55) sepia(0) brightness(0.92)';
+/** First beats of the fix (#54) — lifted from the bath, not yet fixed. */
+const HELD_FILTER = 'contrast(0.97) saturate(0.78) sepia(0) brightness(0.95)';
+
+/**
+ * How long a route loader may hold navigation before the outgoing surface
+ * earns the held fix dim (#54). Cached react-query hops resolve well under
+ * this and never show it.
+ */
+export const PENDING_HOLD_MS = 150;
 
 type DevelopDrift = { x?: number; y?: number };
 
@@ -171,4 +180,19 @@ export const developVariants: Variants = {
           ...EXIT_DRIFT[variant],
           transition: motionTokens.quick,
         },
+  /**
+   * Held fix (#54) — a pending loader keeps the outgoing surface mounted, so
+   * it eases into the first beats of its fix and waits there. No drift and no
+   * `custom` gate: whether the *departing* hop animates is decided by the
+   * outlet, while this pose's `custom` would be the variant that brought the
+   * surface in. The slow ramp keeps barely-over-threshold loads from
+   * flickering.
+   */
+  held: {
+    opacity: 1,
+    x: 0,
+    y: 0,
+    filter: HELD_FILTER,
+    transition: motionTokens.considered,
+  },
 };

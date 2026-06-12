@@ -106,7 +106,7 @@ export const bloomGeometry = (
 export const conductorTimings = (reducedMotion: boolean) => {
   if (reducedMotion) return { bloomMs: 0, dissolveMs: 0 };
   return {
-    bloomMs: motionDurations.considered * 1000,
+    bloomMs: motionDurations.hero * 1000,
     dissolveMs: motionDurations.hero * 1000,
   };
 };

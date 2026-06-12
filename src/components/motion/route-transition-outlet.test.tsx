@@ -132,3 +132,141 @@ describe('RouteTransitionOutlet', () => {
     scrollSpy.mockRestore();
   });
 });
+
+describe('pending fix-out dim (#54)', () => {
+  /**
+   * Router whose destination routes block on a loader the test resolves
+   * by hand — how slow react-query cache misses look to the router.
+   */
+  const buildSlowRouter = (initialPath: string) => {
+    let resolveLoader!: () => void;
+    const loaderGate = new Promise<null>((resolve) => {
+      resolveLoader = () => resolve(null);
+    });
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/app',
+          element: <RouteTransitionOutlet />,
+          children: [
+            { path: 'dashboard', element: <div>Dashboard content</div> },
+            {
+              path: 'profile',
+              loader: () => loaderGate,
+              element: <div>Profile content</div>,
+            },
+            {
+              path: 'cases/:id/attempt',
+              element: <div>Attempt content</div>,
+            },
+            {
+              path: 'cases/:id/review',
+              loader: () => loaderGate,
+              element: <div>Review content</div>,
+            },
+          ],
+        },
+      ],
+      { initialEntries: [initialPath] },
+    );
+    return { router, resolveLoader };
+  };
+
+  it('holds the outgoing surface in the early fix while a slow loader resolves', async () => {
+    const { router } = buildSlowRouter('/app/dashboard');
+    render(<RouterProvider router={router} />);
+
+    act(() => {
+      void router.navigate('/app/profile');
+    });
+
+    // Past the hold threshold the still-mounted dashboard dims into the
+    // held fix while the loader is pending.
+    await waitFor(() => {
+      const wrapper = screen
+        .getByText('Dashboard content')
+        .closest('[data-motion-wrapper]');
+      expect(wrapper).toHaveAttribute('data-held', 'true');
+    });
+  });
+
+  it('completes the normal Develop once the held loader resolves', async () => {
+    const { router, resolveLoader } = buildSlowRouter('/app/dashboard');
+    render(<RouterProvider router={router} />);
+
+    act(() => {
+      void router.navigate('/app/profile');
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByText('Dashboard content').closest('[data-motion-wrapper]'),
+      ).toHaveAttribute('data-held', 'true');
+    });
+
+    act(() => {
+      resolveLoader();
+    });
+
+    await waitFor(() => {
+      const wrapper = screen
+        .getByText('Profile content')
+        .closest('[data-motion-wrapper]');
+      expect(wrapper).toHaveAttribute('data-variant', 'lateral-forward');
+      expect(wrapper).toHaveAttribute('data-held', 'false');
+    });
+  });
+
+  it('never dims a hop whose loader resolves under the hold threshold', async () => {
+    const { router, resolveLoader } = buildSlowRouter('/app/dashboard');
+    render(<RouterProvider router={router} />);
+
+    act(() => {
+      void router.navigate('/app/profile');
+    });
+
+    // Still pending, but under PENDING_HOLD_MS — visually unchanged.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 60));
+    });
+    expect(
+      screen.getByText('Dashboard content').closest('[data-motion-wrapper]'),
+    ).toHaveAttribute('data-held', 'false');
+
+    act(() => {
+      resolveLoader();
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Profile content').closest('[data-motion-wrapper]'),
+      ).toHaveAttribute('data-held', 'false');
+    });
+  });
+
+  it('never dims a none-grammar hop — the attempt → review reveal narrates itself', async () => {
+    const { router, resolveLoader } = buildSlowRouter('/app/cases/42/attempt');
+    render(<RouterProvider router={router} />);
+
+    act(() => {
+      void router.navigate('/app/cases/42/review');
+    });
+
+    // Well past PENDING_HOLD_MS, still pending — and still undimmed.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    });
+    expect(
+      screen.getByText('Attempt content').closest('[data-motion-wrapper]'),
+    ).toHaveAttribute('data-held', 'false');
+
+    act(() => {
+      resolveLoader();
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Review content').closest('[data-motion-wrapper]'),
+      ).toHaveAttribute('data-variant', 'none');
+    });
+  });
+});

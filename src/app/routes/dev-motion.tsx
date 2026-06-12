@@ -28,7 +28,11 @@ import { DiagnosisReveal } from '@/components/signature/diagnosis-reveal';
 import { CalendarHeatmap } from '@/components/signature/calendar-heatmap';
 import { StartACasePicker } from '@/components/signature/start-a-case-picker';
 
-import { developVariants, motionTokens } from '@/lib/motion-tokens';
+import {
+  developVariants,
+  motionTokens,
+  PENDING_HOLD_MS,
+} from '@/lib/motion-tokens';
 import type { RouteTransitionVariant } from '@/lib/route-transition';
 import { useTransitionNavigate } from '@/components/motion/transition-conductor';
 import { commitOrigin } from '@/lib/commit-origin';
@@ -128,17 +132,45 @@ const GRAMMAR_VARIANTS = [
   'neutral',
 ] as const satisfies readonly RouteTransitionVariant[];
 
+/** Mock loader time for the slow-load simulation — long enough to read the held dim. */
+const DEMO_SLOW_LOAD_MS = 1200;
+
 /**
  * Replays the in-app Develop (#53) on a mock surface without real
  * navigation — same `developVariants` the RouteTransitionOutlet conjugates,
- * one button per grammar variant.
+ * one button per grammar variant. The slow-load button simulates a route
+ * loader holding navigation (#54): past PENDING_HOLD_MS the outgoing surface
+ * eases into the held fix and waits there until the mock data resolves.
  */
 const DevelopGrammarDemo = () => {
   const [stage, setStage] = useState<{
     frame: number;
     variant: RouteTransitionVariant;
-  }>({ frame: 0, variant: 'neutral' });
+    held: boolean;
+  }>({ frame: 0, variant: 'neutral', held: false });
   const surface = stage.frame % 2 === 0;
+  const slowLoadTimers = useRef<number[]>([]);
+
+  const clearSlowLoad = () => {
+    slowLoadTimers.current.forEach((id) => window.clearTimeout(id));
+    slowLoadTimers.current = [];
+  };
+
+  const playSlowLoad = () => {
+    clearSlowLoad();
+    slowLoadTimers.current = [
+      window.setTimeout(() => {
+        setStage((s) => ({ ...s, held: true }));
+      }, PENDING_HOLD_MS),
+      window.setTimeout(() => {
+        setStage((s) => ({
+          frame: s.frame + 1,
+          variant: 'advance',
+          held: false,
+        }));
+      }, PENDING_HOLD_MS + DEMO_SLOW_LOAD_MS),
+    ];
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -148,11 +180,17 @@ const DevelopGrammarDemo = () => {
             key={variant}
             variant="outline"
             size="sm"
-            onClick={() => setStage((s) => ({ frame: s.frame + 1, variant }))}
+            onClick={() => {
+              clearSlowLoad();
+              setStage((s) => ({ frame: s.frame + 1, variant, held: false }));
+            }}
           >
             {variant}
           </Button>
         ))}
+        <Button variant="outline" size="sm" onClick={playSlowLoad}>
+          slow load (held fix)
+        </Button>
       </div>
       <div className="relative min-h-56 overflow-hidden rounded-lg border border-hairline bg-background">
         <AnimatePresence mode="wait" initial={false} custom={stage.variant}>
@@ -161,7 +199,7 @@ const DevelopGrammarDemo = () => {
             custom={stage.variant}
             variants={developVariants}
             initial="latent"
-            animate="developed"
+            animate={stage.held ? 'held' : 'developed'}
             exit="fixed"
             className="flex items-center gap-6 p-8"
           >
@@ -178,8 +216,9 @@ const DevelopGrammarDemo = () => {
                 {surface ? 'Mock surface A.' : 'Mock surface B.'}
               </p>
               <p className="text-sm text-muted-foreground">
-                latent → developed on entry, developed → fixed on exit — last
-                hop: {stage.variant}
+                {stage.held
+                  ? 'loader pending — held in the early fix, waiting on data'
+                  : `latent → developed on entry, developed → fixed on exit — last hop: ${stage.variant}`}
               </p>
             </div>
           </motion.div>
@@ -628,7 +667,7 @@ const DevMotionRoute = () => {
         <Section
           eyebrow="10 · Route grammar"
           title="The Develop."
-          description="The bloom's quieter sibling — every in-app hop develops the incoming surface from a warm latent print and fixes the outgoing one. Conjugated by the relationship between routes: lateral along the tab strip, descend into a case, ascend back out, advance to the next."
+          description="The bloom's quieter sibling — every in-app hop develops the incoming surface from a warm latent print and fixes the outgoing one. Conjugated by the relationship between routes: lateral along the tab strip, descend into a case, ascend back out, advance to the next. When a loader holds the hop, the outgoing surface waits in the early fix — dimmed, lifted from the bath — until data resolves."
         >
           <DevelopGrammarDemo />
         </Section>
