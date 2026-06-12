@@ -50,7 +50,19 @@ export const motionTokens = {
     duration: 0.3,
     ease: easeOut,
   } satisfies Transition,
+  /**
+   * Rejection shake — one brief horizontal jolt on a failed commit (wrong
+   * credentials). Pair with SHAKE_KEYFRAMES_X. Subtle by design; disabled
+   * entirely under reduced motion.
+   */
+  shake: {
+    duration: 0.18,
+    ease: easeOut,
+  } satisfies Transition,
 } as const;
+
+/** Two-cycle horizontal jolt, decaying, returns to rest. Max 6px. */
+export const SHAKE_KEYFRAMES_X = [0, -6, 6, -4, 4, 0];
 
 export type MotionTokenName = keyof typeof motionTokens;
 
