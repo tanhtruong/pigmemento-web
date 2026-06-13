@@ -21,10 +21,14 @@ const resolveState = (
   variant: RouteTransitionVariant,
 ): Record<string, unknown> => {
   const state = developVariants[key];
-  return (typeof state === 'function' ? state(variant) : state) as Record<
-    string,
-    unknown
-  >;
+  if (typeof state === 'function') {
+    // motion types a function variant as (custom, current, velocity) => …, but
+    // developVariants' resolvers only read `custom` (the hop's grammar variant).
+    return (
+      state as (custom: RouteTransitionVariant) => Record<string, unknown>
+    )(variant);
+  }
+  return state as Record<string, unknown>;
 };
 
 const axis = (target: Record<string, unknown>) =>
