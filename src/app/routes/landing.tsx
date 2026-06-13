@@ -10,7 +10,6 @@ import { LandingHero } from '@/components/landing/landing-hero.tsx';
 import { loadGsap } from '@/lib/lazy-gsap.ts';
 import { CenterpiecePinned } from '@/components/signature/centerpiece-pinned.tsx';
 import { ScrollRail } from '@/components/landing/scroll-rail.tsx';
-import { LandingLoginFab } from '@/components/landing/landing-login-fab.tsx';
 import { WhyScrubReel } from '@/components/landing/why-scrub-reel.tsx';
 import { FaqAccordion } from '@/components/landing/faq-accordion.tsx';
 import { useAuthEntry } from '@/features/auth/hooks/use-auth-entry.ts';
@@ -178,9 +177,6 @@ const LandingRoute = () => {
       {/* Scroll-born film-strip rail — replaces the previous PublicHeader on
           this route. Hidden at the hero, born once the user scrolls past it. */}
       <ScrollRail />
-
-      {/* Persistent re-entry affordance — bottom-right from page-load. */}
-      <LandingLoginFab />
 
       {/* Hero — playable Case 001: judge the lesion, then "See why" into the
           centerpiece breakdown of that same case. */}
