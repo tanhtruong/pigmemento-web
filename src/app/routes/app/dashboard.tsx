@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router';
-import { jwtDecode } from 'jwt-decode';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { CalendarHeatmap } from '@/components/signature/calendar-heatmap';
 import { paths } from '@/config/paths';
 import { useCaseHistory } from '@/features/cases/api/use-case-history.ts';
 import { shortCaseId } from '@/features/cases/lib/case-id.ts';
+import { useProfile } from '@/features/profile/api/use-profile.ts';
 import type { CaseListItem } from '@/features/cases/types/case-list-item.ts';
 import { captureLesionFlight } from '@/lib/lesion-flight';
 import { cn } from '@/lib/utils';
@@ -25,18 +25,14 @@ const startOfDay = (d: Date) =>
 
 const isoDay = (d: Date) => startOfDay(d).toISOString().slice(0, 10);
 
-const firstNameFromToken = (): string | null => {
-  try {
-    const token = localStorage.getItem('token');
-    if (!token) return null;
-    const decoded = jwtDecode<{ name?: string; email?: string }>(token);
-    const first = decoded.name?.split(/\s+/)[0];
-    if (first) return first;
-    if (decoded.email) return decoded.email.split('@')[0];
-    return null;
-  } catch {
-    return null;
-  }
+/**
+ * First name for the greeting — the real account name from `/me`, not the JWT
+ * email handle. Returns null when the account has no name set, so the greeting
+ * degrades to a plain "Good to see you." rather than echoing the login.
+ */
+const firstNameOf = (name: string | undefined | null): string | null => {
+  const first = name?.trim().split(/\s+/)[0];
+  return first ? first : null;
 };
 
 const formatRelative = (iso: string): string => {
@@ -57,8 +53,9 @@ const formatRelative = (iso: string): string => {
 
 const Dashboard = () => {
   const { data: caseHistory = [] } = useCaseHistory();
+  const { data: profile } = useProfile();
 
-  const firstName = useMemo(() => firstNameFromToken(), []);
+  const firstName = firstNameOf(profile?.name);
 
   const attemptedCases = useMemo(
     () => caseHistory.filter(isAttempted),

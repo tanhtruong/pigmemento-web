@@ -12,16 +12,26 @@ vi.mock('@/features/cases/api/use-case-history.ts', () => ({
   useCaseHistory: vi.fn(),
 }));
 
+vi.mock('@/features/profile/api/use-profile.ts', () => ({
+  useProfile: vi.fn(() => ({ data: undefined })),
+}));
+
 import { useReducedMotion } from 'motion/react';
 import { useCaseHistory } from '@/features/cases/api/use-case-history.ts';
+import { useProfile } from '@/features/profile/api/use-profile.ts';
 import Dashboard from './dashboard';
 
 const mockedUseReducedMotion = vi.mocked(useReducedMotion);
 const mockedUseCaseHistory = vi.mocked(useCaseHistory);
+const mockedUseProfile = vi.mocked(useProfile);
 
 afterEach(() => {
   mockedUseReducedMotion.mockReturnValue(true);
   mockedUseCaseHistory.mockReset();
+  mockedUseProfile.mockReset();
+  mockedUseProfile.mockReturnValue({ data: undefined } as ReturnType<
+    typeof useProfile
+  >);
   window.localStorage.clear();
 });
 
@@ -97,6 +107,42 @@ describe('Dashboard (Progress)', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: /Good to see you/i }),
     ).toBeInTheDocument();
+  });
+
+  it('greets by the real first name from the profile', () => {
+    mockedUseCaseHistory.mockReturnValue({ data: [] } as ReturnType<
+      typeof useCaseHistory
+    >);
+    mockedUseProfile.mockReturnValue({
+      data: { name: 'Anh Tuan', email: 'att@carelink.dk' },
+    } as ReturnType<typeof useProfile>);
+
+    renderDashboard();
+
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: /Good to see you, Anh\./i,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('falls back to a plain greeting — never the email handle — when no name is set', () => {
+    mockedUseCaseHistory.mockReturnValue({ data: [] } as ReturnType<
+      typeof useCaseHistory
+    >);
+    mockedUseProfile.mockReturnValue({
+      data: { name: '', email: 'att@carelink.dk' },
+    } as ReturnType<typeof useProfile>);
+
+    renderDashboard();
+
+    const heading = screen.getByRole('heading', {
+      level: 1,
+      name: /Good to see you/i,
+    });
+    expect(heading).toHaveTextContent('Good to see you.');
+    expect(heading).not.toHaveTextContent(/att/i);
   });
 
   it('surfaces the hero metric (today count) with weekly and monthly context', () => {
