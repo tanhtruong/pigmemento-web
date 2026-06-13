@@ -10,7 +10,10 @@ export interface AttemptResponse {
   disclaimer: string;
 }
 
-export const useCaseLatestAttempt = (caseId?: string) => {
+export const useCaseLatestAttempt = (
+  caseId?: string,
+  options?: { enabled?: boolean },
+) => {
   return useQuery<
     AttemptResponse & { chosenLabel: Label; timeToAnswerMs: number }
   >({
@@ -21,6 +24,6 @@ export const useCaseLatestAttempt = (caseId?: string) => {
       >(`/cases/${caseId}/attempts/latest`);
       return res.data;
     },
-    enabled: !!caseId,
+    enabled: !!caseId && (options?.enabled ?? true),
   });
 };

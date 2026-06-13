@@ -8,8 +8,8 @@ export type CaseChoice = 'benign' | 'malignant' | 'skipped';
 /**
  * Post-commit colour state (#61). The drill's inline reveal turns the chosen
  * card `correct`/`incorrect`, and marks the missed answer's card
- * `reveal-correct`. Unset on the single/random flow, which routes to /review
- * instead of revealing in place.
+ * `reveal-correct`. Unset on the single/random flow, which swaps the whole
+ * working column to the verdict in place rather than recolouring the cards.
  */
 export type CaseChoiceOutcome = 'correct' | 'incorrect' | 'reveal-correct';
 

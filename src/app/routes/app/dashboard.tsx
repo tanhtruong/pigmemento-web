@@ -10,7 +10,6 @@ import { useCaseHistory } from '@/features/cases/api/use-case-history.ts';
 import { shortCaseId } from '@/features/cases/lib/case-id.ts';
 import { useProfile } from '@/features/profile/api/use-profile.ts';
 import type { CaseListItem } from '@/features/cases/types/case-list-item.ts';
-import { captureLesionFlight } from '@/lib/lesion-flight';
 import { cn } from '@/lib/utils';
 
 type AttemptedCaseListItem = CaseListItem & {
@@ -284,16 +283,10 @@ const Dashboard = () => {
                 <li key={c.id}>
                   {i > 0 && <Hairline />}
                   <Link
-                    to={paths.app['case-review'].getHref(c.id)}
-                    onClick={(event) =>
-                      captureLesionFlight(event.currentTarget, c.id, c.imageUrl)
-                    }
+                    to={paths.app['case-attempt'].getHref(c.id)}
                     className="hover:bg-accent/40 group/row flex items-center gap-4 py-3 transition-colors"
                   >
-                    <div
-                      data-case-thumb
-                      className="bg-muted/40 border-hairline relative h-12 w-12 shrink-0 overflow-hidden rounded-input border"
-                    >
+                    <div className="bg-muted/40 border-hairline relative h-12 w-12 shrink-0 overflow-hidden rounded-input border">
                       <img
                         src={c.imageUrl}
                         alt=""

@@ -1,10 +1,4 @@
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import {
   Link,
   useNavigate,
@@ -12,7 +6,7 @@ import {
   type LoaderFunctionArgs,
 } from 'react-router';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,20 +21,18 @@ import { paths } from '@/config/paths';
 import { caseQueryOptions, useCase } from '@/features/cases/api/use-case.ts';
 import { prefetchWithCap } from '@/lib/route-loaders.ts';
 import { CaseAttemptSkeleton } from '@/components/cases/case-attempt-skeleton.tsx';
-import { useCaseSubmitAttempt } from '@/features/cases/api/use-case-submit-attempt.ts';
-import { useCaseAttemptShortcuts } from '@/features/cases/hooks/use-case-attempt-shortcuts.ts';
-import { useCaseTimer } from '@/features/cases/hooks/use-case-timer.ts';
 import { queryKeys } from '@/lib/query-keys.ts';
 import { CaseStage } from '@/components/cases/case-stage.tsx';
 import { AnnotatedLesionImage } from '@/components/signature/annotated-lesion-image.tsx';
 import { shortCaseId } from '@/features/cases/lib/case-id.ts';
 import { LesionFlight } from '@/components/motion/lesion-flight';
 import {
-  captureLesionFlight,
   consumeLesionFlight,
   type LesionFlightOrigin,
 } from '@/lib/lesion-flight';
-import { RING_FILL_MS } from '@/lib/motion-tokens';
+import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
+import { motionTokens } from '@/lib/motion-tokens';
+import { CaseAttemptFlow } from './case-attempt-flow.tsx';
 
 export type Label = CaseChoice;
 
@@ -80,21 +72,32 @@ type CaseAttemptViewProps = {
    * with session progress (#61).
    */
   eyebrow?: ReactNode;
+  /** The h1. Defaults to "What do you see?"; the verdict swaps it to "Review". */
+  title?: ReactNode;
+  /** Mono sub-line under the title — e.g. "Answered in 4.2s" once resolved. */
+  meta?: ReactNode;
   /**
    * Per-choice reveal colours (#61). When present, the choices section is in
    * its revealed state: cards show correct/incorrect/reveal-correct and are no
-   * longer dimmed. The single/random flow leaves this unset (routes to /review).
+   * longer dimmed. The drill sets this for its compact inline reveal.
    */
   choiceOutcomes?: Partial<Record<CaseChoice, CaseChoiceOutcome>>;
   /** Verdict line shown under the choices during the drill's inline reveal. */
   revealNode?: ReactNode;
   /**
-   * This commit navigates to /review (#68) — so capture the hero as a flight
-   * origin on commit, letting the review surface fly the same photo in place
-   * (it reads as staying put while the verdict assembles). The drill leaves
-   * this unset: it reveals inline and never hops to review.
+   * The verdict in place (#85). When set, committing swaps the working column
+   * from the choices to this node while the lesion hero stays put — the answer
+   * resolves where the question stood, no route change. The drill leaves this
+   * unset (it keeps the choices and reveals inline); only the single/random
+   * flow swaps to a full verdict.
    */
-  flightToReview?: boolean;
+  verdictNode?: ReactNode;
+  /** True once the verdict is showing — annotates the hero, swaps the column. */
+  resolved?: boolean;
+  /** ABCDE markers drawn on the hero once resolved. */
+  heroFeatures?: AbcdeFeature[];
+  /** Hero caption once resolved — e.g. "CASE 4F2A · MALIGNANT". */
+  heroSourceCredit?: string;
 };
 
 export const CaseAttemptView = ({
@@ -105,37 +108,23 @@ export const CaseAttemptView = ({
   submitErrorNode,
   headerActionsNode,
   eyebrow,
+  title,
+  meta,
   choiceOutcomes,
   revealNode,
-  flightToReview,
+  verdictNode,
+  resolved = false,
+  heroFeatures,
+  heroSourceCredit,
 }: CaseAttemptViewProps) => {
   const revealing = Boolean(choiceOutcomes);
   const reducedMotion = useReducedMotion();
   const heroRef = useRef<HTMLDivElement>(null);
 
-  // On a review-bound commit, record the hero as the flight origin before the
-  // route swaps (#68). ReviewLesionHero consumes it and flies the same photo
-  // into the review hero — the two heroes sit in the same place, so the print
-  // reads as staying put while the verdict assembles around it. Reduced motion
-  // and the inline-reveal drill never capture.
-  const handleCommit = useCallback(
-    (choice: CaseChoice) => {
-      if (flightToReview && !reducedMotion && heroRef.current) {
-        captureLesionFlight(
-          heroRef.current,
-          String(caseItem.id),
-          caseItem.imageUrl,
-        );
-      }
-      onCommit(choice);
-    },
-    [flightToReview, reducedMotion, caseItem.id, caseItem.imageUrl, onCommit],
-  );
-
-  // Consume the flight origin exactly once per mount, during the first
-  // render — before first paint, so a click-originated entry never flashes
-  // the hero ahead of the flight. Non-click entries (deep link, refresh,
-  // history pop) find the module empty and render plain.
+  // Consume the Library→attempt flight origin exactly once per mount, during
+  // the first render — before first paint, so a click-originated entry never
+  // flashes the hero ahead of the flight. Non-click entries (deep link,
+  // refresh, history pop) find the module empty and render plain.
   const consumedRef = useRef<LesionFlightOrigin | null | undefined>(undefined);
   if (consumedRef.current === undefined) {
     consumedRef.current = consumeLesionFlight(String(caseItem.id));
@@ -143,7 +132,7 @@ export const CaseAttemptView = ({
   const [flight, setFlight] = useState<LesionFlightOrigin | null>(
     reducedMotion ? null : consumedRef.current,
   );
-  const landFlight = useCallback(() => setFlight(null), []);
+  const landFlight = () => setFlight(null);
 
   const choices: {
     value: CaseChoice;
@@ -155,32 +144,8 @@ export const CaseAttemptView = ({
     { value: 'skipped', label: 'Skip', shortcut: 'S' },
   ];
 
-  return (
-    <CaseStage
-      eyebrow={eyebrow ?? <>Case · {shortCaseId(caseItem.id)}</>}
-      title="What do you see?"
-      headerActions={headerActionsNode}
-      hero={
-        <>
-          <AnnotatedLesionImage
-            src={caseItem.imageUrl}
-            alt={`Case ${caseItem.id}`}
-            aspect="4:5"
-            features={[]}
-            frameRef={heroRef}
-            frameHidden={Boolean(flight)}
-            eager
-          />
-          {flight && (
-            <LesionFlight
-              origin={flight}
-              targetRef={heroRef}
-              onLanded={landFlight}
-            />
-          )}
-        </>
-      }
-    >
+  const questionColumn = (
+    <div className="flex flex-col gap-8">
       <section className="flex flex-col gap-3">
         <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-muted-foreground uppercase">
           Clinical context
@@ -214,7 +179,7 @@ export const CaseAttemptView = ({
                 Boolean(committed) && committed !== c.value && !revealing
               }
               outcome={choiceOutcomes?.[c.value]}
-              onSelect={() => handleCommit(c.value)}
+              onSelect={() => onCommit(c.value)}
             />
           ))}
         </div>
@@ -230,6 +195,63 @@ export const CaseAttemptView = ({
 
         {submitErrorNode}
       </section>
+    </div>
+  );
+
+  // The working column swaps choices ↔ verdict in place (#85). Only the
+  // single/random flow passes a verdictNode; the drill keeps the choices, so it
+  // renders the question column directly with no swap.
+  let workingColumn: ReactNode = questionColumn;
+  if (verdictNode) {
+    const active = resolved ? verdictNode : questionColumn;
+    workingColumn = reducedMotion ? (
+      active
+    ) : (
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={resolved ? 'verdict' : 'question'}
+          className="flex flex-col gap-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={motionTokens.normal}
+        >
+          {active}
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
+  return (
+    <CaseStage
+      eyebrow={eyebrow ?? <>Case · {shortCaseId(caseItem.id)}</>}
+      title={title ?? 'What do you see?'}
+      meta={meta}
+      headerActions={headerActionsNode}
+      hero={
+        <>
+          <AnnotatedLesionImage
+            src={caseItem.imageUrl}
+            alt={`Case ${caseItem.id}`}
+            aspect="4:5"
+            features={resolved ? (heroFeatures ?? []) : []}
+            sourceCredit={resolved ? heroSourceCredit : undefined}
+            showAnnotations={resolved}
+            frameRef={heroRef}
+            frameHidden={Boolean(flight)}
+            eager
+          />
+          {flight && (
+            <LesionFlight
+              origin={flight}
+              targetRef={heroRef}
+              onLanded={landFlight}
+            />
+          )}
+        </>
+      }
+    >
+      {workingColumn}
     </CaseStage>
   );
 };
@@ -240,107 +262,25 @@ const CaseAttemptScene = () => {
   const queryClient = useQueryClient();
   const { caseId } = useParams();
   const safeCaseId = caseId ?? '';
-
   const navigate = useNavigate();
 
-  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !('matchMedia' in window)) return;
-    const mq = window.matchMedia('(pointer: coarse)');
-    const update = () => setIsCoarsePointer(Boolean(mq.matches));
-    update();
-    if ('addEventListener' in mq) {
-      mq.addEventListener('change', update);
-      return () => mq.removeEventListener('change', update);
-    }
-  }, []);
-
   const { data: caseItem, isLoading, isError } = useCase(safeCaseId);
-
-  const [committed, setCommitted] = useState<CaseChoice | null>(null);
-
-  const {
-    mutate: submitAttempt,
-    isPending,
-    isError: isSubmitError,
-    error: submitError,
-    reset,
-  } = useCaseSubmitAttempt();
-
-  const { getElapsedMs } = useCaseTimer([safeCaseId]);
-
-  useEffect(() => {
-    setCommitted(null);
-  }, [safeCaseId]);
-
-  const onCommit = useCallback(
-    (choice: CaseChoice) => {
-      if (!safeCaseId || committed || isPending) return;
-      reset();
-      setCommitted(choice);
-      const timeToAnswerMs = getElapsedMs();
-
-      // Fire submit immediately; let the ring-fill animation play in
-      // parallel. Navigate to review after the longer of (ring-fill,
-      // submit). RING_FILL_MS is the minimum perceptible delay so the user
-      // sees the confirmation animation before the route changes.
-      submitAttempt(
-        {
-          caseId: safeCaseId,
-          attempt: { chosenLabel: choice, timeToAnswerMs },
-        },
-        {
-          onSuccess: () => {
-            window.setTimeout(() => {
-              navigate(paths.app['case-review'].getHref(safeCaseId));
-            }, RING_FILL_MS);
-          },
-        },
-      );
-    },
-    [
-      committed,
-      isPending,
-      safeCaseId,
-      reset,
-      submitAttempt,
-      getElapsedMs,
-      navigate,
-    ],
-  );
-
-  useCaseAttemptShortcuts({
-    enabled: Boolean(caseItem) && !isCoarsePointer && !committed,
-    isPending,
-    onCommit,
-    onNewCase: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys['random-case'] });
-      navigate(paths.app['case-random'].getHref());
-    },
-    onExit: () => navigate(paths.app.cases.getHref()),
-  });
 
   if (!safeCaseId) return <CaseMissing />;
   if (isLoading) return <CaseAttemptSkeleton />;
   if (isError || !caseItem) return <CaseMissing />;
 
   return (
-    <CaseAttemptView
+    <CaseAttemptFlow
       caseItem={caseItem}
-      committed={committed}
-      isPending={isPending}
-      onCommit={onCommit}
-      flightToReview
-      submitErrorNode={
-        isSubmitError ? (
-          <p className="text-incorrect text-xs">
-            {submitError instanceof Error
-              ? submitError.message
-              : 'Couldn’t save your attempt. Retrying in 3s.'}
-          </p>
-        ) : null
-      }
+      // A keyed case can be re-entered already answered (refresh, history pop,
+      // a dashboard tap): boot straight to the verdict when an attempt exists.
+      resumeIfAnswered
+      onNextCase={() => {
+        queryClient.invalidateQueries({ queryKey: queryKeys['random-case'] });
+        navigate(paths.app['case-random'].getHref());
+      }}
+      onExit={() => navigate(paths.app.cases.getHref())}
       headerActionsNode={
         <Button asChild variant="ghost" size="sm">
           <Link to={paths.app.cases.getHref()}>← Library</Link>

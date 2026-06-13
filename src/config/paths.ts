@@ -42,10 +42,6 @@ export const paths = {
       path: 'cases/:caseId/attempt',
       getHref: (id: string) => `/app/cases/${id}/attempt`,
     },
-    'case-review': {
-      path: 'cases/:caseId/review',
-      getHref: (id: string) => `/app/cases/${id}/review`,
-    },
     'case-drill': {
       path: 'cases/drill',
       getHref: () => `/app/cases/drill`,

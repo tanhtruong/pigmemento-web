@@ -168,7 +168,7 @@ describe('Dashboard (Progress)', () => {
     expect(screen.getByText(/Leg cases — 0%/i)).toBeInTheDocument();
   });
 
-  it('renders the recent attempts journal with rows linked to review', () => {
+  it('renders the recent attempts journal with rows linked to the case', () => {
     mockedUseCaseHistory.mockReturnValue({
       data: stubAttempts(),
     } as ReturnType<typeof useCaseHistory>);
@@ -178,6 +178,12 @@ describe('Dashboard (Progress)', () => {
     expect(screen.getByText(/Recent attempts/i)).toBeInTheDocument();
     expect(screen.getByText(/CASE · c1/i)).toBeInTheDocument();
     expect(screen.getByText(/CASE · c2/i)).toBeInTheDocument();
+    // The journal points at the case attempt scene, which resolves an answered
+    // case straight to its verdict (#85) — the standalone /review route is gone.
+    expect(screen.getByText(/CASE · c1/i).closest('a')).toHaveAttribute(
+      'href',
+      '/app/cases/c1/attempt',
+    );
   });
 
   it('renders the rolling-year calendar heatmap', () => {

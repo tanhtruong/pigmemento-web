@@ -35,10 +35,6 @@ const buildRouter = (initialPath: string) =>
             path: 'cases/:id/attempt',
             element: <div>Attempt content</div>,
           },
-          {
-            path: 'cases/:id/review',
-            element: <div>Review content</div>,
-          },
         ],
       },
     ],
@@ -71,23 +67,6 @@ describe('RouteTransitionOutlet', () => {
 
     const dashboard = screen.getByText('Dashboard content');
     expect(dashboard.closest('[data-motion-wrapper]')).toBeNull();
-  });
-
-  it('dissolves the case-attempt to case-review hop without drift (neutral, #68)', async () => {
-    const { router } = renderWithRoute('/app/cases/42/attempt');
-    expect(screen.getByText('Attempt content')).toBeInTheDocument();
-
-    await act(async () => {
-      await router.navigate('/app/cases/42/review');
-    });
-
-    await waitFor(() => {
-      const wrapper = screen
-        .getByText('Review content')
-        .closest('[data-motion-wrapper]');
-      expect(wrapper).toHaveAttribute('data-animates', 'true');
-      expect(wrapper).toHaveAttribute('data-variant', 'neutral');
-    });
   });
 
   it('marks the wrapper data-animates="true" on normal navigation', async () => {
@@ -194,11 +173,6 @@ describe('pending fix-out dim (#54)', () => {
               path: 'cases/:id/attempt',
               element: <div>Attempt content</div>,
             },
-            {
-              path: 'cases/:id/review',
-              loader: () => loaderGate,
-              element: <div>Review content</div>,
-            },
           ],
         },
       ],
@@ -275,35 +249,6 @@ describe('pending fix-out dim (#54)', () => {
       expect(
         screen.getByText('Profile content').closest('[data-motion-wrapper]'),
       ).toHaveAttribute('data-held', 'false');
-    });
-  });
-
-  it('holds the attempt in the dim while a slow review loader resolves (#68)', async () => {
-    // attempt → review is no longer a hard cut — it dissolves (neutral), so a
-    // slow review loader earns the same held dim as any other hop.
-    const { router, resolveLoader } = buildSlowRouter('/app/cases/42/attempt');
-    render(<RouterProvider router={router} />);
-
-    act(() => {
-      void router.navigate('/app/cases/42/review');
-    });
-
-    await waitFor(() => {
-      expect(
-        screen.getByText('Attempt content').closest('[data-motion-wrapper]'),
-      ).toHaveAttribute('data-held', 'true');
-    });
-
-    act(() => {
-      resolveLoader();
-    });
-
-    await waitFor(() => {
-      const wrapper = screen
-        .getByText('Review content')
-        .closest('[data-motion-wrapper]');
-      expect(wrapper).toHaveAttribute('data-variant', 'neutral');
-      expect(wrapper).toHaveAttribute('data-held', 'false');
     });
   });
 });
