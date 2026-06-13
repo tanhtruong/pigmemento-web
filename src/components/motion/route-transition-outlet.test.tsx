@@ -11,7 +11,7 @@ vi.mock('motion/react', async () => {
 import { useReducedMotion } from 'motion/react';
 
 import { RouteTransitionOutlet } from './route-transition-outlet';
-import { captureLesionFlight, consumeLesionFlight } from '@/lib/lesion-flight';
+import { consumeLesionFlight } from '@/lib/lesion-flight';
 import { rememberScroll } from '@/lib/route-scroll';
 
 const mockedUseReducedMotion = vi.mocked(useReducedMotion);
@@ -73,7 +73,7 @@ describe('RouteTransitionOutlet', () => {
     expect(dashboard.closest('[data-motion-wrapper]')).toBeNull();
   });
 
-  it('marks the wrapper data-animates="false" on the case-attempt to case-review hop', async () => {
+  it('dissolves the case-attempt to case-review hop without drift (neutral, #68)', async () => {
     const { router } = renderWithRoute('/app/cases/42/attempt');
     expect(screen.getByText('Attempt content')).toBeInTheDocument();
 
@@ -81,14 +81,12 @@ describe('RouteTransitionOutlet', () => {
       await router.navigate('/app/cases/42/review');
     });
 
-    // The exiting wrapper is retained until its (instant) exit completes —
-    // assert on the post-swap wrapper.
     await waitFor(() => {
       const wrapper = screen
         .getByText('Review content')
         .closest('[data-motion-wrapper]');
-      expect(wrapper).toHaveAttribute('data-animates', 'false');
-      expect(wrapper).toHaveAttribute('data-variant', 'none');
+      expect(wrapper).toHaveAttribute('data-animates', 'true');
+      expect(wrapper).toHaveAttribute('data-variant', 'neutral');
     });
   });
 
@@ -280,7 +278,9 @@ describe('pending fix-out dim (#54)', () => {
     });
   });
 
-  it('never dims a none-grammar hop — the attempt → review reveal narrates itself', async () => {
+  it('holds the attempt in the dim while a slow review loader resolves (#68)', async () => {
+    // attempt → review is no longer a hard cut — it dissolves (neutral), so a
+    // slow review loader earns the same held dim as any other hop.
     const { router, resolveLoader } = buildSlowRouter('/app/cases/42/attempt');
     render(<RouterProvider router={router} />);
 
@@ -288,47 +288,30 @@ describe('pending fix-out dim (#54)', () => {
       void router.navigate('/app/cases/42/review');
     });
 
-    // Well past PENDING_HOLD_MS, still pending — and still undimmed.
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 250));
+    await waitFor(() => {
+      expect(
+        screen.getByText('Attempt content').closest('[data-motion-wrapper]'),
+      ).toHaveAttribute('data-held', 'true');
     });
-    expect(
-      screen.getByText('Attempt content').closest('[data-motion-wrapper]'),
-    ).toHaveAttribute('data-held', 'false');
 
     act(() => {
       resolveLoader();
     });
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Review content').closest('[data-motion-wrapper]'),
-      ).toHaveAttribute('data-variant', 'none');
+      const wrapper = screen
+        .getByText('Review content')
+        .closest('[data-motion-wrapper]');
+      expect(wrapper).toHaveAttribute('data-variant', 'neutral');
+      expect(wrapper).toHaveAttribute('data-held', 'false');
     });
   });
 });
 
-describe('develop wash (#59)', () => {
-  it('raises the warm wash on a descend into case flow', async () => {
+describe('no develop wash (#73)', () => {
+  it('dissolves a descend into case flow with no amber wash overlay', async () => {
     const { router } = renderWithRoute('/app/dashboard');
 
-    await act(async () => {
-      await router.navigate('/app/cases/42/attempt');
-    });
-
-    await waitFor(() => {
-      expect(
-        document.querySelector('[data-develop-wash="descend"]'),
-      ).not.toBeNull();
-    });
-  });
-
-  it('suppresses the wash on a descend when a lesion-flight is pending (#62)', async () => {
-    // A library thumb captured a flight just before navigating — the flying
-    // thumb narrates the descend, so the wash must not double up.
-    captureLesionFlight(document.createElement('div'), '42', '/lesion-42.png');
-
-    const { router } = renderWithRoute('/app/dashboard');
     await act(async () => {
       await router.navigate('/app/cases/42/attempt');
     });
@@ -338,10 +321,11 @@ describe('develop wash (#59)', () => {
         screen.getByText('Attempt content').closest('[data-motion-wrapper]'),
       ).toHaveAttribute('data-variant', 'descend');
     });
+    // #73 removed the DevelopWash — entering a case is now a plain dissolve.
     expect(document.querySelector('[data-develop-wash]')).toBeNull();
   });
 
-  it('never raises the wash on a quiet lateral tab hop', async () => {
+  it('renders no wash on a quiet lateral tab hop either', async () => {
     const { router } = renderWithRoute('/app/dashboard');
 
     await act(async () => {
@@ -352,21 +336,6 @@ describe('develop wash (#59)', () => {
       expect(
         screen.getByText('Profile content').closest('[data-motion-wrapper]'),
       ).toHaveAttribute('data-variant', 'lateral-forward');
-    });
-    expect(document.querySelector('[data-develop-wash]')).toBeNull();
-  });
-
-  it('never raises the wash on the attempt → review centerpiece', async () => {
-    const { router } = renderWithRoute('/app/cases/42/attempt');
-
-    await act(async () => {
-      await router.navigate('/app/cases/42/review');
-    });
-
-    await waitFor(() => {
-      expect(
-        screen.getByText('Review content').closest('[data-motion-wrapper]'),
-      ).toHaveAttribute('data-variant', 'none');
     });
     expect(document.querySelector('[data-develop-wash]')).toBeNull();
   });

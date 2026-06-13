@@ -52,16 +52,18 @@ describe('classifyRouteTransition', () => {
     ).toBe('advance');
   });
 
-  it('keeps the attempt-to-review centerpiece hop excluded (none)', () => {
+  it('dissolves the attempt → review centerpiece without drift (neutral)', () => {
+    // No hard cut (#68): the surfaces dissolve into each other, but with no
+    // directional drift — the verdict resolves in place rather than sliding.
     expect(
       classifyRouteTransition('/app/cases/42/attempt', '/app/cases/42/review'),
-    ).toBe('none');
+    ).toBe('neutral');
     expect(
       classifyRouteTransition(
         '/app/cases/random/attempt',
         '/app/cases/7/review',
       ),
-    ).toBe('none');
+    ).toBe('neutral');
   });
 
   it('returns none for a re-render at the same path', () => {
@@ -90,22 +92,22 @@ describe('shouldAnimateRouteTransition', () => {
     );
   });
 
-  it('skips animation on the case-attempt to case-review centerpiece hop', () => {
+  it('animates the case-attempt to case-review hop (now a dissolve, #68)', () => {
     expect(
       shouldAnimateRouteTransition(
         '/app/cases/42/attempt',
         '/app/cases/42/review',
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 
-  it('skips animation on any attempt to any review (loose rule)', () => {
+  it('animates any attempt to any review (loose rule)', () => {
     expect(
       shouldAnimateRouteTransition(
         '/app/cases/99/attempt',
         '/app/cases/123/review',
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it('still animates from case-review back to case-attempt (one-way exclusion)', () => {
