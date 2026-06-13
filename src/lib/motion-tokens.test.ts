@@ -21,10 +21,14 @@ const resolveState = (
   variant: RouteTransitionVariant,
 ): Record<string, unknown> => {
   const state = developVariants[key];
-  return (typeof state === 'function' ? state(variant) : state) as Record<
-    string,
-    unknown
-  >;
+  // motion's Variant resolver type declares (custom, current, velocity); we
+  // only pass custom, so narrow to a single-arg callable before invoking.
+  if (typeof state === 'function') {
+    return (
+      state as (custom: RouteTransitionVariant) => Record<string, unknown>
+    )(variant);
+  }
+  return state as Record<string, unknown>;
 };
 
 const axis = (target: Record<string, unknown>) =>
