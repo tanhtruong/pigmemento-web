@@ -1,11 +1,8 @@
-import { Link, NavLink, useLocation } from 'react-router';
-import { Command } from 'lucide-react';
+import { Link, useLocation } from 'react-router';
 
 import { paths } from '@/config/paths.ts';
 import { cn } from '@/lib/utils.ts';
-import { StreakChip } from '@/components/signature/streak-chip.tsx';
 import { AppAvatarMenu } from '@/components/layouts/app-avatar-menu.tsx';
-import { AppStartACaseButton } from '@/components/layouts/app-start-a-case-button.tsx';
 
 type NavItem = {
   to: string;
@@ -43,24 +40,20 @@ const isActiveNav = (pathname: string, item: NavItem) => {
   );
 };
 
-type AppTopBarProps = {
-  /** Opens the ⌘K command palette. Wired by AppShell. */
-  onOpenCommandPalette: () => void;
-  /** Streak value to render in the chip. Placeholder until PR9 ships the
-   *  real streak source — for PR3 the shell passes a hardcoded `0`. */
-  streak?: number;
-};
-
 /**
- * The app's primary chrome — single top bar that adapts:
+ * The app's primary chrome — one quiet strip (#66).
  *
- *   Desktop (≥ md): logo · 4 nav items · ⌘K · streak chip · amber CTA · avatar
- *   Mobile  (< md): logo · ⌘K · avatar     (nav lives in AppBottomTabs)
+ *   Desktop (≥ md): logo · Practice · Library · Progress · Profile … avatar
+ *   Mobile  (< md): logo … avatar     (nav lives in AppBottomTabs)
  *
- * Per spec section 10: minimal, never eats the horizontal canvas the
- * lesion imagery needs.
+ * Stripped to wayfinding + identity: no amber CTA, no streak chip, no ⌘K
+ * button. Starting a case is the Practice surface (desktop) / the AmberFAB
+ * (mobile); ⌘K still opens the command palette from the keyboard, handled
+ * globally in AppCommandPalette. The logo and nav sit together, left-anchored,
+ * and the current surface is marked by a quiet amber underline rather than a
+ * filled pill.
  */
-const AppTopBar = ({ onOpenCommandPalette, streak = 0 }: AppTopBarProps) => {
+const AppTopBar = () => {
   const { pathname } = useLocation();
 
   return (
@@ -71,85 +64,62 @@ const AppTopBar = ({ onOpenCommandPalette, streak = 0 }: AppTopBarProps) => {
       )}
     >
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        {/* Logo — always visible */}
-        <Link
-          to={paths.app.dashboard.getHref()}
-          className="flex items-center gap-2"
-          aria-label="Pigmemento — go to Progress"
-        >
-          <span
-            className={cn(
-              'inline-flex h-7 w-7 items-center justify-center rounded-input',
-              'bg-primary text-primary-foreground font-display text-base',
-            )}
-            aria-hidden
+        {/* Left — logo + nav, anchored together */}
+        <div className="flex items-center gap-6 lg:gap-8">
+          <Link
+            to={paths.app.dashboard.getHref()}
+            className="flex items-center gap-2"
+            aria-label="Pigmemento — go to Progress"
           >
-            P
-          </span>
-          <span className="text-foreground hidden text-sm font-medium tracking-tight sm:inline">
-            Pigmemento
-          </span>
-        </Link>
+            <span
+              className={cn(
+                'inline-flex h-7 w-7 items-center justify-center rounded-input',
+                'bg-primary text-primary-foreground font-display text-base',
+              )}
+              aria-hidden
+            >
+              P
+            </span>
+            <span className="text-foreground hidden text-sm font-medium tracking-tight sm:inline">
+              Pigmemento
+            </span>
+          </Link>
 
-        {/* Desktop nav — 4 surfaces. Mobile uses AppBottomTabs. */}
-        <nav
-          aria-label="Primary"
-          className="hidden flex-1 items-center justify-center gap-1 md:flex"
-        >
-          {NAV_ITEMS.map((item) => {
-            const active = isActiveNav(pathname, item);
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={false}
-                className={cn(
-                  'rounded-input px-3 py-1.5 text-sm transition-colors ease-considered duration-150',
-                  active
-                    ? 'text-foreground bg-accent font-medium'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/60',
-                )}
-              >
-                {item.label}
-              </NavLink>
-            );
-          })}
-        </nav>
-
-        {/* Utility cluster */}
-        <div className="flex items-center gap-2 md:gap-3">
-          {/* ⌘K command palette trigger — visible on all sizes */}
-          <button
-            type="button"
-            onClick={onOpenCommandPalette}
-            aria-label="Open command palette"
-            className={cn(
-              'border-hairline text-muted-foreground hover:text-foreground hover:bg-accent',
-              'inline-flex items-center gap-1.5 rounded-input border px-2.5 py-1.5',
-              'transition-colors ease-considered duration-150',
-              'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background outline-none',
-            )}
+          {/* Desktop nav — 4 surfaces. Mobile uses AppBottomTabs. */}
+          <nav
+            aria-label="Primary"
+            className="hidden items-center gap-1 md:flex"
           >
-            <Command className="h-3.5 w-3.5" />
-            <span className="hidden font-mono text-[0.7rem] tracking-wider uppercase sm:inline">
-              K
-            </span>
-          </button>
-
-          {/* Streak chip — desktop only (mobile keeps the bar slim) */}
-          {streak > 0 && (
-            <span className="hidden md:inline-flex">
-              <StreakChip value={streak} />
-            </span>
-          )}
-
-          {/* Amber CTA — desktop only. Mobile uses the AmberFAB. */}
-          <span className="hidden md:inline-flex">
-            <AppStartACaseButton />
-          </span>
-
-          <AppAvatarMenu />
+            {NAV_ITEMS.map((item) => {
+              const active = isActiveNav(pathname, item);
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'relative inline-flex items-center px-2 py-1.5 text-sm',
+                    'transition-colors ease-considered duration-150',
+                    active
+                      ? 'text-foreground'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {item.label}
+                  {active && (
+                    <span
+                      aria-hidden
+                      className="bg-primary absolute inset-x-2 bottom-0 h-0.5 rounded-full"
+                    />
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
+
+        {/* Right — identity only */}
+        <AppAvatarMenu />
       </div>
     </header>
   );
