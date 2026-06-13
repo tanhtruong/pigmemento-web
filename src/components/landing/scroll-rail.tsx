@@ -32,16 +32,18 @@ import { motionDurations } from '@/lib/motion-tokens';
  */
 
 type Frame = {
-  key: 'case' | 'why' | 'faq' | 'start';
+  key: 'case' | 'why' | 'faq';
   label: string;
   sectionId: string;
 };
 
+// Wayfinding frames only. "Start" was dropped: it scroll-jumped to the CTA
+// band and competed with the terminal LOG IN entry — the page's single
+// persistent re-entry now lives in that one button, not in a duplicate frame.
 const FRAMES: Frame[] = [
   { key: 'case', label: 'Case', sectionId: 'how' },
   { key: 'why', label: 'Why', sectionId: 'why' },
   { key: 'faq', label: 'FAQ', sectionId: 'faq' },
-  { key: 'start', label: 'Start', sectionId: 'cta' },
 ];
 
 /** Sentinel section ids observed by IntersectionObserver to track active frame. */

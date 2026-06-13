@@ -49,7 +49,7 @@ export const BeatRealCases = ({ stacked = false }: { stacked?: boolean }) => {
             />
           </div>
           <figcaption className="text-muted-foreground font-mono text-[0.6875rem] tracking-[0.22em] uppercase">
-            From 2,000+ in the ISIC Archive
+            Real dermoscopy · ISIC Archive
           </figcaption>
         </figure>
 

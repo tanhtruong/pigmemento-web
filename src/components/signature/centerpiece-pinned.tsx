@@ -3,6 +3,7 @@ import { useReducedMotion } from 'motion/react';
 
 import { cn } from '@/lib/utils';
 import { loadGsap } from '@/lib/lazy-gsap';
+import { useIsMobile } from '@/hooks/use-is-mobile';
 
 /**
  * Landing centerpiece — the pinned-scroll case walkthrough.
@@ -73,8 +74,12 @@ export const CenterpiecePinned = ({
   className,
 }: CenterpiecePinnedProps) => {
   const reducedMotion = useReducedMotion();
+  const isMobile = useIsMobile();
 
-  if (reducedMotion) {
+  // On phones the 500%-scroll pin reads as a hijack, not cinema — fall back to
+  // the composed static frame (same branch as reduced-motion), matching how the
+  // Why reel and FAQ already degrade. Keeps the mobile scroll-through coherent.
+  if (reducedMotion || isMobile) {
     return (
       <CenterpieceStatic
         imageSrc={imageSrc}
@@ -278,13 +283,13 @@ const CenterpieceAnimated = ({
                 ref={eyebrowRef}
                 className="text-primary font-mono text-xs tracking-[0.2em] uppercase"
               >
-                A case in 30 seconds · scroll to walk through
+                Case 001 · the lesion you just saw
               </p>
               <p
                 ref={introRef}
                 className="font-display text-foreground text-3xl leading-tight md:text-4xl"
               >
-                See what a trained eye sees.
+                Here’s what a trained eye catches.
               </p>
 
               {/* ABCDE annotation labels — animate in alongside circles, fade
@@ -400,10 +405,10 @@ const CenterpieceStatic = ({
 
         <div className="flex flex-col gap-6">
           <p className="text-primary font-mono text-xs tracking-[0.2em] uppercase">
-            A case in 30 seconds
+            Case 001 · the lesion you just saw
           </p>
           <p className="font-display text-foreground text-3xl leading-tight md:text-4xl">
-            See what a trained eye sees.
+            Here’s what a trained eye catches.
           </p>
 
           <ul className="flex flex-col gap-2">

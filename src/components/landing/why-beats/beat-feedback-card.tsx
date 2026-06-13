@@ -73,7 +73,7 @@ export const BeatFeedbackCard = ({
               </div>
               <div className="flex flex-col gap-1.5">
                 <p className="text-muted-foreground font-mono text-[0.6rem] tracking-[0.22em] uppercase">
-                  Case 042 · Your answer
+                  Case 017 · Your answer
                 </p>
                 <p className="text-muted-foreground/70 line-through font-sans text-sm">
                   Benign nevus

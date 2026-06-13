@@ -3,16 +3,15 @@ import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCallback, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { faqs } from '@/lib/landing-seed-data';
+import { faqs, heroCase } from '@/lib/landing-seed-data';
 import { Head } from '@/components/seo/head.tsx';
 import { motionDurations } from '@/lib/motion-tokens.ts';
 import { LandingHero } from '@/components/landing/landing-hero.tsx';
 import { loadGsap } from '@/lib/lazy-gsap.ts';
 import { CenterpiecePinned } from '@/components/signature/centerpiece-pinned.tsx';
 import { ScrollRail } from '@/components/landing/scroll-rail.tsx';
-import { LandingLoginFab } from '@/components/landing/landing-login-fab.tsx';
 import { WhyScrubReel } from '@/components/landing/why-scrub-reel.tsx';
-import { FaqPinnedSplit } from '@/components/landing/faq-pinned-split.tsx';
+import { FaqAccordion } from '@/components/landing/faq-accordion.tsx';
 import { useAuthEntry } from '@/features/auth/hooks/use-auth-entry.ts';
 
 const LandingRoute = () => {
@@ -179,21 +178,22 @@ const LandingRoute = () => {
           this route. Hidden at the hero, born once the user scrolls past it. */}
       <ScrollRail />
 
-      {/* Persistent re-entry affordance — bottom-right from page-load. */}
-      <LandingLoginFab />
-
-      {/* Hero — question hero with editorial-framed lesion. */}
+      {/* Hero — playable Case 001: judge the lesion, then "See why" into the
+          centerpiece breakdown of that same case. */}
       <LandingHero
         primaryCta={primaryCta}
         onSeeHowItWorks={() => scrollToId('how')}
-        imageSrc="/ISIC_0000022.jpg"
-        imageAlt="Dermoscopic image of a pigmented skin lesion"
-        sourceCredit="ISIC_0000022 · MELANOMA · COURTESY ISIC ARCHIVE"
+        heroCase={heroCase}
       />
 
-      {/* Centerpiece — pinned-scroll case walkthrough. The id="how" anchor is
-          the ScrollRail's CASE frame target. */}
-      <CenterpiecePinned />
+      {/* Centerpiece — the expert breakdown of the very case the user just
+          judged in the hero. Shares Case 001's image so the identity can't
+          drift; the credit here reveals the diagnosis (the hero's hid it).
+          The id="how" anchor is the ScrollRail's CASE frame target. */}
+      <CenterpiecePinned
+        imageSrc={heroCase.imageSrc}
+        imageAlt={heroCase.imageAlt}
+      />
 
       {/* SEO intro — sr-only. Crawlers see the framing; the visible page
           stays editorial. */}
@@ -215,8 +215,8 @@ const LandingRoute = () => {
           id="why" anchor for the ScrollRail's WHY frame. */}
       <WhyScrubReel />
 
-      {/* FAQ — pinned split-screen, film-cut transitions. id="faq" target. */}
-      <FaqPinnedSplit faqs={faqs} />
+      {/* FAQ — scannable click-to-expand accordion. id="faq" target. */}
+      <FaqAccordion faqs={faqs} />
 
       {/* CTA band — closes the page's narrative loop. The hero asked "Could
           you spot it?" and the centerpiece answered it with "Diagnosis:

@@ -1,7 +1,23 @@
 import { FAQ } from '@/types/faq';
 import { Feature } from '@/types/feature';
 import { Stat } from '@/types/stat';
+import { HeroCase } from '@/types/hero-case';
 import { Microscope, MessageSquareText, Crosshair, Timer } from 'lucide-react';
+
+/**
+ * Case 001 — the playable lesion in the hero. The user judges it before signup;
+ * the centerpiece later breaks down this same case as the expert payoff. The
+ * credit intentionally omits the diagnosis so the call isn't spoiled up front.
+ */
+export const heroCase: HeroCase = {
+  id: 'Case 001',
+  imageSrc: '/ISIC_0000022.jpg',
+  imageAlt: 'Dermoscopic image of a pigmented skin lesion',
+  sourceCredit: 'ISIC_0000022 · COURTESY ISIC ARCHIVE',
+  correctLabel: 'malignant',
+  truth: 'It’s a melanoma.',
+  cue: 'The colour shifts asymmetrically across the lesion — one of the strongest signals here.',
+};
 
 export const features: Feature[] = [
   {
@@ -74,60 +90,30 @@ export const faqs: FAQ[] = [
     id: 3,
     question: 'Where do the cases come from?',
     answer:
-      'Cases are curated from high-quality educational datasets and expert-reviewed sources. All content is de-identified and intended for learning.',
+      'Curated from the ISIC Archive — real, de-identified dermoscopic images, expert-reviewed and selected for teaching rather than the polished textbook version.',
   },
   {
     id: 4,
     question: 'Does it include dermoscopy?',
     answer:
-      'Yes. Training cases can include clinical and dermoscopic images along with brief context and teaching points.',
+      'Yes. Cases include dermoscopic images along with brief clinical context and the teaching points that drive the call.',
   },
   {
     id: 5,
     question: 'How does the feedback work?',
     answer:
-      'After each answer, you’ll see the ground truth label, teaching points, and visual cues to focus on. When available, attention maps are shown as a learning aid - not a diagnostic output.',
+      'After each answer you see the ground-truth diagnosis, the teaching points, and the visual cues to focus on — so every case, right or wrong, leaves you with the pattern.',
   },
   {
     id: 6,
-    question: 'Do you collect patient photos or allow uploads?',
+    question: 'Is my data safe?',
     answer:
-      'Not at launch. Pigmemento focuses on curated training cases, and we do not request or store patient photos uploaded by users.',
+      'We minimise personal data, encrypt it in transit and at rest, and support data export or deletion on request. Cases are de-identified and we don’t request patient photos from you.',
   },
   {
     id: 7,
-    question: 'Is my data safe?',
-    answer:
-      'We minimize personal data collection, encrypt data in transit and at rest, and support data export/deletion on request where applicable.',
-  },
-  {
-    id: 8,
-    question: 'Do I need an account?',
-    answer:
-      'Early versions may allow lightweight access. If accounts are enabled, we only collect what’s needed to run the app and track learning progress.',
-  },
-  {
-    id: 9,
     question: 'What devices does it work on?',
     answer:
-      'Pigmemento works on iOS, Android, and the web - no special setup required.',
-  },
-  {
-    id: 10,
-    question: 'Can I use it offline?',
-    answer:
-      'An internet connection is recommended for the best experience since cases and updates are delivered online.',
-  },
-  {
-    id: 11,
-    question: 'Will you offer CME/CPD credits?',
-    answer:
-      'Not initially. CME/CPD accreditation is a potential future roadmap item - join the waitlist to be notified of updates.',
-  },
-  {
-    id: 12,
-    question: 'Will there be a free tier or pricing?',
-    answer:
-      'Pricing is still being finalized. Join the waitlist and we’ll share details before launch.',
+      'Pigmemento works on iOS, Android, and the web — no special setup required.',
   },
 ];

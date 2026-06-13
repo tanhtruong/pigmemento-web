@@ -6,7 +6,7 @@ import { useIsMobile } from '@/hooks/use-is-mobile';
 import { motionDurations } from '@/lib/motion-tokens';
 
 import { BeatRealCases } from './why-beats/beat-real-cases';
-import { BeatAbcde } from './why-beats/beat-abcde';
+import { BeatBreadth } from './why-beats/beat-breadth';
 import { BeatFeedbackCard } from './why-beats/beat-feedback-card';
 import { BeatTimeRing } from './why-beats/beat-time-ring';
 
@@ -17,13 +17,11 @@ import { BeatTimeRing } from './why-beats/beat-time-ring';
  * full-bleed beat compositions translates leftward at constant speed, with the
  * GSAP timeline also driving:
  *
- *   • Beat 02 — ABCDE annotation circles + labels pop in A→E inside their
- *     visible window (scrub 0.27–0.43).
  *   • Beat 04 — the hairline ring's amber arc sweeps from 0 to 95% inside its
  *     visible window (scrub 0.80–0.97).
  *
- * Beat 01 and Beat 03 are static compositions — their visual proof reads
- * fully on arrival.
+ * Beats 01–03 are static compositions — their visual proof reads fully on
+ * arrival.
  *
  * Reduced-motion + mobile branches render the four beats vertically stacked
  * at ~80vh each, with the scrub-dependent elements rendered in their resolved
@@ -91,40 +89,6 @@ const WhyAnimatedReel = () => {
           0,
         );
 
-        // Beat 02 — ABCDE pop-ins, staggered A → E across scrub 0.27–0.43.
-        const circles = gsap.utils.toArray<SVGCircleElement>(
-          '[data-abcde-circle]',
-          stripRef.current,
-        );
-        const labels = gsap.utils.toArray<HTMLLIElement>(
-          '[data-abcde-label]',
-          stripRef.current,
-        );
-
-        circles.forEach((circle, i) => {
-          const at = 0.27 + i * 0.032;
-          tl.fromTo(
-            circle,
-            { opacity: 0, scale: 0 },
-            {
-              opacity: 1,
-              scale: 1,
-              transformOrigin: 'center',
-              ease: 'back.out(2)',
-              duration: 0.5,
-            },
-            at,
-          );
-          if (labels[i]) {
-            tl.fromTo(
-              labels[i],
-              { opacity: 0, x: -8 },
-              { opacity: 1, x: 0, ease: 'power2.out', duration: 0.5 },
-              at + 0.02,
-            );
-          }
-        });
-
         // Beat 04 — timer arc sweeps from full dasharray to ~95% filled.
         const arc =
           stripRef.current?.querySelector<SVGCircleElement>('[data-time-arc]');
@@ -181,7 +145,7 @@ const WhyAnimatedReel = () => {
           style={{ width: '400vw' }}
         >
           <BeatRealCases />
-          <BeatAbcde />
+          <BeatBreadth />
           <BeatFeedbackCard />
           <BeatTimeRing />
         </div>
@@ -220,7 +184,7 @@ const WhyStaticStack = ({ mobile = false }: WhyStaticStackProps) => {
           <BeatRealCases stacked />
         </StackedBeat>
         <StackedBeat mobile={mobile}>
-          <BeatAbcde stacked resolved />
+          <BeatBreadth stacked />
         </StackedBeat>
         <StackedBeat mobile={mobile}>
           <BeatFeedbackCard stacked />
