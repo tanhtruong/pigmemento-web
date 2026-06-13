@@ -180,7 +180,7 @@ describe('Dashboard (Progress)', () => {
     expect(screen.getByText(/CASE · c2/i)).toBeInTheDocument();
   });
 
-  it('renders the 12-week calendar heatmap', () => {
+  it('renders the rolling-year calendar heatmap', () => {
     mockedUseCaseHistory.mockReturnValue({
       data: stubAttempts(),
     } as ReturnType<typeof useCaseHistory>);
@@ -188,7 +188,7 @@ describe('Dashboard (Progress)', () => {
     renderDashboard();
 
     expect(
-      screen.getByRole('grid', { name: /activity over the last 12 weeks/i }),
+      screen.getByRole('grid', { name: /activity over the last 53 weeks/i }),
     ).toBeInTheDocument();
   });
 

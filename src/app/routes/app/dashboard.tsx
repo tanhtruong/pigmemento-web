@@ -99,7 +99,7 @@ const Dashboard = () => {
     };
   }, [attemptedCases]);
 
-  // Daily counts for the 14-day sparkline + 12-week heatmap.
+  // Daily counts for the 14-day sparkline + rolling-year heatmap.
   const dailyCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const c of attemptedCases) {
@@ -337,13 +337,13 @@ const Dashboard = () => {
       <section className="flex flex-col gap-4">
         <div className="flex items-baseline justify-between">
           <p className="text-muted-foreground font-mono text-[0.6875rem] tracking-[0.18em] uppercase">
-            Last 12 weeks
+            Activity · last year
           </p>
           <p className="text-muted-foreground font-mono text-[0.65rem] tabular-nums">
             {Object.keys(dailyCounts).length} active days
           </p>
         </div>
-        <CalendarHeatmap data={dailyCounts} weeks={12} />
+        <CalendarHeatmap data={dailyCounts} />
       </section>
 
       <Hairline />
