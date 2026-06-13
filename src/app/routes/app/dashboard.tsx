@@ -165,7 +165,7 @@ const Dashboard = () => {
       <header className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <p className="text-primary font-mono text-[0.6875rem] tracking-[0.18em] uppercase">
-            Progress
+            Dashboard
           </p>
           <h1 className="font-display text-4xl leading-tight sm:text-5xl">
             {firstName ? `Good to see you, ${firstName}.` : 'Good to see you.'}
