@@ -8,15 +8,24 @@ import {
   shouldAnimateRouteTransition,
   type RouteTransitionVariant,
 } from '@/lib/route-transition';
+import { DevelopWash } from '@/components/motion/develop-wash';
 
 /**
- * RouteTransitionOutlet — speaks the in-app transition grammar (#53).
+ * RouteTransitionOutlet — speaks the in-app transition grammar (#53, #59).
  *
  * Every hop between app surfaces plays the Develop, conjugated by the
  * relationship between the two routes (lateral / descend / ascend / advance,
- * classified in `lib/route-transition`). The presence stays mounted across
- * all hops — including non-animated ones — so the very first navigation
- * after entering the app already plays a full fix/develop pair.
+ * classified in `lib/route-transition`). Surfaces move on the compositor only
+ * (opacity + transform via `developVariants`) — no whole-tree filter.
+ *
+ * Two seamless mechanisms, picked by grammar:
+ *  - lateral / ascend / neutral: a quick fade. `mode="wait"` swaps the surface
+ *    while the incoming one enters from an opacity floor (not full
+ *    transparency), so there is no blank frame between them. (popLayout would
+ *    overlap them for a true crossfade, but left a stuck exited layer in this
+ *    route tree, so we stay on robust `wait` + floor — see motion-tokens.)
+ *  - descend / advance INTO case-flow: the DevelopWash rises, masks the swap,
+ *    and clears onto the developed surface (the warm "entering case work" beat).
  *
  * The hop's variant is LATCHED per pathname change (state adjusted during
  * render), never recomputed from the live location: re-renders that land
@@ -29,6 +38,13 @@ import {
  */
 
 type LatchedHop = { path: string; variant: RouteTransitionVariant };
+
+type WashHop = { key: string; variant: 'descend' | 'advance' };
+
+const washVariantOf = (
+  variant: RouteTransitionVariant,
+): WashHop['variant'] | null =>
+  variant === 'descend' || variant === 'advance' ? variant : null;
 
 /**
  * Pending fix-out dim (#54). While a route loader holds navigation past
@@ -76,31 +92,55 @@ export const RouteTransitionOutlet = () => {
     setLatched({ path: location.pathname, variant });
   }
 
+  // The warm develop wash fires for descend/advance hops only. It is kept in
+  // its own state (rather than derived from `latched`) so it survives until it
+  // finishes clearing, and so #60 can hold it open while a loader resolves.
+  const [washHop, setWashHop] = useState<WashHop | null>(null);
+  useEffect(() => {
+    const washVariant = washVariantOf(latched.variant);
+    if (washVariant) {
+      setWashHop({ key: latched.path, variant: washVariant });
+    }
+  }, [latched.path, latched.variant]);
+
   if (reducedMotion) {
     return <Outlet />;
   }
 
   return (
-    <AnimatePresence
-      mode="wait"
-      initial={false}
-      custom={variant}
-      onExitComplete={() => window.scrollTo(0, 0)}
-    >
-      <motion.div
-        key={location.pathname}
+    <>
+      <AnimatePresence
+        mode="wait"
+        initial={false}
         custom={variant}
-        variants={developVariants}
-        initial="latent"
-        animate={held ? 'held' : 'developed'}
-        exit="fixed"
-        data-motion-wrapper
-        data-animates={variant === 'none' ? 'false' : 'true'}
-        data-variant={variant}
-        data-held={held ? 'true' : 'false'}
+        onExitComplete={() => window.scrollTo(0, 0)}
       >
-        <Outlet />
-      </motion.div>
-    </AnimatePresence>
+        <motion.div
+          key={location.pathname}
+          custom={variant}
+          variants={developVariants}
+          initial="latent"
+          animate={held ? 'held' : 'developed'}
+          exit="fixed"
+          data-motion-wrapper
+          data-animates={variant === 'none' ? 'false' : 'true'}
+          data-variant={variant}
+          data-held={held ? 'true' : 'false'}
+        >
+          <Outlet />
+        </motion.div>
+      </AnimatePresence>
+      {washHop && (
+        <DevelopWash
+          key={washHop.key}
+          variant={washHop.variant}
+          onComplete={() =>
+            setWashHop((current) =>
+              current && current.key === washHop.key ? null : current,
+            )
+          }
+        />
+      )}
+    </>
   );
 };

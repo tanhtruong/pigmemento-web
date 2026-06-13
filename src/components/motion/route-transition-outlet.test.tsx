@@ -270,3 +270,49 @@ describe('pending fix-out dim (#54)', () => {
     });
   });
 });
+
+describe('develop wash (#59)', () => {
+  it('raises the warm wash on a descend into case flow', async () => {
+    const { router } = renderWithRoute('/app/dashboard');
+
+    await act(async () => {
+      await router.navigate('/app/cases/42/attempt');
+    });
+
+    await waitFor(() => {
+      expect(
+        document.querySelector('[data-develop-wash="descend"]'),
+      ).not.toBeNull();
+    });
+  });
+
+  it('never raises the wash on a quiet lateral tab hop', async () => {
+    const { router } = renderWithRoute('/app/dashboard');
+
+    await act(async () => {
+      await router.navigate('/app/profile');
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Profile content').closest('[data-motion-wrapper]'),
+      ).toHaveAttribute('data-variant', 'lateral-forward');
+    });
+    expect(document.querySelector('[data-develop-wash]')).toBeNull();
+  });
+
+  it('never raises the wash on the attempt → review centerpiece', async () => {
+    const { router } = renderWithRoute('/app/cases/42/attempt');
+
+    await act(async () => {
+      await router.navigate('/app/cases/42/review');
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Review content').closest('[data-motion-wrapper]'),
+      ).toHaveAttribute('data-variant', 'none');
+    });
+    expect(document.querySelector('[data-develop-wash]')).toBeNull();
+  });
+});
