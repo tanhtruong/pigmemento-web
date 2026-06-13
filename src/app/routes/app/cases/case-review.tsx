@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
+import { useReducedMotion } from 'motion/react';
 import { ArrowLeft, ArrowRight, RotateCcw } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -8,10 +9,18 @@ import { Spinner } from '@/components/ui/spinner';
 import { Hairline } from '@/components/foundation/hairline';
 import { AnnotatedLesionImage } from '@/components/signature/annotated-lesion-image';
 import { DiagnosisReveal } from '@/components/signature/diagnosis-reveal';
+import { LesionFlight } from '@/components/motion/lesion-flight';
+import {
+  consumeLesionFlight,
+  type LesionFlightOrigin,
+} from '@/lib/lesion-flight';
 import { paths } from '@/config/paths';
 import { useCase } from '@/features/cases/api/use-case.ts';
 import { useCaseLatestAttempt } from '@/features/cases/api/use-case-latest-attempt.ts';
-import { hasAbcdeFeatures } from '@/features/cases/types/abcde-feature.ts';
+import {
+  hasAbcdeFeatures,
+  type AbcdeFeature,
+} from '@/features/cases/types/abcde-feature.ts';
 import { queryKeys } from '@/lib/query-keys.ts';
 
 type Outcome = 'correct' | 'incorrect' | 'skipped';
@@ -42,6 +51,61 @@ const outcomeCopy = (
     return `You skipped this. The answer is ${correctLabel}.`;
   }
   return `You said ${chosenLabel}. The answer is ${correctLabel}.`;
+};
+
+/**
+ * The review hero, flight-aware (#62). Mounts only once the review content is
+ * ready (the scene early-returns on loading), so consuming the flight origin in
+ * the first-render initializer never flashes the hero ahead of the print — the
+ * same pattern as CaseAttemptView. No flight origin (the common case: deep
+ * link, "Next case", reduced motion) → renders the hero plain.
+ */
+const ReviewLesionHero = ({
+  caseId,
+  src,
+  alt,
+  features,
+  sourceCredit,
+}: {
+  caseId: string;
+  src: string;
+  alt: string;
+  features: AbcdeFeature[];
+  sourceCredit: string;
+}) => {
+  const reducedMotion = useReducedMotion();
+  const heroRef = useRef<HTMLDivElement>(null);
+
+  const consumedRef = useRef<LesionFlightOrigin | null | undefined>(undefined);
+  if (consumedRef.current === undefined) {
+    consumedRef.current = reducedMotion ? null : consumeLesionFlight(caseId);
+  }
+  const [flight, setFlight] = useState<LesionFlightOrigin | null>(
+    consumedRef.current,
+  );
+  const landFlight = useCallback(() => setFlight(null), []);
+
+  return (
+    <>
+      <AnnotatedLesionImage
+        src={src}
+        alt={alt}
+        aspect="4:5"
+        features={features}
+        sourceCredit={sourceCredit}
+        showAnnotations
+        frameRef={heroRef}
+        frameHidden={Boolean(flight)}
+      />
+      {flight && (
+        <LesionFlight
+          origin={flight}
+          targetRef={heroRef}
+          onLanded={landFlight}
+        />
+      )}
+    </>
+  );
 };
 
 export const CaseReviewScene = () => {
@@ -168,16 +232,13 @@ export const CaseReviewScene = () => {
       <Hairline />
 
       <div className="grid gap-10 lg:grid-cols-[1.3fr_1fr]">
-        <figure className="flex flex-col gap-3">
-          <AnnotatedLesionImage
-            src={caseItem.imageUrl}
-            alt={`Case ${caseItem.id}`}
-            aspect="4:5"
-            features={features}
-            sourceCredit={`CASE ${caseItem.id} · ${diagnosis.toUpperCase()}`}
-            showAnnotations
-          />
-        </figure>
+        <ReviewLesionHero
+          caseId={String(caseItem.id)}
+          src={caseItem.imageUrl}
+          alt={`Case ${caseItem.id}`}
+          features={features}
+          sourceCredit={`CASE ${caseItem.id} · ${diagnosis.toUpperCase()}`}
+        />
 
         <section className="flex flex-col gap-8">
           <DiagnosisReveal

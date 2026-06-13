@@ -15,10 +15,18 @@ vi.mock('@/features/cases/api/use-case.ts', () => ({
 vi.mock('@/features/cases/api/use-case-latest-attempt.ts', () => ({
   useCaseLatestAttempt: vi.fn(),
 }));
+// Stand in for the flight so the integration assertion doesn't depend on
+// motion's animation timing (#62).
+vi.mock('@/components/motion/lesion-flight', () => ({
+  LesionFlight: ({ origin }: { origin: { src: string } }) => (
+    <div data-testid="lesion-flight" data-src={origin.src} />
+  ),
+}));
 
 import { useReducedMotion } from 'motion/react';
 import { useCase } from '@/features/cases/api/use-case.ts';
 import { useCaseLatestAttempt } from '@/features/cases/api/use-case-latest-attempt.ts';
+import { captureLesionFlight, consumeLesionFlight } from '@/lib/lesion-flight';
 
 import CaseReviewScene from './case-review';
 
@@ -75,7 +83,21 @@ afterEach(() => {
   mockedUseReducedMotion.mockReturnValue(false);
   mockedUseCase.mockReset();
   mockedUseLatestAttempt.mockReset();
+  consumeLesionFlight('__drain__'); // clear any captured origin between tests
 });
+
+const mockReady = (caseData: unknown = stubCase) => {
+  mockedUseCase.mockReturnValue({
+    data: caseData,
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof useCase>);
+  mockedUseLatestAttempt.mockReturnValue({
+    data: stubAttemptCorrect,
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof useCaseLatestAttempt>);
+};
 
 const renderRoute = () => {
   const client = new QueryClient({
@@ -202,5 +224,36 @@ describe('CaseReviewScene', () => {
     expect(
       screen.getByLabelText(/Benign/i, { selector: 'h2' }),
     ).toBeInTheDocument();
+  });
+});
+
+describe('CaseReviewScene lesion-flight (#62)', () => {
+  it('flies the print into the review hero when an origin was captured', () => {
+    captureLesionFlight(document.createElement('div'), '42', '/lesion-42.png');
+    mockReady();
+
+    renderRoute();
+
+    const flight = screen.getByTestId('lesion-flight');
+    expect(flight).toHaveAttribute('data-src', '/lesion-42.png');
+  });
+
+  it('renders the hero plain when there is no flight origin', () => {
+    mockReady();
+
+    renderRoute();
+
+    expect(screen.queryByTestId('lesion-flight')).toBeNull();
+    expect(screen.getByRole('img', { name: /case 42/i })).toBeInTheDocument();
+  });
+
+  it('does not fly under prefers-reduced-motion, even with a captured origin', () => {
+    mockedUseReducedMotion.mockReturnValue(true);
+    captureLesionFlight(document.createElement('div'), '42', '/lesion-42.png');
+    mockReady();
+
+    renderRoute();
+
+    expect(screen.queryByTestId('lesion-flight')).toBeNull();
   });
 });
