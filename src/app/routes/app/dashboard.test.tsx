@@ -110,7 +110,7 @@ describe('Dashboard (Progress)', () => {
   });
 
   it('greets by the real first name from the profile', () => {
-    mockedUseCaseHistory.mockReturnValue({ data: [] } as ReturnType<
+    mockedUseCaseHistory.mockReturnValue({ data: [] } as unknown as ReturnType<
       typeof useCaseHistory
     >);
     mockedUseProfile.mockReturnValue({
@@ -128,7 +128,7 @@ describe('Dashboard (Progress)', () => {
   });
 
   it('falls back to a plain greeting — never the email handle — when no name is set', () => {
-    mockedUseCaseHistory.mockReturnValue({ data: [] } as ReturnType<
+    mockedUseCaseHistory.mockReturnValue({ data: [] } as unknown as ReturnType<
       typeof useCaseHistory
     >);
     mockedUseProfile.mockReturnValue({
