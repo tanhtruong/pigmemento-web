@@ -10,13 +10,15 @@ import {
 } from '@/lib/route-transition';
 
 /**
- * RouteTransitionOutlet — speaks the in-app transition grammar (#53).
+ * RouteTransitionOutlet — speaks the in-app transition grammar (#53, #65).
  *
- * Every hop between app surfaces plays the Develop, conjugated by the
- * relationship between the two routes (lateral / descend / ascend / advance,
- * classified in `lib/route-transition`). The presence stays mounted across
- * all hops — including non-animated ones — so the very first navigation
- * after entering the app already plays a full fix/develop pair.
+ * Every hop between app surfaces dissolves, conjugated by the relationship
+ * between the two routes (lateral / descend / ascend / advance, classified in
+ * `lib/route-transition`). The leaving surface fades DOWN to the dissolve floor
+ * and the arriving one fades UP from it (with an 8px directional drift) — the
+ * screen never reaches a blank frame, so there's no blink between screens
+ * (#65). `mode="wait"` keeps a single surface mounted at a time; the floor
+ * masks the swap the way a crossfade midpoint would.
  *
  * The hop's variant is LATCHED per pathname change (state adjusted during
  * render), never recomputed from the live location: re-renders that land
@@ -25,7 +27,7 @@ import {
  *
  * `custom` is set on both the presence and the child: AnimatePresence
  * re-renders exiting children with its own `custom`, which is how the
- * outgoing surface fixes with the *current* hop's drift.
+ * outgoing surface fades with the *current* hop's grammar.
  */
 
 type LatchedHop = { path: string; variant: RouteTransitionVariant };
@@ -80,6 +82,10 @@ export const RouteTransitionOutlet = () => {
     return <Outlet />;
   }
 
+  // Reset scroll under the dissolve: onExitComplete fires once the leaving
+  // surface has faded to the floor and unmounted, just as the arriving one
+  // mounts — so the top is restored while the screen is mid-dissolve, never as
+  // a visible jump on still-showing content.
   return (
     <AnimatePresence
       mode="wait"

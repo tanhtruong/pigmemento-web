@@ -95,52 +95,52 @@ export const revealSequence = {
 export const STREAK_GLOW_DECAY_MS = 1400;
 
 /**
- * The Develop — the in-app route gesture (#53), the bloom conductor's quieter
- * sibling. The incoming surface is a *latent* print: faintly warm (sub-amber
- * safelight cast via sepia), washed-out, and it develops to full contrast.
- * The outgoing surface is *fixed*: cooled, dimmed, done.
+ * The handoff (#65) — the in-app route gesture. One surface crossfades into
+ * the next: the incoming surface fades up from a whisper of directional drift,
+ * the outgoing one fades straight out. No colour-matrix wash, no contrast
+ * ramp — opacity and an 8px nudge only, so the screen change reads as seamless
+ * rather than a darkroom print developing in your face.
  *
- * Filter lists keep identical function order across all three states so
- * motion can interpolate them. Color-matrix filters only (no blur) — these
- * stay compositor-friendly on full route trees.
+ * (Earlier revisions #53/#54 ran a sepia "Develop" filter here; it read as a
+ * full-page bloom and was removed.)
  */
-const LATENT_FILTER =
-  'contrast(0.82) saturate(0.72) sepia(0.18) brightness(1.05)';
-const DEVELOPED_FILTER = 'contrast(1) saturate(1) sepia(0) brightness(1)';
-const FIXED_FILTER = 'contrast(0.94) saturate(0.55) sepia(0) brightness(0.92)';
-/** First beats of the fix (#54) — lifted from the bath, not yet fixed. */
-const HELD_FILTER = 'contrast(0.97) saturate(0.78) sepia(0) brightness(0.95)';
 
 /**
  * How long a route loader may hold navigation before the outgoing surface
- * earns the held fix dim (#54). Cached react-query hops resolve well under
- * this and never show it.
+ * earns the held dim (#54). Cached react-query hops resolve well under this
+ * and never show it.
  */
 export const PENDING_HOLD_MS = 150;
 
 type DevelopDrift = { x?: number; y?: number };
 
 /**
- * Drift conjugation per grammar variant. Enter and exit continue the same
- * camera motion: lateral hops flow along the tab strip, descend washes
- * downward into the case, ascend lifts back out, advance presses forward.
+ * Drift amplitude (#65). A whisper — just enough to signal which way the hop
+ * goes, never enough to read as the page sliding. The handoff is a crossfade;
+ * the drift only flavours it.
+ */
+const DRIFT_PX = 8;
+
+/**
+ * Opacity floor for the dissolve (#65). The leaving surface fades DOWN to this
+ * and the arriving one fades UP from it — never to a blank frame. At the swap
+ * both surfaces sit at the floor, so the content change is masked the way a
+ * crossfade's midpoint masks it, without two route trees mounted at once.
+ */
+const DISSOLVE_FLOOR = 0.5;
+
+/**
+ * Drift conjugation per grammar variant. Only the *incoming* surface drifts:
+ * lateral hops flow along the tab strip, descend dips into the case, ascend
+ * lifts back out, advance presses forward. The outgoing surface only fades, so
+ * the two never appear to slide past each other.
  */
 const ENTER_DRIFT: Record<RouteTransitionVariant, DevelopDrift> = {
-  'lateral-forward': { x: 20 },
-  'lateral-back': { x: -20 },
-  descend: { y: -16 },
-  ascend: { y: 16 },
-  advance: { x: 16 },
-  neutral: {},
-  none: {},
-};
-
-const EXIT_DRIFT: Record<RouteTransitionVariant, DevelopDrift> = {
-  'lateral-forward': { x: -10 },
-  'lateral-back': { x: 10 },
-  descend: { y: 8 },
-  ascend: { y: -8 },
-  advance: { x: -8 },
+  'lateral-forward': { x: DRIFT_PX },
+  'lateral-back': { x: -DRIFT_PX },
+  descend: { y: -DRIFT_PX },
+  ascend: { y: DRIFT_PX },
+  advance: { x: DRIFT_PX },
   neutral: {},
   none: {},
 };
@@ -150,16 +150,19 @@ const INSTANT: Transition = { duration: 0 };
 /**
  * Dynamic variants for the route outlet. Pass the hop's grammar variant as
  * `custom` on BOTH the motion element and its AnimatePresence so the exiting
- * surface fixes with the current hop's drift, not the one that brought it in.
- * `none` collapses every state to an instant no-op (centerpiece hop).
+ * surface fades with the current hop's grammar, not the one that brought it in.
+ *
+ * The handoff is a dissolve that never blanks (#65): `fixed` fades the leaving
+ * surface DOWN to the floor, `latent` starts the arriving one AT the floor and
+ * `developed` lifts it to full. `none` collapses every state to an instant
+ * no-op (centerpiece hop).
  */
 export const developVariants: Variants = {
   latent: (variant: RouteTransitionVariant) =>
     variant === 'none'
-      ? { opacity: 1, x: 0, y: 0, filter: DEVELOPED_FILTER }
+      ? { opacity: 1, x: 0, y: 0 }
       : {
-          opacity: 0,
-          filter: LATENT_FILTER,
+          opacity: DISSOLVE_FLOOR,
           x: 0,
           y: 0,
           ...ENTER_DRIFT[variant],
@@ -168,31 +171,28 @@ export const developVariants: Variants = {
     opacity: 1,
     x: 0,
     y: 0,
-    filter: DEVELOPED_FILTER,
     transition: variant === 'none' ? INSTANT : motionTokens.normal,
   }),
   fixed: (variant: RouteTransitionVariant) =>
     variant === 'none'
       ? { opacity: 1, transition: INSTANT }
       : {
-          opacity: 0,
-          filter: FIXED_FILTER,
-          ...EXIT_DRIFT[variant],
+          opacity: DISSOLVE_FLOOR,
+          x: 0,
+          y: 0,
           transition: motionTokens.quick,
         },
   /**
-   * Held fix (#54) — a pending loader keeps the outgoing surface mounted, so
-   * it eases into the first beats of its fix and waits there. No drift and no
-   * `custom` gate: whether the *departing* hop animates is decided by the
-   * outlet, while this pose's `custom` would be the variant that brought the
-   * surface in. The slow ramp keeps barely-over-threshold loads from
-   * flickering.
+   * Held dim (#54) — a pending loader keeps the outgoing surface mounted, so
+   * it eases into a gentle opacity dim and waits there: the click acknowledged
+   * without a spinner. A slow ramp keeps barely-over-threshold loads from
+   * flickering. Sustained, so it sits a touch brighter than the transient
+   * dissolve floor. No drift, no colour wash (#65) — just a quiet fade-back.
    */
   held: {
-    opacity: 1,
+    opacity: 0.7,
     x: 0,
     y: 0,
-    filter: HELD_FILTER,
     transition: motionTokens.considered,
   },
 };
