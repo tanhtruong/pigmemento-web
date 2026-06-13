@@ -9,6 +9,7 @@ import { CalendarHeatmap } from '@/components/signature/calendar-heatmap';
 import { paths } from '@/config/paths';
 import { useCaseHistory } from '@/features/cases/api/use-case-history.ts';
 import type { CaseListItem } from '@/features/cases/types/case-list-item.ts';
+import { captureLesionFlight } from '@/lib/lesion-flight';
 import { cn } from '@/lib/utils';
 
 type AttemptedCaseListItem = CaseListItem & {
@@ -286,9 +287,15 @@ const Dashboard = () => {
                   {i > 0 && <Hairline />}
                   <Link
                     to={paths.app['case-review'].getHref(c.id)}
+                    onClick={(event) =>
+                      captureLesionFlight(event.currentTarget, c.id, c.imageUrl)
+                    }
                     className="hover:bg-accent/40 group/row flex items-center gap-4 py-3 transition-colors"
                   >
-                    <div className="bg-muted/40 border-hairline relative h-12 w-12 shrink-0 overflow-hidden rounded-input border">
+                    <div
+                      data-case-thumb
+                      className="bg-muted/40 border-hairline relative h-12 w-12 shrink-0 overflow-hidden rounded-input border"
+                    >
                       <img
                         src={c.imageUrl}
                         alt=""

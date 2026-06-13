@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -14,11 +15,22 @@ import { Separator } from '@/components/ui/separator';
 import { paths } from '@/config/paths';
 import { useRandomCase } from '@/features/cases/api/use-case-random.ts';
 import { useCaseSubmitAttempt } from '@/features/cases/api/use-case-submit-attempt.ts';
+import { useCaseAttemptShortcuts } from '@/features/cases/hooks/use-case-attempt-shortcuts.ts';
 import { CheckCircle2 } from 'lucide-react';
-import { Kbd } from '@/components/ui/kbd.tsx';
 import { Progress } from '@/components/ui/progress.tsx';
+import { CaseAttemptView } from '@/app/routes/app/cases/case-attempt.tsx';
+import { CaseAttemptSkeleton } from '@/components/cases/case-attempt-skeleton.tsx';
+import {
+  type CaseChoice,
+  type CaseChoiceOutcome,
+} from '@/components/cases/case-choice-card.tsx';
+import { developVariants, RING_FILL_MS } from '@/lib/motion-tokens.ts';
+import { cn } from '@/lib/utils.ts';
 
 type Label = 'benign' | 'malignant' | 'skipped';
+
+/** How long the inline correctness reveal holds before the drill advances. */
+const REVEAL_HOLD_MS = 650;
 
 type DrillResult = {
   caseId: string;
@@ -42,6 +54,7 @@ const formatMs = (ms: number) => {
 const CaseDrillScene = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const reducedMotion = useReducedMotion();
 
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
 
@@ -93,11 +106,6 @@ const CaseDrillScene = () => {
     () => clampInt(Number.isFinite(targetCount) ? targetCount : 5, 1, 50),
     [targetCount],
   );
-
-  const progressLabel = useMemo(() => {
-    if (phase !== 'running') return '';
-    return `${index + 1} / ${safeTarget}`;
-  }, [index, phase, safeTarget]);
 
   // Start timer whenever a new case is shown
   useEffect(() => {
@@ -152,145 +160,124 @@ const CaseDrillScene = () => {
     });
   }, [finishDrill, queryClient, refetch, safeTarget]);
 
-  const submitCurrent = useCallback(() => {
-    if (!randomCase?.id || !choice) return;
-
-    const timeToAnswerMs = Math.max(
-      0,
-      Math.round(performance.now() - startedAtRef.current),
-    );
-
-    resetSubmit();
-
-    // Your mutation currently expects { caseId, attempt: { chosenLabel, timeToAnswerMs } }
-    submitAttempt(
-      {
-        caseId: String(randomCase.id),
-        attempt: { chosenLabel: choice, timeToAnswerMs },
-      },
-      {
-        onSuccess: (res) => {
-          const isCorrect =
-            typeof res?.correct === 'boolean' ? res.correct : null;
-
-          const correctLabel =
-            res?.correctLabel === 'benign' || res?.correctLabel === 'malignant'
-              ? res.correctLabel
-              : undefined;
-
-          setResults((prev) => [
-            ...prev,
-            {
-              caseId: String(randomCase.id),
-              chosenLabel: choice,
-              timeToAnswerMs,
-              isCorrect: isCorrect === null ? undefined : isCorrect,
-              correctLabel,
-            },
-          ]);
-
-          setReveal({ isCorrect, correctLabel });
-
-          if (advanceTimeoutRef.current !== null) {
-            window.clearTimeout(advanceTimeoutRef.current);
-          }
-
-          advanceTimeoutRef.current = window.setTimeout(() => {
-            setReveal(null);
-            advance();
-            advanceTimeoutRef.current = null;
-          }, 650);
-        },
-      },
-    );
-  }, [advance, choice, randomCase?.id, resetSubmit, submitAttempt]);
-
-  useEffect(() => {
-    if (isCoarsePointer) return;
-    if (phase !== 'running') return;
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement | null;
-      const tag = el?.tagName?.toLowerCase();
-      if (
-        tag === 'input' ||
-        tag === 'textarea' ||
-        (el as any)?.isContentEditable
-      )
-        return;
-
-      if (isSubmitting || Boolean(reveal)) return;
-
-      if (e.key === 'b') {
-        e.preventDefault();
-        setChoice('benign');
-        return;
+  const scheduleAdvance = useCallback(
+    (delayMs: number) => {
+      if (advanceTimeoutRef.current !== null) {
+        window.clearTimeout(advanceTimeoutRef.current);
       }
+      advanceTimeoutRef.current = window.setTimeout(() => {
+        setReveal(null);
+        advance();
+        advanceTimeoutRef.current = null;
+      }, delayMs);
+    },
+    [advance],
+  );
 
-      if (e.key === 'm') {
-        e.preventDefault();
-        setChoice('malignant');
-        return;
-      }
+  /**
+   * Direct-commit, like the single/random attempt (#61): tap or key B/M/S
+   * commits straight away — no separate Submit step. Benign/malignant submit,
+   * reveal correctness inline on the chosen card, then advance. Skip keeps the
+   * drill's own semantics — recorded locally, no submit, no grade — and
+   * advances once the ring closes.
+   */
+  const handleCommit = useCallback(
+    (committed: CaseChoice) => {
+      if (!randomCase?.id || choice || isSubmitting || reveal) return;
+      setChoice(committed);
 
-      if (e.key === 's' || e.key === 'S') {
-        e.preventDefault();
-        if (!randomCase?.id) return;
+      const timeToAnswerMs = Math.max(
+        0,
+        Math.round(performance.now() - startedAtRef.current),
+      );
 
+      if (committed === 'skipped') {
         setResults((prev) => [
           ...prev,
           {
             caseId: String(randomCase.id),
             chosenLabel: 'skipped',
-            timeToAnswerMs: Math.max(
-              0,
-              Math.round(performance.now() - startedAtRef.current),
-            ),
+            timeToAnswerMs,
           },
         ]);
-
-        setChoice(null);
-        setReveal(null);
-        resetSubmit();
-        advance();
+        scheduleAdvance(RING_FILL_MS);
         return;
       }
 
-      if (e.key === 'Enter') {
-        if (!choice) return;
-        e.preventDefault();
-        submitCurrent();
-        return;
-      }
+      resetSubmit();
+      submitAttempt(
+        {
+          caseId: String(randomCase.id),
+          attempt: { chosenLabel: committed, timeToAnswerMs },
+        },
+        {
+          onSuccess: (res) => {
+            const isCorrect =
+              typeof res?.correct === 'boolean' ? res.correct : null;
+            const correctLabel =
+              res?.correctLabel === 'benign' ||
+              res?.correctLabel === 'malignant'
+                ? res.correctLabel
+                : undefined;
 
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        const ok = window.confirm(
-          'Exit the drill? Your current session will be lost.',
-        );
-        if (!ok) return;
+            setResults((prev) => [
+              ...prev,
+              {
+                caseId: String(randomCase.id),
+                chosenLabel: committed,
+                timeToAnswerMs,
+                isCorrect: isCorrect === null ? undefined : isCorrect,
+                correctLabel,
+              },
+            ]);
+            setReveal({ isCorrect, correctLabel });
+            scheduleAdvance(REVEAL_HOLD_MS);
+          },
+        },
+      );
+    },
+    [
+      choice,
+      isSubmitting,
+      randomCase?.id,
+      resetSubmit,
+      reveal,
+      scheduleAdvance,
+      submitAttempt,
+    ],
+  );
 
-        setPhase('setup');
-        setResults([]);
-        setIndex(0);
-        setChoice(null);
-        setReveal(null);
-      }
-    };
+  const confirmExit = useCallback(() => {
+    const ok = window.confirm(
+      'Exit the drill? Your current session will be lost.',
+    );
+    if (!ok) return;
+    if (advanceTimeoutRef.current !== null) {
+      window.clearTimeout(advanceTimeoutRef.current);
+      advanceTimeoutRef.current = null;
+    }
+    setPhase('setup');
+    setResults([]);
+    setIndex(0);
+    setChoice(null);
+    setReveal(null);
+  }, []);
 
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [
-    advance,
-    choice,
-    isSubmitting,
-    phase,
-    randomCase?.id,
-    resetSubmit,
-    reveal,
-    submitCurrent,
-    isCoarsePointer,
-  ]);
+  // Same keyboard grammar as the single/random attempt (#61): B/M/S commit,
+  // Escape exits. Gated off once a choice is in flight or the reveal is up.
+  useCaseAttemptShortcuts({
+    enabled:
+      phase === 'running' &&
+      Boolean(randomCase) &&
+      !isCoarsePointer &&
+      !choice &&
+      !reveal &&
+      !isSubmitting,
+    isPending: isSubmitting,
+    onCommit: handleCommit,
+    onNewCase: () => {},
+    onExit: confirmExit,
+  });
 
   useEffect(() => {
     return () => {
@@ -653,203 +640,118 @@ const CaseDrillScene = () => {
     );
   }
 
-  // Running
-  return (
-    <div className="text-foreground flex min-h-0 flex-col gap-6 py-2 text-left">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <span className="border-hairline text-foreground inline-flex items-center rounded-full border px-2.5 py-1 font-mono text-xs tabular-nums">
-            {progressLabel}
-          </span>
-          <Progress
-            value={Math.round(((index + 1) / safeTarget) * 100)}
-            className="h-1 w-32"
-          />
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            const ok = window.confirm(
-              'Exit the drill? Your current session will be lost.',
-            );
-            if (!ok) return;
+  // Running — the same attempt surface as a single/random case (#61). The only
+  // difference is the outcome: commit reveals inline on the chosen card and the
+  // drill advances, rather than routing to /review.
+  const labelOf = (c?: Label) =>
+    c === 'benign' ? 'Benign' : c === 'malignant' ? 'Malignant' : 'Skip';
 
-            setPhase('setup');
-            setResults([]);
-            setIndex(0);
-            setChoice(null);
-            setReveal(null);
-          }}
-        >
-          ← Exit drill
-        </Button>
-      </header>
-      <div className="flex-1">
-        {isCaseLoading ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Loading case…</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Please wait.
-            </CardContent>
-          </Card>
-        ) : isCaseError || !randomCase ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Could not load a case</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">Please try again.</p>
-              <Button
-                onClick={() => {
-                  queryClient.invalidateQueries({ queryKey: ['random-case'] });
-                  refetch();
-                }}
-              >
-                Retry
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 sm:gap-5 lg:grid-cols-3">
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Image</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-hidden rounded-lg border">
-                  <img
-                    src={randomCase.imageUrl}
-                    alt={`Case ${randomCase.id}`}
-                    className="w-full object-contain max-h-[60vh] sm:max-h-none"
-                    loading="eager"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+  let choiceOutcomes:
+    | Partial<Record<CaseChoice, CaseChoiceOutcome>>
+    | undefined;
+  if (reveal && choice && choice !== 'skipped' && reveal.isCorrect !== null) {
+    const oc: Partial<Record<CaseChoice, CaseChoiceOutcome>> = {};
+    oc[choice] = reveal.isCorrect ? 'correct' : 'incorrect';
+    if (!reveal.isCorrect && reveal.correctLabel) {
+      oc[reveal.correctLabel] = 'reveal-correct';
+    }
+    choiceOutcomes = oc;
+  }
 
-            <Card className="flex flex-col lg:sticky lg:top-4">
-              <CardHeader>
-                <CardTitle>Your answer</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {reveal ? (
-                  <div
-                    className={
-                      reveal.isCorrect === true
-                        ? 'rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary'
-                        : reveal.isCorrect === false
-                          ? 'rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs font-semibold text-destructive'
-                          : 'rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs font-semibold text-foreground'
-                    }
-                  >
-                    {reveal.isCorrect === true ? (
-                      <>
-                        Correct — {choice === 'benign' ? 'Benign' : 'Malignant'}
-                      </>
-                    ) : reveal.isCorrect === false && reveal.correctLabel ? (
-                      <>
-                        Incorrect — Correct:{' '}
-                        {reveal.correctLabel === 'benign'
-                          ? 'Benign'
-                          : 'Malignant'}
-                      </>
-                    ) : (
-                      <>Checked</>
-                    )}
-                  </div>
-                ) : null}
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <Button
-                    type="button"
-                    variant={choice === 'benign' ? 'default' : 'secondary'}
-                    onClick={() => setChoice('benign')}
-                    disabled={isSubmitting || Boolean(reveal)}
-                  >
-                    <span className="hidden sm:inline-flex">
-                      <Kbd>B</Kbd>
-                    </span>{' '}
-                    Benign
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={choice === 'malignant' ? 'default' : 'secondary'}
-                    onClick={() => setChoice('malignant')}
-                    disabled={isSubmitting || Boolean(reveal)}
-                  >
-                    <span className="hidden sm:inline-flex">
-                      <Kbd>M</Kbd>
-                    </span>{' '}
-                    Malignant
-                  </Button>
-                </div>
-
-                <Button
-                  type="button"
-                  className="w-full"
-                  onClick={submitCurrent}
-                  disabled={!choice || isSubmitting || Boolean(reveal)}
-                >
-                  <span className="hidden sm:inline-flex">
-                    <Kbd>⏎</Kbd>
-                  </span>{' '}
-                  {isSubmitting ? 'Submitting…' : 'Submit'}
-                </Button>
-
-                {isSubmitError ? (
-                  <p className="text-xs text-destructive">
-                    {submitError instanceof Error
-                      ? submitError.message
-                      : 'Could not submit attempt. Please try again.'}
-                  </p>
-                ) : null}
-
-                <Separator />
-
-                <div className="text-xs text-muted-foreground">
-                  Completed: {results.length} / {safeTarget}
-                </div>
-              </CardContent>
-              <CardFooter className="mt-auto">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    if (!randomCase?.id) return;
-
-                    setResults((prev) => [
-                      ...prev,
-                      {
-                        caseId: String(randomCase.id),
-                        chosenLabel: 'skipped',
-                        timeToAnswerMs: Math.max(
-                          0,
-                          Math.round(performance.now() - startedAtRef.current),
-                        ),
-                      },
-                    ]);
-
-                    setChoice(null);
-                    setReveal(null);
-                    resetSubmit();
-
-                    advance();
-                  }}
-                  disabled={isSubmitting || Boolean(reveal)}
-                >
-                  <span className="hidden sm:inline-flex">
-                    <Kbd>S</Kbd>
-                  </span>{' '}
-                  Skip
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
+  const revealNode =
+    reveal && choice && choice !== 'skipped' ? (
+      <p
+        className={cn(
+          'font-mono text-xs tracking-[0.04em]',
+          reveal.isCorrect === true && 'text-correct',
+          reveal.isCorrect === false && 'text-incorrect',
+          reveal.isCorrect === null && 'text-muted-foreground',
         )}
-      </div>
+      >
+        {reveal.isCorrect === true
+          ? `Correct — ${labelOf(choice)}`
+          : reveal.isCorrect === false
+            ? reveal.correctLabel
+              ? `Incorrect — answer: ${labelOf(reveal.correctLabel)}`
+              : 'Incorrect'
+            : 'Checked'}
+      </p>
+    ) : undefined;
+
+  const headerActions = (
+    <div className="flex items-center gap-3">
+      <Progress
+        value={Math.round(((index + 1) / safeTarget) * 100)}
+        className="h-1 w-24"
+      />
+      <Button variant="ghost" size="sm" onClick={confirmExit}>
+        ← Exit drill
+      </Button>
     </div>
+  );
+
+  const caseContent =
+    isCaseLoading && !randomCase ? (
+      <CaseAttemptSkeleton />
+    ) : isCaseError || !randomCase ? (
+      <Card>
+        <CardHeader>
+          <CardTitle>Could not load a case</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-muted-foreground text-sm">Please try again.</p>
+          <Button
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['random-case'] });
+              refetch();
+            }}
+          >
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    ) : (
+      <CaseAttemptView
+        caseItem={randomCase}
+        committed={choice}
+        isPending={isSubmitting}
+        onCommit={handleCommit}
+        eyebrow={`Drill · ${index + 1} / ${safeTarget}`}
+        headerActionsNode={headerActions}
+        choiceOutcomes={choiceOutcomes}
+        revealNode={revealNode}
+        submitErrorNode={
+          isSubmitError ? (
+            <p className="text-incorrect text-xs">
+              {submitError instanceof Error
+                ? submitError.message
+                : 'Could not submit attempt. Please try again.'}
+            </p>
+          ) : null
+        }
+      />
+    );
+
+  // Case → case rides the 'advance' Develop locally — the drill is one route,
+  // so the route outlet never fires. Reduced motion renders the case directly.
+  if (reducedMotion) return caseContent;
+
+  const runningKey = randomCase?.id ?? (isCaseLoading ? 'loading' : 'empty');
+
+  return (
+    <AnimatePresence mode="wait" initial={false} custom="advance">
+      <motion.div
+        key={runningKey}
+        custom="advance"
+        variants={developVariants}
+        initial="latent"
+        animate="developed"
+        exit="fixed"
+        data-drill-advance
+      >
+        {caseContent}
+      </motion.div>
+    </AnimatePresence>
   );
 };
 

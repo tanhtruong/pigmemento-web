@@ -1,3 +1,5 @@
+import type { RefObject } from 'react';
+
 import { cn } from '@/lib/utils';
 import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
 
@@ -13,6 +15,13 @@ type AnnotatedLesionImageProps = {
   /** When true, annotations are rendered in the static composed position
    *  (reduced-motion path / PR1 showcase). PR5 animates them via revealSequence. */
   showAnnotations?: boolean;
+  /**
+   * Ref to the bordered image frame — the rect a lesion-flight lands in (#62).
+   * Lets the review hero be a flight target without exposing internal markup.
+   */
+  frameRef?: RefObject<HTMLDivElement | null>;
+  /** Hide the image frame while a flight is mid-air, so it reveals on landing (#62). */
+  frameHidden?: boolean;
   className?: string;
 };
 
@@ -44,6 +53,8 @@ export const AnnotatedLesionImage = ({
   aspect = '4:5',
   sourceCredit,
   showAnnotations = true,
+  frameRef,
+  frameHidden = false,
   className,
 }: AnnotatedLesionImageProps) => {
   return (
@@ -52,6 +63,9 @@ export const AnnotatedLesionImage = ({
       className={cn('flex flex-col gap-3', className)}
     >
       <div
+        ref={frameRef}
+        data-flight-target
+        style={frameHidden ? { visibility: 'hidden' } : undefined}
         className={cn(
           'relative overflow-hidden rounded-card border border-hairline',
           'bg-muted/30 shadow-warm dark:shadow-cinematic dark:surface-card-dark',

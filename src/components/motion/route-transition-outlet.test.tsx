@@ -11,11 +11,15 @@ vi.mock('motion/react', async () => {
 import { useReducedMotion } from 'motion/react';
 
 import { RouteTransitionOutlet } from './route-transition-outlet';
+import { captureLesionFlight, consumeLesionFlight } from '@/lib/lesion-flight';
+import { rememberScroll } from '@/lib/route-scroll';
 
 const mockedUseReducedMotion = vi.mocked(useReducedMotion);
 
 afterEach(() => {
   mockedUseReducedMotion.mockReturnValue(false);
+  // Drain any flight origin a test left stored so it can't leak into the next.
+  consumeLesionFlight('__drain__');
 });
 
 const buildRouter = (initialPath: string) =>
@@ -124,6 +128,39 @@ describe('RouteTransitionOutlet', () => {
 
     await act(async () => {
       await router.navigate('/app/profile');
+    });
+
+    await waitFor(() => {
+      expect(scrollSpy).toHaveBeenCalledWith(0, 0);
+    });
+    scrollSpy.mockRestore();
+  });
+});
+
+describe('scroll restoration (#63)', () => {
+  it('restores the prior scroll position when ascending back out of a case', async () => {
+    const scrollSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    // The dashboard was scrolled to 240 before we descended into the case.
+    rememberScroll('/app/dashboard', 240);
+
+    const { router } = renderWithRoute('/app/cases/42/attempt');
+    await act(async () => {
+      await router.navigate('/app/dashboard'); // ascend — restores 240
+    });
+
+    await waitFor(() => {
+      expect(scrollSpy).toHaveBeenCalledWith(0, 240);
+    });
+    scrollSpy.mockRestore();
+  });
+
+  it('scrolls to top when descending into a case, ignoring any stale saved position', async () => {
+    const scrollSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    rememberScroll('/app/cases/99/attempt', 500);
+
+    const { router } = renderWithRoute('/app/dashboard');
+    await act(async () => {
+      await router.navigate('/app/cases/99/attempt'); // descend
     });
 
     await waitFor(() => {
@@ -268,5 +305,69 @@ describe('pending fix-out dim (#54)', () => {
         screen.getByText('Review content').closest('[data-motion-wrapper]'),
       ).toHaveAttribute('data-variant', 'none');
     });
+  });
+});
+
+describe('develop wash (#59)', () => {
+  it('raises the warm wash on a descend into case flow', async () => {
+    const { router } = renderWithRoute('/app/dashboard');
+
+    await act(async () => {
+      await router.navigate('/app/cases/42/attempt');
+    });
+
+    await waitFor(() => {
+      expect(
+        document.querySelector('[data-develop-wash="descend"]'),
+      ).not.toBeNull();
+    });
+  });
+
+  it('suppresses the wash on a descend when a lesion-flight is pending (#62)', async () => {
+    // A library thumb captured a flight just before navigating — the flying
+    // thumb narrates the descend, so the wash must not double up.
+    captureLesionFlight(document.createElement('div'), '42', '/lesion-42.png');
+
+    const { router } = renderWithRoute('/app/dashboard');
+    await act(async () => {
+      await router.navigate('/app/cases/42/attempt');
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Attempt content').closest('[data-motion-wrapper]'),
+      ).toHaveAttribute('data-variant', 'descend');
+    });
+    expect(document.querySelector('[data-develop-wash]')).toBeNull();
+  });
+
+  it('never raises the wash on a quiet lateral tab hop', async () => {
+    const { router } = renderWithRoute('/app/dashboard');
+
+    await act(async () => {
+      await router.navigate('/app/profile');
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Profile content').closest('[data-motion-wrapper]'),
+      ).toHaveAttribute('data-variant', 'lateral-forward');
+    });
+    expect(document.querySelector('[data-develop-wash]')).toBeNull();
+  });
+
+  it('never raises the wash on the attempt → review centerpiece', async () => {
+    const { router } = renderWithRoute('/app/cases/42/attempt');
+
+    await act(async () => {
+      await router.navigate('/app/cases/42/review');
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Review content').closest('[data-motion-wrapper]'),
+      ).toHaveAttribute('data-variant', 'none');
+    });
+    expect(document.querySelector('[data-develop-wash]')).toBeNull();
   });
 });

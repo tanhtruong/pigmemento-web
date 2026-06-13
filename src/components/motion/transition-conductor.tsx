@@ -21,6 +21,7 @@ import {
   shouldReplaceHistory,
   type TransitionRequest,
 } from '@/lib/transition-conductor';
+import { EASE_CSS } from '@/lib/motion-tokens';
 import { GrainOverlay } from '@/components/foundation/grain-overlay';
 
 /**
@@ -57,9 +58,6 @@ export const useTransitionNavigate = (): TransitionNavigate => {
   }
   return start;
 };
-
-/** The house ease — cubic-bezier(0.2, 0.8, 0.2, 1), as a CSS string. */
-const EASE_CSS = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 
 /**
  * Settle wash per transition kind — the surface the amber resolves into.

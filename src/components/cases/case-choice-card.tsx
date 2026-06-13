@@ -5,6 +5,14 @@ import { motionTokens, RING_FILL_MS } from '@/lib/motion-tokens.ts';
 
 export type CaseChoice = 'benign' | 'malignant' | 'skipped';
 
+/**
+ * Post-commit colour state (#61). The drill's inline reveal turns the chosen
+ * card `correct`/`incorrect`, and marks the missed answer's card
+ * `reveal-correct`. Unset on the single/random flow, which routes to /review
+ * instead of revealing in place.
+ */
+export type CaseChoiceOutcome = 'correct' | 'incorrect' | 'reveal-correct';
+
 type CaseChoiceCardProps = {
   choice: CaseChoice;
   label: string;
@@ -14,6 +22,8 @@ type CaseChoiceCardProps = {
   selected?: boolean;
   /** Disabled — another card is committing. */
   disabled?: boolean;
+  /** Inline reveal colour (drill). Overrides the resting/selected border. */
+  outcome?: CaseChoiceOutcome;
   onSelect: () => void;
 };
 
@@ -33,6 +43,7 @@ export const CaseChoiceCard = ({
   shortcut,
   selected = false,
   disabled = false,
+  outcome,
   onSelect,
 }: CaseChoiceCardProps) => {
   const reducedMotion = useReducedMotion();
@@ -47,6 +58,7 @@ export const CaseChoiceCard = ({
       transition={motionTokens.tapLift}
       aria-pressed={selected}
       data-state={selected ? 'selected' : disabled ? 'disabled' : 'idle'}
+      data-outcome={outcome}
       className={cn(
         'group/choice relative isolate flex items-center justify-between gap-4',
         'rounded-card border border-hairline bg-card px-5 py-4 text-left',
@@ -54,12 +66,22 @@ export const CaseChoiceCard = ({
         'hover:border-primary/40 hover:shadow-warm',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         selected && 'border-primary shadow-amber-glow',
-        disabled && !selected && 'pointer-events-none opacity-40',
+        // Inline reveal (#61) — overrides the amber selected/idle border.
+        outcome === 'correct' && 'border-correct shadow-warm',
+        outcome === 'incorrect' && 'border-incorrect shadow-warm',
+        outcome === 'reveal-correct' && 'border-correct/60',
+        disabled && !selected && !outcome && 'pointer-events-none opacity-40',
       )}
     >
       <span className="font-display text-foreground text-xl">{label}</span>
 
-      <span className="text-muted-foreground border-hairline rounded border px-1.5 py-0.5 font-mono text-[0.7rem]">
+      <span
+        className={cn(
+          'border-hairline text-muted-foreground rounded border px-1.5 py-0.5 font-mono text-[0.7rem]',
+          outcome === 'correct' && 'border-correct/40 text-correct',
+          outcome === 'incorrect' && 'border-incorrect/40 text-incorrect',
+        )}
+      >
         {shortcut}
       </span>
 

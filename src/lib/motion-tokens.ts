@@ -15,7 +15,14 @@ export const motionDurations = {
   hero: 0.72,
 } as const;
 
-const easeOut: Transition['ease'] = [0.2, 0.8, 0.2, 1];
+/**
+ * The house ease — `cubic-bezier(0.2, 0.8, 0.2, 1)`. One tuple source, exported
+ * in both forms so the motion vocabulary (transitions) and the CSS-driven
+ * overlays (the boundary bloom, #43) stay the same material (#63).
+ */
+const EASE_BEZIER = [0.2, 0.8, 0.2, 1] as const;
+export const easeOut: Transition['ease'] = [...EASE_BEZIER];
+export const EASE_CSS = `cubic-bezier(${EASE_BEZIER.join(', ')})`;
 
 export const motionTokens = {
   quick: {
@@ -95,21 +102,32 @@ export const revealSequence = {
 export const STREAK_GLOW_DECAY_MS = 1400;
 
 /**
- * The Develop — the in-app route gesture (#53), the bloom conductor's quieter
- * sibling. The incoming surface is a *latent* print: faintly warm (sub-amber
- * safelight cast via sepia), washed-out, and it develops to full contrast.
- * The outgoing surface is *fixed*: cooled, dimmed, done.
+ * The Develop — the in-app route gesture (#53), re-engineered for #59.
  *
- * Filter lists keep identical function order across all three states so
- * motion can interpolate them. Color-matrix filters only (no blur) — these
- * stay compositor-friendly on full route trees.
+ * The surfaces now move on the compositor only (opacity + transform). The
+ * original develop animated a whole-subtree `filter`, which repaints the
+ * entire route tree every frame — the real source of the not-quite-premium
+ * micro-jank. The warm "develop" colour no longer rides the tree: it lives in
+ * the DevelopWash (a single full-bleed layer), fired only on descend/advance,
+ * so the warmth *means* "entering case work" rather than decorating every hop.
  */
-const LATENT_FILTER =
-  'contrast(0.82) saturate(0.72) sepia(0.18) brightness(1.05)';
-const DEVELOPED_FILTER = 'contrast(1) saturate(1) sepia(0) brightness(1)';
-const FIXED_FILTER = 'contrast(0.94) saturate(0.55) sepia(0) brightness(0.92)';
-/** First beats of the fix (#54) — lifted from the bath, not yet fixed. */
-const HELD_FILTER = 'contrast(0.97) saturate(0.78) sepia(0) brightness(0.95)';
+export const developWash: { keyframes: number[]; times: number[] } = {
+  /**
+   * One-shot opacity keyframes (rise → hold → clear) and their time
+   * fractions. The hold window straddles the route swap so the cut is never
+   * seen — the same "swap under the opaque overlay" principle as the boundary
+   * bloom (#43). Peak sits just under 1 so the amber reads as a wash.
+   */
+  keyframes: [0, 0.96, 0.96, 0],
+  times: [0, 0.2, 0.42, 1],
+};
+
+/** Total wash duration per variant — advance is a lighter, quicker press. */
+export const WASH_DURATION_MS: Partial<Record<RouteTransitionVariant, number>> =
+  {
+    descend: 520,
+    advance: 380,
+  };
 
 /**
  * How long a route loader may hold navigation before the outgoing surface
@@ -148,6 +166,16 @@ const EXIT_DRIFT: Record<RouteTransitionVariant, DevelopDrift> = {
 const INSTANT: Transition = { duration: 0 };
 
 /**
+ * Latent opacity floor (#59). The incoming surface enters at a floor, never
+ * full transparency, so the `mode="wait"` swap reads as a quick fade-in rather
+ * than a blank flash. (popLayout would overlap the two surfaces for a true
+ * crossfade, but it left a stuck, in-flow exited layer in this route tree —
+ * phantom scroll height — so we stay on the robust `wait` + floor.) For
+ * descend/advance the DevelopWash masks the swap, so the floor is moot there.
+ */
+const LATENT_OPACITY = 0.4;
+
+/**
  * Dynamic variants for the route outlet. Pass the hop's grammar variant as
  * `custom` on BOTH the motion element and its AnimatePresence so the exiting
  * surface fixes with the current hop's drift, not the one that brought it in.
@@ -156,19 +184,12 @@ const INSTANT: Transition = { duration: 0 };
 export const developVariants: Variants = {
   latent: (variant: RouteTransitionVariant) =>
     variant === 'none'
-      ? { opacity: 1, x: 0, y: 0, filter: DEVELOPED_FILTER }
-      : {
-          opacity: 0,
-          filter: LATENT_FILTER,
-          x: 0,
-          y: 0,
-          ...ENTER_DRIFT[variant],
-        },
+      ? { opacity: 1, x: 0, y: 0 }
+      : { opacity: LATENT_OPACITY, x: 0, y: 0, ...ENTER_DRIFT[variant] },
   developed: (variant: RouteTransitionVariant) => ({
     opacity: 1,
     x: 0,
     y: 0,
-    filter: DEVELOPED_FILTER,
     transition: variant === 'none' ? INSTANT : motionTokens.normal,
   }),
   fixed: (variant: RouteTransitionVariant) =>
@@ -176,23 +197,21 @@ export const developVariants: Variants = {
       ? { opacity: 1, transition: INSTANT }
       : {
           opacity: 0,
-          filter: FIXED_FILTER,
           ...EXIT_DRIFT[variant],
           transition: motionTokens.quick,
         },
   /**
-   * Held fix (#54) — a pending loader keeps the outgoing surface mounted, so
-   * it eases into the first beats of its fix and waits there. No drift and no
-   * `custom` gate: whether the *departing* hop animates is decided by the
-   * outlet, while this pose's `custom` would be the variant that brought the
-   * surface in. The slow ramp keeps barely-over-threshold loads from
-   * flickering.
+   * Held (#54, re-engineered for #59) — a pending loader keeps the outgoing
+   * surface mounted, so it eases to a gentle dim and waits there: the click
+   * acknowledged without a spinner. Opacity only now (no filter); the slow
+   * ramp keeps barely-over-threshold loads from flickering. For descend/advance
+   * the DevelopWash also covers the swap, so this dim only ever shows under a
+   * colourless lateral hold.
    */
   held: {
-    opacity: 1,
+    opacity: 0.82,
     x: 0,
     y: 0,
-    filter: HELD_FILTER,
     transition: motionTokens.considered,
   },
 };

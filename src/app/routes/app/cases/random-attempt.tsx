@@ -1,18 +1,30 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router';
 
 import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
 import { paths } from '@/config/paths';
 import { useCaseSubmitAttempt } from '@/features/cases/api/use-case-submit-attempt.ts';
-import { useRandomCase } from '@/features/cases/api/use-case-random.ts';
+import {
+  randomCaseQueryOptions,
+  useRandomCase,
+} from '@/features/cases/api/use-case-random.ts';
+import { prefetchWithCap } from '@/lib/route-loaders.ts';
+import { CaseAttemptSkeleton } from '@/components/cases/case-attempt-skeleton.tsx';
 import { useCaseAttemptShortcuts } from '@/features/cases/hooks/use-case-attempt-shortcuts.ts';
 import { useCaseTimer } from '@/features/cases/hooks/use-case-timer';
 import { CaseAttemptView } from '@/app/routes/app/cases/case-attempt.tsx';
 import { queryKeys } from '@/lib/query-keys.ts';
 import { RING_FILL_MS } from '@/lib/motion-tokens';
 import type { CaseChoice } from '@/components/cases/case-choice-card';
+
+/**
+ * Prefetch a random case before the surface mounts (#60), capped so a slow
+ * fetch never blocks navigation — the surface then shows the developing
+ * skeleton. Wired by the router's `convert()` via the `clientLoader` export.
+ */
+export const clientLoader = (queryClient: QueryClient) => () =>
+  prefetchWithCap(queryClient.ensureQueryData(randomCaseQueryOptions()));
 
 const RandomCaseScene = () => {
   const navigate = useNavigate();
@@ -96,14 +108,7 @@ const RandomCaseScene = () => {
   });
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center gap-3 py-20">
-        <Spinner size="lg" variant="muted" />
-        <p className="text-muted-foreground font-mono text-xs tracking-wider uppercase">
-          Loading case…
-        </p>
-      </div>
-    );
+    return <CaseAttemptSkeleton />;
   }
 
   if (isError || !caseItem) {
