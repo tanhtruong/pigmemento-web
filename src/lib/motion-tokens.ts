@@ -148,15 +148,20 @@ const ENTER_DRIFT: Record<RouteTransitionVariant, DevelopDrift> = {
 const INSTANT: Transition = { duration: 0 };
 
 /**
- * Latent opacity floor (#59). The incoming surface enters at a floor, never
- * full transparency, so the `mode="wait"` swap reads as a quick fade-in rather
- * than a blank flash. (popLayout would overlap the two surfaces for a true
- * crossfade, but it left a stuck, in-flow exited layer in this route tree —
- * phantom scroll height — so we stay on the robust `wait` + floor.) Since #73
- * removed the DevelopWash, the floor now masks the swap on every hop, descend
- * and advance included.
+ * Latent opacity floor (#59, raised for #82). The incoming surface enters at a
+ * floor, never full transparency, so the `mode="wait"` swap reads as a quick
+ * fade-in rather than a blank flash. (popLayout would overlap the two surfaces
+ * for a true crossfade, but it left a stuck, in-flow exited layer in this route
+ * tree — phantom scroll height — so we stay on the robust `wait` + floor.)
+ *
+ * Raised from 0.4 to 0.6: at 0.4 the surface visibly dimmed to near-nothing and
+ * climbed back, which read as a flicker between pages. A higher floor keeps the
+ * incoming surface mostly present and just firms up, so the hop is a quiet
+ * settle rather than a dim-gap-brighten blink. Since #73 removed the
+ * DevelopWash, this floor masks the swap on every hop, descend and advance
+ * included.
  */
-const LATENT_OPACITY = 0.4;
+const LATENT_OPACITY = 0.6;
 
 /**
  * Dynamic variants for the route outlet. Pass the hop's grammar variant as

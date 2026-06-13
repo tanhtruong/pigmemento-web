@@ -31,7 +31,9 @@ import { useCaseSubmitAttempt } from '@/features/cases/api/use-case-submit-attem
 import { useCaseAttemptShortcuts } from '@/features/cases/hooks/use-case-attempt-shortcuts.ts';
 import { useCaseTimer } from '@/features/cases/hooks/use-case-timer.ts';
 import { queryKeys } from '@/lib/query-keys.ts';
-import { CaseLesionFrame } from '@/components/cases/case-lesion-frame.tsx';
+import { CaseStage } from '@/components/cases/case-stage.tsx';
+import { AnnotatedLesionImage } from '@/components/signature/annotated-lesion-image.tsx';
+import { shortCaseId } from '@/features/cases/lib/case-id.ts';
 import { LesionFlight } from '@/components/motion/lesion-flight';
 import {
   captureLesionFlight,
@@ -154,36 +156,21 @@ export const CaseAttemptView = ({
   ];
 
   return (
-    <div className="flex flex-col gap-6 text-left md:py-2">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-1.5">
-          <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-primary uppercase">
-            {eyebrow ?? <>Case · {caseItem.id}</>}
-          </p>
-          <h1 className="font-display text-3xl sm:text-4xl leading-tight">
-            What do you see?
-          </h1>
-        </div>
-        {headerActionsNode}
-      </header>
-
-      <Hairline />
-
-      <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
-        {/* IMAGE — sticky on desktop, hero on mobile */}
-        <figure className="lg:sticky lg:top-20 lg:self-start">
-          <div
-            ref={heroRef}
-            data-flight-target
-            data-flight-hidden={flight ? 'true' : 'false'}
-            style={flight ? { visibility: 'hidden' } : undefined}
-            className="border-hairline shadow-warm overflow-hidden rounded-card border bg-muted/40"
-          >
-            <CaseLesionFrame
-              imageSrc={caseItem.imageUrl}
-              imageAlt={`Case ${caseItem.id}`}
-            />
-          </div>
+    <CaseStage
+      eyebrow={eyebrow ?? <>Case · {shortCaseId(caseItem.id)}</>}
+      title="What do you see?"
+      headerActions={headerActionsNode}
+      hero={
+        <>
+          <AnnotatedLesionImage
+            src={caseItem.imageUrl}
+            alt={`Case ${caseItem.id}`}
+            aspect="4:5"
+            features={[]}
+            frameRef={heroRef}
+            frameHidden={Boolean(flight)}
+            eager
+          />
           {flight && (
             <LesionFlight
               origin={flight}
@@ -191,62 +178,59 @@ export const CaseAttemptView = ({
               onLanded={landFlight}
             />
           )}
-        </figure>
-
-        {/* RIGHT — context + choices */}
-        <div className="flex flex-col gap-6">
-          <section className="flex flex-col gap-3">
-            <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-muted-foreground uppercase">
-              Clinical context
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">{caseItem.site}</Badge>
-              {caseItem.patientAge > 0 && (
-                <Badge variant="outline">{caseItem.patientAge}y</Badge>
-              )}
-            </div>
-            <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">
-              {caseItem.clinicalNote}
-            </p>
-          </section>
-
-          <Hairline />
-
-          <section className="flex flex-col gap-3">
-            <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-muted-foreground uppercase">
-              Your call · tap to commit
-            </p>
-            <div className="flex flex-col gap-2">
-              {choices.map((c) => (
-                <CaseChoiceCard
-                  key={c.value}
-                  choice={c.value}
-                  label={c.label}
-                  shortcut={c.shortcut}
-                  selected={committed === c.value}
-                  disabled={
-                    Boolean(committed) && committed !== c.value && !revealing
-                  }
-                  outcome={choiceOutcomes?.[c.value]}
-                  onSelect={() => handleCommit(c.value)}
-                />
-              ))}
-            </div>
-
-            {revealNode}
-
-            {isPending && (
-              <p className="text-muted-foreground flex items-center gap-2 text-xs">
-                <Spinner size="sm" variant="muted" />
-                Saving your attempt…
-              </p>
-            )}
-
-            {submitErrorNode}
-          </section>
+        </>
+      }
+    >
+      <section className="flex flex-col gap-3">
+        <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-muted-foreground uppercase">
+          Clinical context
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline">{caseItem.site}</Badge>
+          {caseItem.patientAge > 0 && (
+            <Badge variant="outline">{caseItem.patientAge}y</Badge>
+          )}
         </div>
-      </div>
-    </div>
+        <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">
+          {caseItem.clinicalNote}
+        </p>
+      </section>
+
+      <Hairline />
+
+      <section className="flex flex-col gap-3">
+        <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-muted-foreground uppercase">
+          Your call · tap to commit
+        </p>
+        <div className="flex flex-col gap-2">
+          {choices.map((c) => (
+            <CaseChoiceCard
+              key={c.value}
+              choice={c.value}
+              label={c.label}
+              shortcut={c.shortcut}
+              selected={committed === c.value}
+              disabled={
+                Boolean(committed) && committed !== c.value && !revealing
+              }
+              outcome={choiceOutcomes?.[c.value]}
+              onSelect={() => handleCommit(c.value)}
+            />
+          ))}
+        </div>
+
+        {revealNode}
+
+        {isPending && (
+          <p className="text-muted-foreground flex items-center gap-2 text-xs">
+            <Spinner size="sm" variant="muted" />
+            Saving your attempt…
+          </p>
+        )}
+
+        {submitErrorNode}
+      </section>
+    </CaseStage>
   );
 };
 

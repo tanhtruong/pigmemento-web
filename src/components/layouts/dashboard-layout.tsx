@@ -1,6 +1,6 @@
 import { Helmet } from '@dr.pogodin/react-helmet';
 import { useLocation } from 'react-router';
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useState } from 'react';
 
 import AppTopBar from '@/components/layouts/app-topbar.tsx';
 import { AppBottomTabs } from '@/components/layouts/app-bottom-tabs.tsx';
@@ -41,9 +41,12 @@ const shouldHideFab = (pathname: string) => {
 /**
  * AppShell — wraps every authenticated app route.
  *
- * - Pinned to `.light` so the app is light-first regardless of system theme
- *   (per spec section 2). The user can still flip via the theme switch in
- *   the avatar menu; the next-themes value propagates to the landing.
+ * - Honors the user's theme (system / light / dark) via next-themes' class on
+ *   <html> (#83). The app used to pin `.light` here regardless of choice, which
+ *   made the avatar-menu theme switch a no-op inside the app; now the switch
+ *   actually drives the surface. Radix portals render at document.body and
+ *   inherit the same tokens from <html>, so they follow the theme too. The
+ *   landing remains dark-pinned by PublicLayout.
  * - Hosts the command palette globally (⌘K from anywhere).
  * - Coordinates StartACase open-state across the top-bar CTA, the mobile
  *   FAB, and the command palette's "Start a case" item.
@@ -53,21 +56,10 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   const [startACaseOpen, setStartACaseOpen] = useState(false);
   const { pathname } = useLocation();
 
-  /**
-   * Pin `.light` on <body> while inside the app shell so Radix portals
-   * (Popover, Dialog, DropdownMenu) — which render at document.body — inherit
-   * the light tokens. The `.light` class on this div alone doesn't reach
-   * portaled content. Counterpart to PublicLayout's `.dark` pin.
-   */
-  useEffect(() => {
-    document.body.classList.add('light');
-    return () => document.body.classList.remove('light');
-  }, []);
-
   return (
     <div
       className={cn(
-        'light bg-background text-foreground relative isolate flex min-h-dvh w-full flex-col',
+        'bg-background text-foreground relative isolate flex min-h-dvh w-full flex-col',
       )}
     >
       <Helmet title="Pigmemento" />

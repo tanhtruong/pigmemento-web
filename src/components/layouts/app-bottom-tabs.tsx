@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { GraduationCap, LayoutDashboard, Library, User2 } from 'lucide-react';
 
 import { paths } from '@/config/paths.ts';
@@ -14,14 +14,10 @@ type Tab = {
 
 const TABS: Tab[] = [
   {
-    to: paths.app['case-random'].getHref(),
-    label: 'Practice',
-    Icon: GraduationCap,
-    matchPrefixes: [
-      paths.app['case-random'].getHref(),
-      '/app/cases/random',
-      '/app/cases/drill',
-    ],
+    to: paths.app.dashboard.getHref(),
+    label: 'Dashboard',
+    Icon: LayoutDashboard,
+    matchPrefixes: [paths.app.dashboard.getHref()],
   },
   {
     to: paths.app.cases.getHref(),
@@ -30,10 +26,10 @@ const TABS: Tab[] = [
     matchPrefixes: [paths.app.cases.getHref()],
   },
   {
-    to: paths.app.dashboard.getHref(),
-    label: 'Progress',
-    Icon: LayoutDashboard,
-    matchPrefixes: [paths.app.dashboard.getHref()],
+    to: paths.app['case-random'].getHref(),
+    label: 'Practice',
+    Icon: GraduationCap,
+    matchPrefixes: ['/app/cases/random', '/app/cases/drill'],
   },
   {
     to: paths.app.profile.getHref(),
@@ -43,13 +39,30 @@ const TABS: Tab[] = [
   },
 ];
 
-const isActiveTab = (currentPath: string, tab: Tab) => {
-  if (currentPath === tab.to) return true;
-  return tab.matchPrefixes.some((p) => currentPath.startsWith(p));
+/**
+ * Longest-prefix-wins active resolver — see AppTopBar for the rationale. A
+ * naive per-tab `startsWith` lights up Library alongside Practice on
+ * `/app/cases/random/attempt` because `/app/cases` is an ancestor prefix; the
+ * most-specific match wins instead.
+ */
+const activeTab = (currentPath: string, tabs: Tab[]): Tab | null => {
+  let best: Tab | null = null;
+  let bestLength = -1;
+  for (const tab of tabs) {
+    for (const prefix of tab.matchPrefixes) {
+      const matches =
+        currentPath === prefix || currentPath.startsWith(`${prefix}/`);
+      if (matches && prefix.length > bestLength) {
+        bestLength = prefix.length;
+        best = tab;
+      }
+    }
+  }
+  return best;
 };
 
 /**
- * Mobile bottom tabs — 4 surfaces (Practice · Library · Progress · Profile).
+ * Mobile bottom tabs — 4 surfaces (Dashboard · Library · Practice · Profile).
  *
  * Sticks to the bottom with safe-area inset. Active tab carries a small
  * amber dot above the icon — quieter than a filled pill, more "Things-iOS"
@@ -59,6 +72,7 @@ const isActiveTab = (currentPath: string, tab: Tab) => {
  */
 export const AppBottomTabs = () => {
   const { pathname } = useLocation();
+  const current = activeTab(pathname, TABS);
 
   return (
     <nav
@@ -71,13 +85,13 @@ export const AppBottomTabs = () => {
     >
       <ul className="grid grid-cols-4">
         {TABS.map((tab) => {
-          const active = isActiveTab(pathname, tab);
+          const active = tab === current;
           const Icon = tab.Icon;
           return (
             <li key={tab.to}>
-              <NavLink
+              <Link
                 to={tab.to}
-                end={false}
+                aria-current={active ? 'page' : undefined}
                 className={cn(
                   'group/tab flex flex-col items-center gap-0.5 px-2 pt-2 pb-1.5',
                   'transition-colors ease-considered duration-150',
@@ -97,7 +111,7 @@ export const AppBottomTabs = () => {
                 <span className="text-[0.65rem] leading-tight font-medium">
                   {tab.label}
                 </span>
-              </NavLink>
+              </Link>
             </li>
           );
         })}

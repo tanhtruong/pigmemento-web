@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router';
-import { jwtDecode } from 'jwt-decode';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,8 @@ import { Hairline } from '@/components/foundation/hairline';
 import { CalendarHeatmap } from '@/components/signature/calendar-heatmap';
 import { paths } from '@/config/paths';
 import { useCaseHistory } from '@/features/cases/api/use-case-history.ts';
+import { shortCaseId } from '@/features/cases/lib/case-id.ts';
+import { useProfile } from '@/features/profile/api/use-profile.ts';
 import type { CaseListItem } from '@/features/cases/types/case-list-item.ts';
 import { captureLesionFlight } from '@/lib/lesion-flight';
 import { cn } from '@/lib/utils';
@@ -24,18 +25,14 @@ const startOfDay = (d: Date) =>
 
 const isoDay = (d: Date) => startOfDay(d).toISOString().slice(0, 10);
 
-const firstNameFromToken = (): string | null => {
-  try {
-    const token = localStorage.getItem('token');
-    if (!token) return null;
-    const decoded = jwtDecode<{ name?: string; email?: string }>(token);
-    const first = decoded.name?.split(/\s+/)[0];
-    if (first) return first;
-    if (decoded.email) return decoded.email.split('@')[0];
-    return null;
-  } catch {
-    return null;
-  }
+/**
+ * First name for the greeting — the real account name from `/me`, not the JWT
+ * email handle. Returns null when the account has no name set, so the greeting
+ * degrades to a plain "Good to see you." rather than echoing the login.
+ */
+const firstNameOf = (name: string | undefined | null): string | null => {
+  const first = name?.trim().split(/\s+/)[0];
+  return first ? first : null;
 };
 
 const formatRelative = (iso: string): string => {
@@ -56,8 +53,9 @@ const formatRelative = (iso: string): string => {
 
 const Dashboard = () => {
   const { data: caseHistory = [] } = useCaseHistory();
+  const { data: profile } = useProfile();
 
-  const firstName = useMemo(() => firstNameFromToken(), []);
+  const firstName = firstNameOf(profile?.name);
 
   const attemptedCases = useMemo(
     () => caseHistory.filter(isAttempted),
@@ -101,7 +99,7 @@ const Dashboard = () => {
     };
   }, [attemptedCases]);
 
-  // Daily counts for the 14-day sparkline + 12-week heatmap.
+  // Daily counts for the 14-day sparkline + rolling-year heatmap.
   const dailyCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const c of attemptedCases) {
@@ -167,7 +165,7 @@ const Dashboard = () => {
       <header className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <p className="text-primary font-mono text-[0.6875rem] tracking-[0.18em] uppercase">
-            Progress
+            Dashboard
           </p>
           <h1 className="font-display text-4xl leading-tight sm:text-5xl">
             {firstName ? `Good to see you, ${firstName}.` : 'Good to see you.'}
@@ -305,7 +303,7 @@ const Dashboard = () => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-foreground font-mono text-xs">
-                        CASE · {c.id}
+                        CASE · {shortCaseId(c.id)}
                       </p>
                       <p className="text-muted-foreground truncate text-xs">
                         {capitalize(c.site)} · {c.patientAge}y
@@ -339,13 +337,13 @@ const Dashboard = () => {
       <section className="flex flex-col gap-4">
         <div className="flex items-baseline justify-between">
           <p className="text-muted-foreground font-mono text-[0.6875rem] tracking-[0.18em] uppercase">
-            Last 12 weeks
+            Activity · last year
           </p>
           <p className="text-muted-foreground font-mono text-[0.65rem] tabular-nums">
             {Object.keys(dailyCounts).length} active days
           </p>
         </div>
-        <CalendarHeatmap data={dailyCounts} weeks={12} />
+        <CalendarHeatmap data={dailyCounts} />
       </section>
 
       <Hairline />
