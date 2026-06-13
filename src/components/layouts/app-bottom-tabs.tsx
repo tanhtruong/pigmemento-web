@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { GraduationCap, LayoutDashboard, Library, User2 } from 'lucide-react';
 
 import { paths } from '@/config/paths.ts';
@@ -89,9 +89,9 @@ export const AppBottomTabs = () => {
           const Icon = tab.Icon;
           return (
             <li key={tab.to}>
-              <NavLink
+              <Link
                 to={tab.to}
-                end={false}
+                aria-current={active ? 'page' : undefined}
                 className={cn(
                   'group/tab flex flex-col items-center gap-0.5 px-2 pt-2 pb-1.5',
                   'transition-colors ease-considered duration-150',
@@ -111,7 +111,7 @@ export const AppBottomTabs = () => {
                 <span className="text-[0.65rem] leading-tight font-medium">
                   {tab.label}
                 </span>
-              </NavLink>
+              </Link>
             </li>
           );
         })}
