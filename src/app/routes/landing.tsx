@@ -12,7 +12,7 @@ import { CenterpiecePinned } from '@/components/signature/centerpiece-pinned.tsx
 import { ScrollRail } from '@/components/landing/scroll-rail.tsx';
 import { LandingLoginFab } from '@/components/landing/landing-login-fab.tsx';
 import { WhyScrubReel } from '@/components/landing/why-scrub-reel.tsx';
-import { FaqPinnedSplit } from '@/components/landing/faq-pinned-split.tsx';
+import { FaqAccordion } from '@/components/landing/faq-accordion.tsx';
 import { useAuthEntry } from '@/features/auth/hooks/use-auth-entry.ts';
 
 const LandingRoute = () => {
@@ -219,8 +219,8 @@ const LandingRoute = () => {
           id="why" anchor for the ScrollRail's WHY frame. */}
       <WhyScrubReel />
 
-      {/* FAQ — pinned split-screen, film-cut transitions. id="faq" target. */}
-      <FaqPinnedSplit faqs={faqs} />
+      {/* FAQ — scannable click-to-expand accordion. id="faq" target. */}
+      <FaqAccordion faqs={faqs} />
 
       {/* CTA band — closes the page's narrative loop. The hero asked "Could
           you spot it?" and the centerpiece answered it with "Diagnosis:
