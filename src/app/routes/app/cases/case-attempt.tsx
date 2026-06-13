@@ -5,8 +5,13 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
-import { useQueryClient } from '@tanstack/react-query';
+import {
+  Link,
+  useNavigate,
+  useParams,
+  type LoaderFunctionArgs,
+} from 'react-router';
+import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useReducedMotion } from 'motion/react';
 
 import { Button } from '@/components/ui/button';
@@ -18,7 +23,9 @@ import {
 import { Hairline } from '@/components/foundation/hairline';
 import { Spinner } from '@/components/ui/spinner';
 import { paths } from '@/config/paths';
-import { useCase } from '@/features/cases/api/use-case.ts';
+import { caseQueryOptions, useCase } from '@/features/cases/api/use-case.ts';
+import { prefetchWithCap } from '@/lib/route-loaders.ts';
+import { CaseAttemptSkeleton } from '@/components/cases/case-attempt-skeleton.tsx';
 import { useCaseSubmitAttempt } from '@/features/cases/api/use-case-submit-attempt.ts';
 import { useCaseAttemptShortcuts } from '@/features/cases/hooks/use-case-attempt-shortcuts.ts';
 import { useCaseTimer } from '@/features/cases/hooks/use-case-timer.ts';
@@ -32,6 +39,22 @@ import {
 import { RING_FILL_MS } from '@/lib/motion-tokens';
 
 export type Label = CaseChoice;
+
+/**
+ * Prefetch the case before the attempt surface mounts (#60). Cached cases
+ * (the react-query majority) reveal with no spinner; a cold fetch is capped so
+ * navigation never blocks indefinitely — the surface then shows the developing
+ * skeleton. Wired by the router's `convert()` via the `clientLoader` export.
+ */
+export const clientLoader =
+  (queryClient: QueryClient) =>
+  ({ params }: LoaderFunctionArgs) => {
+    const caseId = params.caseId;
+    if (!caseId) return null;
+    return prefetchWithCap(
+      queryClient.ensureQueryData(caseQueryOptions(caseId)),
+    );
+  };
 
 type CaseAttemptViewProps = {
   caseItem: {
@@ -264,7 +287,7 @@ const CaseAttemptScene = () => {
   });
 
   if (!safeCaseId) return <CaseMissing />;
-  if (isLoading) return <CaseLoading />;
+  if (isLoading) return <CaseAttemptSkeleton />;
   if (isError || !caseItem) return <CaseMissing />;
 
   return (
@@ -294,15 +317,6 @@ const CaseAttemptScene = () => {
 export default CaseAttemptScene;
 
 /* ────────────────────────────────────────────────────────────────────────── */
-
-const CaseLoading = () => (
-  <div className="flex flex-col items-center gap-3 py-20">
-    <Spinner size="lg" variant="muted" />
-    <p className="text-muted-foreground font-mono text-xs tracking-wider uppercase">
-      Loading case…
-    </p>
-  </div>
-);
 
 const CaseMissing = () => (
   <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-20 text-center">
