@@ -32,9 +32,12 @@ export const classifyRouteTransition = (
 ): RouteTransitionVariant => {
   if (from === undefined) return 'none';
   if (from === to) return 'none';
-  // The attempt → review reveal is the centerpiece — it narrates itself.
+  // The attempt → review centerpiece dissolves in place (#68): no hard cut, but
+  // no directional drift either — the verdict resolves where the question was,
+  // so the shared lesion photo reads as staying put rather than sliding. (Other
+  // flow → flow hops keep the `advance` drift below.)
   if (CASE_ATTEMPT_PATTERN.test(from) && CASE_REVIEW_PATTERN.test(to)) {
-    return 'none';
+    return 'neutral';
   }
 
   const fromTab = TAB_ORDER[from];

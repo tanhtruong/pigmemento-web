@@ -1,6 +1,69 @@
 import { describe, it, expect } from 'vitest';
 
-import { motionTokens, SHAKE_KEYFRAMES_X } from './motion-tokens';
+import {
+  motionTokens,
+  SHAKE_KEYFRAMES_X,
+  developVariants,
+} from './motion-tokens';
+import type { RouteTransitionVariant } from './route-transition';
+
+/** Directional develop grammars — the hops that carry a spatial drift. */
+const DIRECTIONAL: RouteTransitionVariant[] = [
+  'lateral-forward',
+  'lateral-back',
+  'descend',
+  'ascend',
+  'advance',
+];
+
+const resolveState = (
+  key: 'latent' | 'developed' | 'fixed' | 'held',
+  variant: RouteTransitionVariant,
+): Record<string, unknown> => {
+  const state = developVariants[key];
+  return (typeof state === 'function' ? state(variant) : state) as Record<
+    string,
+    unknown
+  >;
+};
+
+const axis = (target: Record<string, unknown>) =>
+  Math.max(Math.abs(Number(target.x ?? 0)), Math.abs(Number(target.y ?? 0)));
+
+describe('developVariants — the quiet dissolve handoff (#73)', () => {
+  it('enters with a directional drift that stays subtle (≤ 8px)', () => {
+    for (const variant of DIRECTIONAL) {
+      const latent = resolveState('latent', variant);
+      expect(axis(latent)).toBeGreaterThan(0); // still signals direction
+      expect(axis(latent)).toBeLessThanOrEqual(8); // but only a whisper
+    }
+  });
+
+  it('exits by fading, without drifting — only opacity carries the exit', () => {
+    for (const variant of DIRECTIONAL) {
+      const fixed = resolveState('fixed', variant);
+      expect(axis(fixed)).toBe(0);
+      expect(Number(fixed.opacity)).toBe(0);
+    }
+  });
+
+  it('never blanks the screen on entry — the incoming surface starts above zero', () => {
+    for (const variant of DIRECTIONAL) {
+      const latent = resolveState('latent', variant);
+      expect(Number(latent.opacity)).toBeGreaterThan(0);
+      expect(Number(latent.opacity)).toBeLessThan(1);
+    }
+    expect(resolveState('developed', 'descend').opacity).toBe(1);
+  });
+
+  it('carries no colour-matrix wash on any develop state', () => {
+    for (const variant of DIRECTIONAL) {
+      expect(resolveState('latent', variant).filter).toBeUndefined();
+      expect(resolveState('developed', variant).filter).toBeUndefined();
+      expect(resolveState('fixed', variant).filter).toBeUndefined();
+    }
+  });
+});
 
 describe('shake token', () => {
   it('is brief — a jolt, not an oscillation', () => {

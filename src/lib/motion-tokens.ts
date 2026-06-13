@@ -102,32 +102,16 @@ export const revealSequence = {
 export const STREAK_GLOW_DECAY_MS = 1400;
 
 /**
- * The Develop — the in-app route gesture (#53), re-engineered for #59.
+ * The Develop — the in-app route gesture (#53), re-engineered for #59 and
+ * quieted for #73.
  *
- * The surfaces now move on the compositor only (opacity + transform). The
- * original develop animated a whole-subtree `filter`, which repaints the
- * entire route tree every frame — the real source of the not-quite-premium
- * micro-jank. The warm "develop" colour no longer rides the tree: it lives in
- * the DevelopWash (a single full-bleed layer), fired only on descend/advance,
- * so the warmth *means* "entering case work" rather than decorating every hop.
+ * Surfaces move on the compositor only (opacity + transform) — the original
+ * whole-subtree `filter` repainted the entire route tree every frame, the real
+ * source of the micro-jank. #59 isolated the warmth into a full-bleed amber
+ * DevelopWash on case entry; #73 removed that wash entirely (it read as an
+ * in-your-face bloom), so every hop is now the same quiet dissolve: a fade from
+ * the opacity floor with a whisper of directional drift.
  */
-export const developWash: { keyframes: number[]; times: number[] } = {
-  /**
-   * One-shot opacity keyframes (rise → hold → clear) and their time
-   * fractions. The hold window straddles the route swap so the cut is never
-   * seen — the same "swap under the opaque overlay" principle as the boundary
-   * bloom (#43). Peak sits just under 1 so the amber reads as a wash.
-   */
-  keyframes: [0, 0.96, 0.96, 0],
-  times: [0, 0.2, 0.42, 1],
-};
-
-/** Total wash duration per variant — advance is a lighter, quicker press. */
-export const WASH_DURATION_MS: Partial<Record<RouteTransitionVariant, number>> =
-  {
-    descend: 520,
-    advance: 380,
-  };
 
 /**
  * How long a route loader may hold navigation before the outgoing surface
@@ -139,26 +123,24 @@ export const PENDING_HOLD_MS = 150;
 type DevelopDrift = { x?: number; y?: number };
 
 /**
- * Drift conjugation per grammar variant. Enter and exit continue the same
- * camera motion: lateral hops flow along the tab strip, descend washes
- * downward into the case, ascend lifts back out, advance presses forward.
+ * Drift amplitude (#73). A whisper — just enough to signal which way the hop
+ * goes, never enough to read as the page sliding. The handoff is a dissolve;
+ * the drift only flavours it.
+ */
+const DRIFT_PX = 8;
+
+/**
+ * Drift conjugation per grammar variant. Only the *incoming* surface drifts:
+ * lateral hops flow along the tab strip, descend dips into the case, ascend
+ * lifts back out, advance presses forward. The outgoing surface only fades, so
+ * the two never appear to slide past each other.
  */
 const ENTER_DRIFT: Record<RouteTransitionVariant, DevelopDrift> = {
-  'lateral-forward': { x: 20 },
-  'lateral-back': { x: -20 },
-  descend: { y: -16 },
-  ascend: { y: 16 },
-  advance: { x: 16 },
-  neutral: {},
-  none: {},
-};
-
-const EXIT_DRIFT: Record<RouteTransitionVariant, DevelopDrift> = {
-  'lateral-forward': { x: -10 },
-  'lateral-back': { x: 10 },
-  descend: { y: 8 },
-  ascend: { y: -8 },
-  advance: { x: -8 },
+  'lateral-forward': { x: DRIFT_PX },
+  'lateral-back': { x: -DRIFT_PX },
+  descend: { y: -DRIFT_PX },
+  ascend: { y: DRIFT_PX },
+  advance: { x: DRIFT_PX },
   neutral: {},
   none: {},
 };
@@ -170,8 +152,9 @@ const INSTANT: Transition = { duration: 0 };
  * full transparency, so the `mode="wait"` swap reads as a quick fade-in rather
  * than a blank flash. (popLayout would overlap the two surfaces for a true
  * crossfade, but it left a stuck, in-flow exited layer in this route tree —
- * phantom scroll height — so we stay on the robust `wait` + floor.) For
- * descend/advance the DevelopWash masks the swap, so the floor is moot there.
+ * phantom scroll height — so we stay on the robust `wait` + floor.) Since #73
+ * removed the DevelopWash, the floor now masks the swap on every hop, descend
+ * and advance included.
  */
 const LATENT_OPACITY = 0.4;
 
@@ -197,16 +180,16 @@ export const developVariants: Variants = {
       ? { opacity: 1, transition: INSTANT }
       : {
           opacity: 0,
-          ...EXIT_DRIFT[variant],
+          x: 0,
+          y: 0,
           transition: motionTokens.quick,
         },
   /**
    * Held (#54, re-engineered for #59) — a pending loader keeps the outgoing
    * surface mounted, so it eases to a gentle dim and waits there: the click
    * acknowledged without a spinner. Opacity only now (no filter); the slow
-   * ramp keeps barely-over-threshold loads from flickering. For descend/advance
-   * the DevelopWash also covers the swap, so this dim only ever shows under a
-   * colourless lateral hold.
+   * ramp keeps barely-over-threshold loads from flickering. Since #73 removed
+   * the wash, this dim is what every held hop shows.
    */
   held: {
     opacity: 0.82,
