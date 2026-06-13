@@ -3,7 +3,7 @@ import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCallback, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { faqs } from '@/lib/landing-seed-data';
+import { faqs, heroCase } from '@/lib/landing-seed-data';
 import { Head } from '@/components/seo/head.tsx';
 import { motionDurations } from '@/lib/motion-tokens.ts';
 import { LandingHero } from '@/components/landing/landing-hero.tsx';
@@ -182,13 +182,12 @@ const LandingRoute = () => {
       {/* Persistent re-entry affordance — bottom-right from page-load. */}
       <LandingLoginFab />
 
-      {/* Hero — question hero with editorial-framed lesion. */}
+      {/* Hero — playable Case 001: judge the lesion, then "See why" into the
+          centerpiece breakdown of that same case. */}
       <LandingHero
         primaryCta={primaryCta}
         onSeeHowItWorks={() => scrollToId('how')}
-        imageSrc="/ISIC_0000022.jpg"
-        imageAlt="Dermoscopic image of a pigmented skin lesion"
-        sourceCredit="ISIC_0000022 · MELANOMA · COURTESY ISIC ARCHIVE"
+        heroCase={heroCase}
       />
 
       {/* Centerpiece — pinned-scroll case walkthrough. The id="how" anchor is

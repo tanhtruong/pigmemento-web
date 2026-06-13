@@ -1,7 +1,23 @@
 import { FAQ } from '@/types/faq';
 import { Feature } from '@/types/feature';
 import { Stat } from '@/types/stat';
+import { HeroCase } from '@/types/hero-case';
 import { Microscope, MessageSquareText, Crosshair, Timer } from 'lucide-react';
+
+/**
+ * Case 001 — the playable lesion in the hero. The user judges it before signup;
+ * the centerpiece later breaks down this same case as the expert payoff. The
+ * credit intentionally omits the diagnosis so the call isn't spoiled up front.
+ */
+export const heroCase: HeroCase = {
+  id: 'Case 001',
+  imageSrc: '/ISIC_0000022.jpg',
+  imageAlt: 'Dermoscopic image of a pigmented skin lesion',
+  sourceCredit: 'ISIC_0000022 · COURTESY ISIC ARCHIVE',
+  correctLabel: 'malignant',
+  truth: 'It’s a melanoma.',
+  cue: 'The colour shifts asymmetrically across the lesion — one of the strongest signals here.',
+};
 
 export const features: Feature[] = [
   {
