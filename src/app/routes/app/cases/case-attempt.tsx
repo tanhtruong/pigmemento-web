@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   CaseChoiceCard,
   type CaseChoice,
+  type CaseChoiceOutcome,
 } from '@/components/cases/case-choice-card';
 import { Hairline } from '@/components/foundation/hairline';
 import { Spinner } from '@/components/ui/spinner';
@@ -71,6 +72,19 @@ type CaseAttemptViewProps = {
   submitErrorNode?: ReactNode;
   /** "New case" / "Back to library" action(s) for the header. */
   headerActionsNode?: ReactNode;
+  /**
+   * Eyebrow above the title. Defaults to `Case · {id}`; the drill overrides it
+   * with session progress (#61).
+   */
+  eyebrow?: ReactNode;
+  /**
+   * Per-choice reveal colours (#61). When present, the choices section is in
+   * its revealed state: cards show correct/incorrect/reveal-correct and are no
+   * longer dimmed. The single/random flow leaves this unset (routes to /review).
+   */
+  choiceOutcomes?: Partial<Record<CaseChoice, CaseChoiceOutcome>>;
+  /** Verdict line shown under the choices during the drill's inline reveal. */
+  revealNode?: ReactNode;
 };
 
 export const CaseAttemptView = ({
@@ -80,7 +94,11 @@ export const CaseAttemptView = ({
   onCommit,
   submitErrorNode,
   headerActionsNode,
+  eyebrow,
+  choiceOutcomes,
+  revealNode,
 }: CaseAttemptViewProps) => {
+  const revealing = Boolean(choiceOutcomes);
   const reducedMotion = useReducedMotion();
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -112,7 +130,7 @@ export const CaseAttemptView = ({
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1.5">
           <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-primary uppercase">
-            Case · {caseItem.id}
+            {eyebrow ?? <>Case · {caseItem.id}</>}
           </p>
           <h1 className="font-display text-3xl sm:text-4xl leading-tight">
             What do you see?
@@ -178,11 +196,16 @@ export const CaseAttemptView = ({
                   label={c.label}
                   shortcut={c.shortcut}
                   selected={committed === c.value}
-                  disabled={Boolean(committed) && committed !== c.value}
+                  disabled={
+                    Boolean(committed) && committed !== c.value && !revealing
+                  }
+                  outcome={choiceOutcomes?.[c.value]}
                   onSelect={() => onCommit(c.value)}
                 />
               ))}
             </div>
+
+            {revealNode}
 
             {isPending && (
               <p className="text-muted-foreground flex items-center gap-2 text-xs">
