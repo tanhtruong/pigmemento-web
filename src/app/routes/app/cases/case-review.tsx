@@ -17,6 +17,7 @@ import {
 import { paths } from '@/config/paths';
 import { useCase } from '@/features/cases/api/use-case.ts';
 import { useCaseLatestAttempt } from '@/features/cases/api/use-case-latest-attempt.ts';
+import { shortCaseId } from '@/features/cases/lib/case-id.ts';
 import {
   hasAbcdeFeatures,
   type AbcdeFeature,
@@ -223,7 +224,7 @@ export const CaseReviewScene = () => {
             Review
           </h1>
           <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-muted-foreground uppercase">
-            Case · {caseItem.id} · Answered in{' '}
+            Case · {shortCaseId(caseItem.id)} · Answered in{' '}
             {formatMs(attempt.timeToAnswerMs)}
           </p>
         </div>
@@ -237,7 +238,7 @@ export const CaseReviewScene = () => {
           src={caseItem.imageUrl}
           alt={`Case ${caseItem.id}`}
           features={features}
-          sourceCredit={`CASE ${caseItem.id} · ${diagnosis.toUpperCase()}`}
+          sourceCredit={`CASE ${shortCaseId(caseItem.id)} · ${diagnosis.toUpperCase()}`}
         />
 
         <section className="flex flex-col gap-8">

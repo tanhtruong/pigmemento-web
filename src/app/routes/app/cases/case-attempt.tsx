@@ -32,6 +32,7 @@ import { useCaseAttemptShortcuts } from '@/features/cases/hooks/use-case-attempt
 import { useCaseTimer } from '@/features/cases/hooks/use-case-timer.ts';
 import { queryKeys } from '@/lib/query-keys.ts';
 import { CaseLesionFrame } from '@/components/cases/case-lesion-frame.tsx';
+import { shortCaseId } from '@/features/cases/lib/case-id.ts';
 import { LesionFlight } from '@/components/motion/lesion-flight';
 import {
   consumeLesionFlight,
@@ -130,7 +131,7 @@ export const CaseAttemptView = ({
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1.5">
           <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-primary uppercase">
-            {eyebrow ?? <>Case · {caseItem.id}</>}
+            {eyebrow ?? <>Case · {shortCaseId(caseItem.id)}</>}
           </p>
           <h1 className="font-display text-3xl sm:text-4xl leading-tight">
             What do you see?

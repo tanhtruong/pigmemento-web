@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { paths } from '@/config/paths';
 import type { CaseListItem } from '@/features/cases/types/case-list-item.ts';
 import { useCases } from '@/features/cases/api/use-cases.ts';
+import { shortCaseId } from '@/features/cases/lib/case-id.ts';
 import { captureLesionFlight } from '@/lib/lesion-flight';
 import { cn } from '@/lib/utils';
 
@@ -372,7 +373,7 @@ const CaseCard = ({ item }: { item: CaseListItem }) => {
       <div className="flex flex-col gap-2 p-4">
         <div className="flex items-center justify-between gap-2">
           <span className="text-foreground font-mono text-xs tabular-nums">
-            CASE · {item.id}
+            CASE · {shortCaseId(item.id)}
           </span>
           {meta.attempted ? (
             <Badge
