@@ -8,6 +8,7 @@ import { Hairline } from '@/components/foundation/hairline';
 import { CalendarHeatmap } from '@/components/signature/calendar-heatmap';
 import { paths } from '@/config/paths';
 import { useCaseHistory } from '@/features/cases/api/use-case-history.ts';
+import { shortCaseId } from '@/features/cases/lib/case-id.ts';
 import type { CaseListItem } from '@/features/cases/types/case-list-item.ts';
 import { captureLesionFlight } from '@/lib/lesion-flight';
 import { cn } from '@/lib/utils';
@@ -305,7 +306,7 @@ const Dashboard = () => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-foreground font-mono text-xs">
-                        CASE · {c.id}
+                        CASE · {shortCaseId(c.id)}
                       </p>
                       <p className="text-muted-foreground truncate text-xs">
                         {capitalize(c.site)} · {c.patientAge}y
