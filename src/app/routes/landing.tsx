@@ -190,9 +190,14 @@ const LandingRoute = () => {
         heroCase={heroCase}
       />
 
-      {/* Centerpiece — pinned-scroll case walkthrough. The id="how" anchor is
-          the ScrollRail's CASE frame target. */}
-      <CenterpiecePinned />
+      {/* Centerpiece — the expert breakdown of the very case the user just
+          judged in the hero. Shares Case 001's image so the identity can't
+          drift; the credit here reveals the diagnosis (the hero's hid it).
+          The id="how" anchor is the ScrollRail's CASE frame target. */}
+      <CenterpiecePinned
+        imageSrc={heroCase.imageSrc}
+        imageAlt={heroCase.imageAlt}
+      />
 
       {/* SEO intro — sr-only. Crawlers see the framing; the visible page
           stays editorial. */}
