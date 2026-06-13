@@ -11,6 +11,8 @@ import type { RouteTransitionVariant } from '@/lib/route-transition';
 export const motionDurations = {
   quick: 0.12,
   normal: 0.24,
+  /** Shared-element lesion flight (#67) — docks just after the page settles. */
+  flight: 0.34,
   considered: 0.42,
   hero: 0.72,
 } as const;
@@ -28,6 +30,16 @@ export const motionTokens = {
   } satisfies Transition,
   considered: {
     duration: motionDurations.considered,
+    ease: easeOut,
+  } satisfies Transition,
+  /**
+   * Shared-element lesion flight (#67) — the Library thumb morphing into the
+   * attempt hero. Faster than `considered` so the print docks just as the
+   * surrounding page finishes its dissolve, reading as the one continuous
+   * thread rather than a flight over a settled page.
+   */
+  flight: {
+    duration: motionDurations.flight,
     ease: easeOut,
   } satisfies Transition,
   hero: {

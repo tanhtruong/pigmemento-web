@@ -58,7 +58,7 @@ export const LesionFlight = ({
       aria-hidden
       initial={{ ...origin.rect, borderRadius: origin.radius || '0px' }}
       animate={{ ...target.rect, borderRadius: target.radius }}
-      transition={motionTokens.considered}
+      transition={motionTokens.flight}
       onAnimationComplete={onLanded}
       className="pointer-events-none fixed z-50 object-cover"
     />,

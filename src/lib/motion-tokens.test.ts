@@ -31,6 +31,19 @@ const resolveState = (
 const axis = (target: Record<string, unknown>) =>
   Math.max(Math.abs(Number(target.x ?? 0)), Math.abs(Number(target.y ?? 0)));
 
+describe('flight token — Library → case lesion flight (#67)', () => {
+  it('docks faster than the considered timing it replaced', () => {
+    const considered = motionTokens.considered as { duration: number };
+    const flight = motionTokens.flight as { duration: number };
+    expect(flight.duration).toBeLessThan(considered.duration);
+  });
+
+  it('is tuned to ~340ms so the print docks as the page settles', () => {
+    const flight = motionTokens.flight as { duration: number };
+    expect(flight.duration).toBeCloseTo(0.34, 2);
+  });
+});
+
 describe('shake token', () => {
   it('is brief — a jolt, not an oscillation', () => {
     expect(motionTokens.shake.duration).toBeLessThanOrEqual(0.2);
