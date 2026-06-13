@@ -22,7 +22,7 @@ const renderAt = (path: string) => {
 describe('AppTopBar — stripped-minimal chrome (#66)', () => {
   it('keeps the four primary nav surfaces as wayfinding links', () => {
     renderAt('/app/cases');
-    for (const label of ['Practice', 'Library', 'Progress', 'Profile']) {
+    for (const label of ['Dashboard', 'Library', 'Practice', 'Profile']) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
   });
@@ -39,7 +39,7 @@ describe('AppTopBar — stripped-minimal chrome (#66)', () => {
 
   it('marks the current surface with aria-current="page", quietly', () => {
     renderAt('/app/dashboard');
-    expect(screen.getByRole('link', { name: 'Progress' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute(
       'aria-current',
       'page',
     );
@@ -52,6 +52,30 @@ describe('AppTopBar — stripped-minimal chrome (#66)', () => {
   it('treats a case-flow surface as Practice being current (prefix match)', () => {
     renderAt('/app/cases/drill');
     expect(screen.getByRole('link', { name: 'Practice' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('lights only Practice on the random-attempt route — not Library (longest-prefix wins)', () => {
+    renderAt('/app/cases/random/attempt');
+    expect(screen.getByRole('link', { name: 'Practice' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.getByRole('link', { name: 'Library' })).not.toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('treats a specific case attempt as Library being current', () => {
+    renderAt('/app/cases/abc-123/attempt');
+    expect(screen.getByRole('link', { name: 'Library' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.getByRole('link', { name: 'Practice' })).not.toHaveAttribute(
       'aria-current',
       'page',
     );

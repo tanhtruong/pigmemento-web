@@ -12,9 +12,9 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   {
-    to: paths.app['case-random'].getHref(),
-    label: 'Practice',
-    matchPrefixes: ['/app/cases/random', '/app/cases/drill'],
+    to: paths.app.dashboard.getHref(),
+    label: 'Dashboard',
+    matchPrefixes: [paths.app.dashboard.getHref()],
   },
   {
     to: paths.app.cases.getHref(),
@@ -22,9 +22,9 @@ const NAV_ITEMS: NavItem[] = [
     matchPrefixes: [paths.app.cases.getHref()],
   },
   {
-    to: paths.app.dashboard.getHref(),
-    label: 'Progress',
-    matchPrefixes: [paths.app.dashboard.getHref()],
+    to: paths.app['case-random'].getHref(),
+    label: 'Practice',
+    matchPrefixes: ['/app/cases/random', '/app/cases/drill'],
   },
   {
     to: paths.app.profile.getHref(),
@@ -33,17 +33,34 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-const isActiveNav = (pathname: string, item: NavItem) => {
-  if (pathname === item.to) return true;
-  return item.matchPrefixes.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  );
+/**
+ * Longest-prefix-wins active resolver.
+ *
+ * A naive per-item `startsWith` lights up every ancestor: on
+ * `/app/cases/random/attempt`, Library's `/app/cases` prefix matches alongside
+ * Practice's `/app/cases/random`. We instead pick the single item whose matched
+ * prefix is the most specific (longest), so only Practice wins there while a
+ * bare `/app/cases/:id/attempt` still resolves to Library.
+ */
+const activeNavItem = (pathname: string, items: NavItem[]): NavItem | null => {
+  let best: NavItem | null = null;
+  let bestLength = -1;
+  for (const item of items) {
+    for (const prefix of item.matchPrefixes) {
+      const matches = pathname === prefix || pathname.startsWith(`${prefix}/`);
+      if (matches && prefix.length > bestLength) {
+        bestLength = prefix.length;
+        best = item;
+      }
+    }
+  }
+  return best;
 };
 
 /**
  * The app's primary chrome — one quiet strip (#66).
  *
- *   Desktop (≥ md): logo · Practice · Library · Progress · Profile … avatar
+ *   Desktop (≥ md): logo · Dashboard · Library · Practice · Profile … avatar
  *   Mobile  (< md): logo … avatar     (nav lives in AppBottomTabs)
  *
  * Stripped to wayfinding + identity: no amber CTA, no streak chip, no ⌘K
@@ -55,6 +72,7 @@ const isActiveNav = (pathname: string, item: NavItem) => {
  */
 const AppTopBar = () => {
   const { pathname } = useLocation();
+  const active = activeNavItem(pathname, NAV_ITEMS);
 
   return (
     <header
@@ -69,7 +87,7 @@ const AppTopBar = () => {
           <Link
             to={paths.app.dashboard.getHref()}
             className="flex items-center gap-2"
-            aria-label="Pigmemento — go to Progress"
+            aria-label="Pigmemento — go to Dashboard"
           >
             <span
               className={cn(
@@ -91,22 +109,22 @@ const AppTopBar = () => {
             className="hidden items-center gap-1 md:flex"
           >
             {NAV_ITEMS.map((item) => {
-              const active = isActiveNav(pathname, item);
+              const isActive = item === active;
               return (
                 <Link
                   key={item.to}
                   to={item.to}
-                  aria-current={active ? 'page' : undefined}
+                  aria-current={isActive ? 'page' : undefined}
                   className={cn(
                     'relative inline-flex items-center px-2 py-1.5 text-sm',
                     'transition-colors ease-considered duration-150',
-                    active
+                    isActive
                       ? 'text-foreground'
                       : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
                   {item.label}
-                  {active && (
+                  {isActive && (
                     <span
                       aria-hidden
                       className="bg-primary absolute inset-x-2 bottom-0 h-0.5 rounded-full"
