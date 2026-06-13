@@ -10,6 +10,11 @@ import {
 } from '@/lib/route-transition';
 import { DevelopWash } from '@/components/motion/develop-wash';
 import { peekLesionFlight } from '@/lib/lesion-flight';
+import {
+  rememberScroll,
+  restoresScroll,
+  scrollTargetFor,
+} from '@/lib/route-scroll';
 
 /**
  * RouteTransitionOutlet — speaks the in-app transition grammar (#53, #59).
@@ -48,6 +53,8 @@ type LatchedHop = {
    * attempt surface consumes the flight origin.
    */
   suppressWash: boolean;
+  /** Back/ascend hop — restore the destination's saved scroll instead of top (#63). */
+  restoreScroll: boolean;
 };
 
 type WashHop = { key: string; variant: 'descend' | 'advance' };
@@ -95,6 +102,7 @@ export const RouteTransitionOutlet = () => {
     path: location.pathname,
     variant: 'none',
     suppressWash: false,
+    restoreScroll: false,
   });
   const variant =
     latched.path === location.pathname
@@ -104,7 +112,15 @@ export const RouteTransitionOutlet = () => {
     // Peek (not consume) during this render — the attempt surface consumes the
     // flight in its own render, which happens after this parent render.
     const suppressWash = variant === 'descend' && peekLesionFlight() !== null;
-    setLatched({ path: location.pathname, variant, suppressWash });
+    // Remember where we are leaving the outgoing surface so a later back/ascend
+    // can return here; the page hasn't scrolled yet (that happens on exit).
+    rememberScroll(latched.path, window.scrollY);
+    setLatched({
+      path: location.pathname,
+      variant,
+      suppressWash,
+      restoreScroll: restoresScroll(variant),
+    });
   }
 
   // The warm develop wash fires for descend/advance hops only. It is kept in
@@ -128,7 +144,12 @@ export const RouteTransitionOutlet = () => {
         mode="wait"
         initial={false}
         custom={variant}
-        onExitComplete={() => window.scrollTo(0, 0)}
+        onExitComplete={() =>
+          window.scrollTo(
+            0,
+            scrollTargetFor(location.pathname, latched.restoreScroll),
+          )
+        }
       >
         <motion.div
           key={location.pathname}

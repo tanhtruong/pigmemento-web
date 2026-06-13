@@ -12,6 +12,7 @@ import { useReducedMotion } from 'motion/react';
 
 import { RouteTransitionOutlet } from './route-transition-outlet';
 import { captureLesionFlight, consumeLesionFlight } from '@/lib/lesion-flight';
+import { rememberScroll } from '@/lib/route-scroll';
 
 const mockedUseReducedMotion = vi.mocked(useReducedMotion);
 
@@ -127,6 +128,39 @@ describe('RouteTransitionOutlet', () => {
 
     await act(async () => {
       await router.navigate('/app/profile');
+    });
+
+    await waitFor(() => {
+      expect(scrollSpy).toHaveBeenCalledWith(0, 0);
+    });
+    scrollSpy.mockRestore();
+  });
+});
+
+describe('scroll restoration (#63)', () => {
+  it('restores the prior scroll position when ascending back out of a case', async () => {
+    const scrollSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    // The dashboard was scrolled to 240 before we descended into the case.
+    rememberScroll('/app/dashboard', 240);
+
+    const { router } = renderWithRoute('/app/cases/42/attempt');
+    await act(async () => {
+      await router.navigate('/app/dashboard'); // ascend — restores 240
+    });
+
+    await waitFor(() => {
+      expect(scrollSpy).toHaveBeenCalledWith(0, 240);
+    });
+    scrollSpy.mockRestore();
+  });
+
+  it('scrolls to top when descending into a case, ignoring any stale saved position', async () => {
+    const scrollSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    rememberScroll('/app/cases/99/attempt', 500);
+
+    const { router } = renderWithRoute('/app/dashboard');
+    await act(async () => {
+      await router.navigate('/app/cases/99/attempt'); // descend
     });
 
     await waitFor(() => {

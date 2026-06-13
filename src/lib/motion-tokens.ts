@@ -15,7 +15,14 @@ export const motionDurations = {
   hero: 0.72,
 } as const;
 
-const easeOut: Transition['ease'] = [0.2, 0.8, 0.2, 1];
+/**
+ * The house ease — `cubic-bezier(0.2, 0.8, 0.2, 1)`. One tuple source, exported
+ * in both forms so the motion vocabulary (transitions) and the CSS-driven
+ * overlays (the boundary bloom, #43) stay the same material (#63).
+ */
+const EASE_BEZIER = [0.2, 0.8, 0.2, 1] as const;
+export const easeOut: Transition['ease'] = [...EASE_BEZIER];
+export const EASE_CSS = `cubic-bezier(${EASE_BEZIER.join(', ')})`;
 
 export const motionTokens = {
   quick: {
