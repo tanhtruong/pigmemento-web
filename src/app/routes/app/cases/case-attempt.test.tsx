@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('motion/react', async () => {
@@ -95,6 +95,48 @@ describe('CaseAttemptView lesion flight (#55)', () => {
       'false',
     );
     // The skipped origin must not leak into a later mount.
+    expect(consumeLesionFlight('42')).toBeNull();
+  });
+});
+
+describe('CaseAttemptView review flight capture (#68)', () => {
+  const renderCommittable = (extra?: { flightToReview?: boolean }) =>
+    render(
+      <CaseAttemptView
+        caseItem={stubCase}
+        committed={null}
+        isPending={false}
+        onCommit={() => {}}
+        flightToReview={extra?.flightToReview}
+      />,
+    );
+
+  it('captures the hero as a flight origin on a review-bound commit', () => {
+    renderCommittable({ flightToReview: true });
+
+    fireEvent.click(screen.getByRole('button', { name: /benign/i }));
+
+    // The review side (ReviewLesionHero) will consume this and fly the photo
+    // in place, so it reads as staying put while the verdict assembles.
+    const origin = consumeLesionFlight('42');
+    expect(origin).not.toBeNull();
+    expect(origin?.caseId).toBe('42');
+  });
+
+  it('does not capture when not review-bound (the drill reveals inline)', () => {
+    renderCommittable();
+
+    fireEvent.click(screen.getByRole('button', { name: /benign/i }));
+
+    expect(consumeLesionFlight('42')).toBeNull();
+  });
+
+  it('does not capture under reduced motion', () => {
+    mockedUseReducedMotion.mockReturnValue(true);
+    renderCommittable({ flightToReview: true });
+
+    fireEvent.click(screen.getByRole('button', { name: /benign/i }));
+
     expect(consumeLesionFlight('42')).toBeNull();
   });
 });
