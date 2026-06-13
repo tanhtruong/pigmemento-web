@@ -21,9 +21,9 @@ const resolveState = (
   variant: RouteTransitionVariant,
 ): Record<string, unknown> => {
   const state = developVariants[key];
+  // motion's Variant resolver type declares (custom, current, velocity); we
+  // only pass custom, so narrow to a single-arg callable before invoking.
   if (typeof state === 'function') {
-    // motion types a function variant as (custom, current, velocity) => …, but
-    // developVariants' resolvers only read `custom` (the hop's grammar variant).
     return (
       state as (custom: RouteTransitionVariant) => Record<string, unknown>
     )(variant);

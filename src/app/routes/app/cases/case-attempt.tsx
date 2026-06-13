@@ -36,6 +36,7 @@ import { AnnotatedLesionImage } from '@/components/signature/annotated-lesion-im
 import { shortCaseId } from '@/features/cases/lib/case-id.ts';
 import { LesionFlight } from '@/components/motion/lesion-flight';
 import {
+  captureLesionFlight,
   consumeLesionFlight,
   type LesionFlightOrigin,
 } from '@/lib/lesion-flight';
@@ -87,6 +88,13 @@ type CaseAttemptViewProps = {
   choiceOutcomes?: Partial<Record<CaseChoice, CaseChoiceOutcome>>;
   /** Verdict line shown under the choices during the drill's inline reveal. */
   revealNode?: ReactNode;
+  /**
+   * This commit navigates to /review (#68) — so capture the hero as a flight
+   * origin on commit, letting the review surface fly the same photo in place
+   * (it reads as staying put while the verdict assembles). The drill leaves
+   * this unset: it reveals inline and never hops to review.
+   */
+  flightToReview?: boolean;
 };
 
 export const CaseAttemptView = ({
@@ -99,10 +107,30 @@ export const CaseAttemptView = ({
   eyebrow,
   choiceOutcomes,
   revealNode,
+  flightToReview,
 }: CaseAttemptViewProps) => {
   const revealing = Boolean(choiceOutcomes);
   const reducedMotion = useReducedMotion();
   const heroRef = useRef<HTMLDivElement>(null);
+
+  // On a review-bound commit, record the hero as the flight origin before the
+  // route swaps (#68). ReviewLesionHero consumes it and flies the same photo
+  // into the review hero — the two heroes sit in the same place, so the print
+  // reads as staying put while the verdict assembles around it. Reduced motion
+  // and the inline-reveal drill never capture.
+  const handleCommit = useCallback(
+    (choice: CaseChoice) => {
+      if (flightToReview && !reducedMotion && heroRef.current) {
+        captureLesionFlight(
+          heroRef.current,
+          String(caseItem.id),
+          caseItem.imageUrl,
+        );
+      }
+      onCommit(choice);
+    },
+    [flightToReview, reducedMotion, caseItem.id, caseItem.imageUrl, onCommit],
+  );
 
   // Consume the flight origin exactly once per mount, during the first
   // render — before first paint, so a click-originated entry never flashes
@@ -186,7 +214,7 @@ export const CaseAttemptView = ({
                 Boolean(committed) && committed !== c.value && !revealing
               }
               outcome={choiceOutcomes?.[c.value]}
-              onSelect={() => onCommit(c.value)}
+              onSelect={() => handleCommit(c.value)}
             />
           ))}
         </div>
@@ -303,6 +331,7 @@ const CaseAttemptScene = () => {
       committed={committed}
       isPending={isPending}
       onCommit={onCommit}
+      flightToReview
       submitErrorNode={
         isSubmitError ? (
           <p className="text-incorrect text-xs">

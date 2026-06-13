@@ -131,6 +131,7 @@ const RandomCaseScene = () => {
       committed={committed}
       isPending={isPending}
       onCommit={onCommit}
+      flightToReview
       submitErrorNode={
         isSubmitError ? (
           <p className="text-incorrect text-xs">
