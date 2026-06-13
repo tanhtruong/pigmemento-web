@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useReducedMotion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 
 import { Spinner } from '@/components/ui/spinner';
 import { CaseVerdict } from '@/components/cases/case-verdict.tsx';
@@ -18,7 +18,7 @@ import { useCaseTimer } from '@/features/cases/hooks/use-case-timer.ts';
 import { shortCaseId } from '@/features/cases/lib/case-id.ts';
 import { hasAbcdeFeatures } from '@/features/cases/types/abcde-feature.ts';
 import type { CaseDetail } from '@/features/cases/types/case-detail.ts';
-import { RING_FILL_MS } from '@/lib/motion-tokens';
+import { RING_FILL_MS, easeOut } from '@/lib/motion-tokens';
 import { useCoarsePointer } from '@/features/cases/hooks/use-coarse-pointer.ts';
 
 type Outcome = 'correct' | 'incorrect' | 'skipped';
@@ -253,7 +253,20 @@ export const CaseAttemptFlow = ({
         ? attempt.teachingPoints.join(' ')
         : 'Compare against the ABCDE markers — those are the features that drove the call.';
 
-    meta = <>Answered in {formatMs(attempt.timeToAnswerMs)}</>;
+    // The question phase reserves this line's height (reserveMeta), so the
+    // header holds still as the verdict resolves and the timing settles in — a
+    // quiet first beat. A live answer fades it up; a cold-restored verdict and
+    // reduced motion compose it static.
+    meta = (
+      <motion.span
+        className="inline-block"
+        initial={liveReveal && !reducedMotion ? { opacity: 0, y: 6 } : false}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: easeOut, delay: 0.1 }}
+      >
+        Answered in {formatMs(attempt.timeToAnswerMs)}
+      </motion.span>
+    );
     verdictNode = (
       <CaseVerdict
         diagnosis={diagnosis}
@@ -287,6 +300,7 @@ export const CaseAttemptFlow = ({
       eyebrow={eyebrow}
       title={resolved ? 'Review' : undefined}
       meta={meta}
+      reserveMeta
       resolved={resolved}
       verdictNode={verdictNode}
       heroFeatures={heroFeatures}

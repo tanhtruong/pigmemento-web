@@ -77,6 +77,13 @@ type CaseAttemptViewProps = {
   /** Mono sub-line under the title — e.g. "Answered in 4.2s" once resolved. */
   meta?: ReactNode;
   /**
+   * Reserve the meta line's height while `meta` is absent. The in-scene flow
+   * sets this so the question-phase header matches the resolved header (which
+   * carries "Answered in Xs") — otherwise the meta appearing on resolve grows
+   * the header and shoves the hero down a line. The drill leaves it unset.
+   */
+  reserveMeta?: boolean;
+  /**
    * Per-choice reveal colours (#61). When present, the choices section is in
    * its revealed state: cards show correct/incorrect/reveal-correct and are no
    * longer dimmed. The drill sets this for its compact inline reveal.
@@ -110,6 +117,7 @@ export const CaseAttemptView = ({
   eyebrow,
   title,
   meta,
+  reserveMeta,
   choiceOutcomes,
   revealNode,
   verdictNode,
@@ -227,6 +235,7 @@ export const CaseAttemptView = ({
       eyebrow={eyebrow ?? <>Case · {shortCaseId(caseItem.id)}</>}
       title={title ?? 'What do you see?'}
       meta={meta}
+      reserveMeta={reserveMeta}
       headerActions={headerActionsNode}
       hero={
         <>
