@@ -3,6 +3,7 @@ import { useReducedMotion } from 'motion/react';
 
 import { cn } from '@/lib/utils';
 import { loadGsap } from '@/lib/lazy-gsap';
+import { useIsMobile } from '@/hooks/use-is-mobile';
 
 /**
  * Landing centerpiece — the pinned-scroll case walkthrough.
@@ -73,8 +74,12 @@ export const CenterpiecePinned = ({
   className,
 }: CenterpiecePinnedProps) => {
   const reducedMotion = useReducedMotion();
+  const isMobile = useIsMobile();
 
-  if (reducedMotion) {
+  // On phones the 500%-scroll pin reads as a hijack, not cinema — fall back to
+  // the composed static frame (same branch as reduced-motion), matching how the
+  // Why reel and FAQ already degrade. Keeps the mobile scroll-through coherent.
+  if (reducedMotion || isMobile) {
     return (
       <CenterpieceStatic
         imageSrc={imageSrc}
