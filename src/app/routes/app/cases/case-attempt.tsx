@@ -159,6 +159,10 @@ export const CaseAttemptView = ({
     <CaseStage
       eyebrow={eyebrow ?? <>Case · {shortCaseId(caseItem.id)}</>}
       title="What do you see?"
+      // Reserve the meta line on review-bound surfaces so this header matches the
+      // review's "Answered in Xs" line — the attempt → review swap is in-place,
+      // so unequal header heights would jump the body down by a line.
+      reserveMeta={flightToReview}
       headerActions={headerActionsNode}
       hero={
         <>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { useReducedMotion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { ArrowRight, RotateCcw } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import {
   type AbcdeFeature,
 } from '@/features/cases/types/abcde-feature.ts';
 import { queryKeys } from '@/lib/query-keys.ts';
+import { easeOut } from '@/lib/motion-tokens.ts';
 
 type Outcome = 'correct' | 'incorrect' | 'skipped';
 
@@ -116,6 +117,7 @@ export const CaseReviewScene = () => {
 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const reducedMotion = useReducedMotion();
 
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
 
@@ -215,7 +217,19 @@ export const CaseReviewScene = () => {
     <CaseStage
       eyebrow={<>Case · {shortCaseId(caseItem.id)}</>}
       title="Review"
-      meta={<>Answered in {formatMs(attempt.timeToAnswerMs)}</>}
+      meta={
+        // The attempt reserves this line's height (CaseStage reserveMeta), so the
+        // header holds still across the swap and the timing can settle in: a quiet
+        // first beat of the verdict assembling. Reduced motion → rendered static.
+        <motion.span
+          className="inline-block"
+          initial={reducedMotion ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: easeOut, delay: 0.1 }}
+        >
+          Answered in {formatMs(attempt.timeToAnswerMs)}
+        </motion.span>
+      }
       headerActions={
         <Button asChild variant="ghost" size="sm">
           <Link to={paths.app.cases.getHref()}>← Library</Link>
