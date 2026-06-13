@@ -22,6 +22,8 @@ type AnnotatedLesionImageProps = {
   frameRef?: RefObject<HTMLDivElement | null>;
   /** Hide the image frame while a flight is mid-air, so it reveals on landing (#62). */
   frameHidden?: boolean;
+  /** Load the image eagerly — set on the attempt hero, which is above the fold. */
+  eager?: boolean;
   className?: string;
 };
 
@@ -55,6 +57,7 @@ export const AnnotatedLesionImage = ({
   showAnnotations = true,
   frameRef,
   frameHidden = false,
+  eager = false,
   className,
 }: AnnotatedLesionImageProps) => {
   return (
@@ -65,6 +68,7 @@ export const AnnotatedLesionImage = ({
       <div
         ref={frameRef}
         data-flight-target
+        data-flight-hidden={frameHidden ? 'true' : 'false'}
         style={frameHidden ? { visibility: 'hidden' } : undefined}
         className={cn(
           'relative overflow-hidden rounded-card border border-hairline',
@@ -76,7 +80,7 @@ export const AnnotatedLesionImage = ({
           src={src}
           alt={alt}
           className="absolute inset-0 h-full w-full object-cover"
-          loading="lazy"
+          loading={eager ? 'eager' : 'lazy'}
           decoding="async"
         />
         {showAnnotations && features.length > 0 && (

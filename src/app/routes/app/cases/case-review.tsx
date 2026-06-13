@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useReducedMotion } from 'motion/react';
-import { ArrowLeft, ArrowRight, RotateCcw } from 'lucide-react';
+import { ArrowRight, RotateCcw } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Hairline } from '@/components/foundation/hairline';
+import { CaseStage } from '@/components/cases/case-stage.tsx';
 import { AnnotatedLesionImage } from '@/components/signature/annotated-lesion-image';
 import { DiagnosisReveal } from '@/components/signature/diagnosis-reveal';
 import { LesionFlight } from '@/components/motion/lesion-flight';
@@ -211,28 +212,16 @@ export const CaseReviewScene = () => {
       : 'Compare against the ABCDE markers — those are the features that drove the call.';
 
   return (
-    <article className="flex flex-col gap-8 py-2">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-1.5">
-          <Link
-            to={paths.app.cases.getHref()}
-            className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-xs transition-colors"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Library
-          </Link>
-          <h1 className="font-display text-3xl sm:text-4xl leading-tight">
-            Review
-          </h1>
-          <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-muted-foreground uppercase">
-            Case · {shortCaseId(caseItem.id)} · Answered in{' '}
-            {formatMs(attempt.timeToAnswerMs)}
-          </p>
-        </div>
-      </header>
-
-      <Hairline />
-
-      <div className="grid gap-10 lg:grid-cols-[1.3fr_1fr]">
+    <CaseStage
+      eyebrow={<>Case · {shortCaseId(caseItem.id)}</>}
+      title="Review"
+      meta={<>Answered in {formatMs(attempt.timeToAnswerMs)}</>}
+      headerActions={
+        <Button asChild variant="ghost" size="sm">
+          <Link to={paths.app.cases.getHref()}>← Library</Link>
+        </Button>
+      }
+      hero={
         <ReviewLesionHero
           caseId={String(caseItem.id)}
           src={caseItem.imageUrl}
@@ -240,53 +229,51 @@ export const CaseReviewScene = () => {
           features={features}
           sourceCredit={`CASE ${shortCaseId(caseItem.id)} · ${diagnosis.toUpperCase()}`}
         />
+      }
+    >
+      <DiagnosisReveal
+        diagnosis={diagnosis}
+        outcome={outcome}
+        outcomeCopy={outcomeCopy(outcome, titleCase(chosen), diagnosis)}
+        teaching={teachingPoint}
+      />
 
-        <section className="flex flex-col gap-8">
-          <DiagnosisReveal
-            diagnosis={diagnosis}
-            outcome={outcome}
-            outcomeCopy={outcomeCopy(outcome, titleCase(chosen), diagnosis)}
-            teaching={teachingPoint}
-          />
+      <Hairline />
 
-          <Hairline />
-
-          <div className="flex flex-col gap-2">
-            <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-muted-foreground uppercase">
-              Next steps
-            </p>
-            <div className="flex flex-col gap-2">
-              <Button asChild className="w-full sm:w-fit">
-                <Link to={paths.app['case-random'].getHref()}>
-                  Next case
-                  <ArrowRight />
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={retryCase}
-                className="w-full sm:w-fit"
-              >
-                <RotateCcw />
-                Try this case again
-              </Button>
-              <Button asChild variant="ghost" className="w-full sm:w-fit">
-                <Link to={paths.app.cases.getHref()}>← Back to Library</Link>
-              </Button>
-            </div>
-            <p className="text-muted-foreground mt-2 text-[0.6875rem]">
-              Shortcuts: <kbd className="font-mono">Enter</kbd> next ·{' '}
-              <kbd className="font-mono">R</kbd> retry ·{' '}
-              <kbd className="font-mono">L</kbd> library
-            </p>
-          </div>
-
-          <p className="text-muted-foreground text-[0.6875rem]">
-            Educational use only — not for diagnosis.
-          </p>
-        </section>
+      <div className="flex flex-col gap-2">
+        <p className="font-mono text-[0.6875rem] tracking-[0.18em] text-muted-foreground uppercase">
+          Next steps
+        </p>
+        <div className="flex flex-col gap-2">
+          <Button asChild className="w-full sm:w-fit">
+            <Link to={paths.app['case-random'].getHref()}>
+              Next case
+              <ArrowRight />
+            </Link>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={retryCase}
+            className="w-full sm:w-fit"
+          >
+            <RotateCcw />
+            Try this case again
+          </Button>
+          <Button asChild variant="ghost" className="w-full sm:w-fit">
+            <Link to={paths.app.cases.getHref()}>← Back to Library</Link>
+          </Button>
+        </div>
+        <p className="text-muted-foreground mt-2 text-[0.6875rem]">
+          Shortcuts: <kbd className="font-mono">Enter</kbd> next ·{' '}
+          <kbd className="font-mono">R</kbd> retry ·{' '}
+          <kbd className="font-mono">L</kbd> library
+        </p>
       </div>
-    </article>
+
+      <p className="text-muted-foreground text-[0.6875rem]">
+        Educational use only — not for diagnosis.
+      </p>
+    </CaseStage>
   );
 };
 
