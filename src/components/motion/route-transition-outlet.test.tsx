@@ -11,11 +11,14 @@ vi.mock('motion/react', async () => {
 import { useReducedMotion } from 'motion/react';
 
 import { RouteTransitionOutlet } from './route-transition-outlet';
+import { captureLesionFlight, consumeLesionFlight } from '@/lib/lesion-flight';
 
 const mockedUseReducedMotion = vi.mocked(useReducedMotion);
 
 afterEach(() => {
   mockedUseReducedMotion.mockReturnValue(false);
+  // Drain any flight origin a test left stored so it can't leak into the next.
+  consumeLesionFlight('__drain__');
 });
 
 const buildRouter = (initialPath: string) =>
@@ -284,6 +287,24 @@ describe('develop wash (#59)', () => {
         document.querySelector('[data-develop-wash="descend"]'),
       ).not.toBeNull();
     });
+  });
+
+  it('suppresses the wash on a descend when a lesion-flight is pending (#62)', async () => {
+    // A library thumb captured a flight just before navigating — the flying
+    // thumb narrates the descend, so the wash must not double up.
+    captureLesionFlight(document.createElement('div'), '42', '/lesion-42.png');
+
+    const { router } = renderWithRoute('/app/dashboard');
+    await act(async () => {
+      await router.navigate('/app/cases/42/attempt');
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Attempt content').closest('[data-motion-wrapper]'),
+      ).toHaveAttribute('data-variant', 'descend');
+    });
+    expect(document.querySelector('[data-develop-wash]')).toBeNull();
   });
 
   it('never raises the wash on a quiet lateral tab hop', async () => {

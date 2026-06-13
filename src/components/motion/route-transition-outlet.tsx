@@ -9,6 +9,7 @@ import {
   type RouteTransitionVariant,
 } from '@/lib/route-transition';
 import { DevelopWash } from '@/components/motion/develop-wash';
+import { peekLesionFlight } from '@/lib/lesion-flight';
 
 /**
  * RouteTransitionOutlet — speaks the in-app transition grammar (#53, #59).
@@ -37,7 +38,17 @@ import { DevelopWash } from '@/components/motion/develop-wash';
  * outgoing surface fixes with the *current* hop's drift.
  */
 
-type LatchedHop = { path: string; variant: RouteTransitionVariant };
+type LatchedHop = {
+  path: string;
+  variant: RouteTransitionVariant;
+  /**
+   * A lesion-flight is in flight into this hop (#62), so the descend wash is
+   * suppressed — the flying thumb already narrates the descend, and playing the
+   * wash too would be a double gesture. Captured at latch time, before the
+   * attempt surface consumes the flight origin.
+   */
+  suppressWash: boolean;
+};
 
 type WashHop = { key: string; variant: 'descend' | 'advance' };
 
@@ -83,13 +94,17 @@ export const RouteTransitionOutlet = () => {
   const [latched, setLatched] = useState<LatchedHop>({
     path: location.pathname,
     variant: 'none',
+    suppressWash: false,
   });
   const variant =
     latched.path === location.pathname
       ? latched.variant
       : classifyRouteTransition(latched.path, location.pathname);
   if (latched.path !== location.pathname) {
-    setLatched({ path: location.pathname, variant });
+    // Peek (not consume) during this render — the attempt surface consumes the
+    // flight in its own render, which happens after this parent render.
+    const suppressWash = variant === 'descend' && peekLesionFlight() !== null;
+    setLatched({ path: location.pathname, variant, suppressWash });
   }
 
   // The warm develop wash fires for descend/advance hops only. It is kept in
@@ -98,10 +113,10 @@ export const RouteTransitionOutlet = () => {
   const [washHop, setWashHop] = useState<WashHop | null>(null);
   useEffect(() => {
     const washVariant = washVariantOf(latched.variant);
-    if (washVariant) {
+    if (washVariant && !latched.suppressWash) {
       setWashHop({ key: latched.path, variant: washVariant });
     }
-  }, [latched.path, latched.variant]);
+  }, [latched.path, latched.variant, latched.suppressWash]);
 
   if (reducedMotion) {
     return <Outlet />;

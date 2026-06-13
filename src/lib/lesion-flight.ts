@@ -68,3 +68,15 @@ export const consumeLesionFlight = (
   if (Date.now() - origin.recordedAt > FLIGHT_TTL_MS) return null;
   return origin;
 };
+
+/**
+ * Non-consuming look at a pending flight origin (#62). The route outlet peeks
+ * during render — before the attempt surface consumes it — to decide whether a
+ * descend hop should suppress its develop wash: a flight already narrates the
+ * descend, so playing the wash too would be a double gesture.
+ */
+export const peekLesionFlight = (): LesionFlightOrigin | null => {
+  if (!stored) return null;
+  if (Date.now() - stored.recordedAt > FLIGHT_TTL_MS) return null;
+  return stored;
+};
