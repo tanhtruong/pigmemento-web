@@ -1,6 +1,3 @@
-const CASE_ATTEMPT_PATTERN = /^\/app\/cases\/[^/]+\/attempt$/;
-const CASE_REVIEW_PATTERN = /^\/app\/cases\/[^/]+\/review$/;
-
 /**
  * The in-app transition grammar (#53). Motion conjugates by the relationship
  * between the two *surfaces*, never by what triggered the hop — so browser
@@ -32,13 +29,6 @@ export const classifyRouteTransition = (
 ): RouteTransitionVariant => {
   if (from === undefined) return 'none';
   if (from === to) return 'none';
-  // The attempt → review centerpiece dissolves in place (#68): no hard cut, but
-  // no directional drift either — the verdict resolves where the question was,
-  // so the shared lesion photo reads as staying put rather than sliding. (Other
-  // flow → flow hops keep the `advance` drift below.)
-  if (CASE_ATTEMPT_PATTERN.test(from) && CASE_REVIEW_PATTERN.test(to)) {
-    return 'neutral';
-  }
 
   const fromTab = TAB_ORDER[from];
   const toTab = TAB_ORDER[to];
@@ -54,9 +44,9 @@ export const classifyRouteTransition = (
 
 /**
  * Case-flow surfaces — the screens you work a case on: attempt (incl. the
- * random practice entry), review, drill.
+ * random practice entry, which also resolves its verdict in place) and drill.
  */
-const FLOW_PATTERN = /^\/app\/cases\/(drill$|[^/]+\/(attempt|review)$)/;
+const FLOW_PATTERN = /^\/app\/cases\/(drill$|[^/]+\/attempt$)/;
 
 const isFlowSurface = (path: string): boolean => FLOW_PATTERN.test(path);
 

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('motion/react', async () => {
@@ -99,44 +99,32 @@ describe('CaseAttemptView lesion flight (#55)', () => {
   });
 });
 
-describe('CaseAttemptView review flight capture (#68)', () => {
-  const renderCommittable = (extra?: { flightToReview?: boolean }) =>
+describe('CaseAttemptView verdict in place (#85)', () => {
+  const renderWithVerdict = (resolved: boolean) =>
     render(
       <CaseAttemptView
         caseItem={stubCase}
-        committed={null}
+        committed={resolved ? 'benign' : null}
         isPending={false}
         onCommit={() => {}}
-        flightToReview={extra?.flightToReview}
+        resolved={resolved}
+        title={resolved ? 'Review' : undefined}
+        heroSourceCredit={resolved ? 'CASE 42 · MALIGNANT' : undefined}
+        verdictNode={<p>verdict in place</p>}
       />,
     );
 
-  it('captures the hero as a flight origin on a review-bound commit', () => {
-    renderCommittable({ flightToReview: true });
+  it('shows the choices, not the verdict, before the answer resolves', () => {
+    renderWithVerdict(false);
 
-    fireEvent.click(screen.getByRole('button', { name: /benign/i }));
-
-    // The review side (ReviewLesionHero) will consume this and fly the photo
-    // in place, so it reads as staying put while the verdict assembles.
-    const origin = consumeLesionFlight('42');
-    expect(origin).not.toBeNull();
-    expect(origin?.caseId).toBe('42');
+    expect(screen.getByRole('button', { name: /benign/i })).toBeInTheDocument();
+    expect(screen.queryByText('verdict in place')).not.toBeInTheDocument();
   });
 
-  it('does not capture when not review-bound (the drill reveals inline)', () => {
-    renderCommittable();
+  it('swaps the working column to the verdict once resolved', () => {
+    renderWithVerdict(true);
 
-    fireEvent.click(screen.getByRole('button', { name: /benign/i }));
-
-    expect(consumeLesionFlight('42')).toBeNull();
-  });
-
-  it('does not capture under reduced motion', () => {
-    mockedUseReducedMotion.mockReturnValue(true);
-    renderCommittable({ flightToReview: true });
-
-    fireEvent.click(screen.getByRole('button', { name: /benign/i }));
-
-    expect(consumeLesionFlight('42')).toBeNull();
+    expect(screen.getByText('verdict in place')).toBeInTheDocument();
+    expect(screen.getByText('Review')).toBeInTheDocument();
   });
 });

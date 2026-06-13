@@ -35,7 +35,7 @@ describe('classifyRouteTransition', () => {
   });
 
   it('ascends from any case-flow surface back to a tab surface', () => {
-    expect(classifyRouteTransition('/app/cases/42/review', '/app/cases')).toBe(
+    expect(classifyRouteTransition('/app/cases/42/attempt', '/app/cases')).toBe(
       'ascend',
     );
     expect(classifyRouteTransition('/app/cases/drill', '/app/dashboard')).toBe(
@@ -45,25 +45,11 @@ describe('classifyRouteTransition', () => {
 
   it('advances between case-flow surfaces (next case, drill chains)', () => {
     expect(
-      classifyRouteTransition('/app/cases/42/review', '/app/cases/43/attempt'),
+      classifyRouteTransition('/app/cases/42/attempt', '/app/cases/43/attempt'),
     ).toBe('advance');
     expect(
-      classifyRouteTransition('/app/cases/drill', '/app/cases/9/review'),
+      classifyRouteTransition('/app/cases/drill', '/app/cases/9/attempt'),
     ).toBe('advance');
-  });
-
-  it('dissolves the attempt → review centerpiece without drift (neutral)', () => {
-    // No hard cut (#68): the surfaces dissolve into each other, but with no
-    // directional drift — the verdict resolves in place rather than sliding.
-    expect(
-      classifyRouteTransition('/app/cases/42/attempt', '/app/cases/42/review'),
-    ).toBe('neutral');
-    expect(
-      classifyRouteTransition(
-        '/app/cases/random/attempt',
-        '/app/cases/7/review',
-      ),
-    ).toBe('neutral');
   });
 
   it('returns none for a re-render at the same path', () => {
@@ -92,28 +78,10 @@ describe('shouldAnimateRouteTransition', () => {
     );
   });
 
-  it('animates the case-attempt to case-review hop (now a dissolve, #68)', () => {
+  it('animates an attempt → next-attempt hop (advance)', () => {
     expect(
       shouldAnimateRouteTransition(
         '/app/cases/42/attempt',
-        '/app/cases/42/review',
-      ),
-    ).toBe(true);
-  });
-
-  it('animates any attempt to any review (loose rule)', () => {
-    expect(
-      shouldAnimateRouteTransition(
-        '/app/cases/99/attempt',
-        '/app/cases/123/review',
-      ),
-    ).toBe(true);
-  });
-
-  it('still animates from case-review back to case-attempt (one-way exclusion)', () => {
-    expect(
-      shouldAnimateRouteTransition(
-        '/app/cases/42/review',
         '/app/cases/43/attempt',
       ),
     ).toBe(true);

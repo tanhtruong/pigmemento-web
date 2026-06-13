@@ -88,13 +88,6 @@ export const createAppRouter = (queryClient: QueryClient) =>
                 ),
             },
             {
-              path: paths.app['case-review'].path,
-              lazy: () =>
-                import('./routes/app/cases/case-review').then(
-                  convert(queryClient),
-                ),
-            },
-            {
               path: paths.app['case-drill'].path,
               lazy: () =>
                 import('./routes/app/cases/case-drill').then(

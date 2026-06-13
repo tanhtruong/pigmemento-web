@@ -9,7 +9,6 @@ export type AppRoutePrefetchKey =
   | 'cases'
   | 'case-random'
   | 'case-attempt'
-  | 'case-review'
   | 'case-drill'
   | 'profile';
 
@@ -22,7 +21,6 @@ const EXACT: Record<string, AppRoutePrefetchKey> = {
 };
 
 const CASE_ATTEMPT = /^\/app\/cases\/[^/]+\/attempt$/;
-const CASE_REVIEW = /^\/app\/cases\/[^/]+\/review$/;
 
 export const matchAppRoutePrefetchKey = (
   destination: string,
@@ -30,6 +28,5 @@ export const matchAppRoutePrefetchKey = (
   const path = destination.split('?')[0];
   if (EXACT[path]) return EXACT[path];
   if (CASE_ATTEMPT.test(path)) return 'case-attempt';
-  if (CASE_REVIEW.test(path)) return 'case-review';
   return null;
 };

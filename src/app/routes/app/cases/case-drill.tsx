@@ -480,7 +480,7 @@ const CaseDrillScene = () => {
                       const firstMiss = incorrectCases[0];
                       if (!firstMiss) return;
                       navigate(
-                        paths.app['case-review'].getHref(firstMiss.caseId),
+                        paths.app['case-attempt'].getHref(firstMiss.caseId),
                       );
                     }}
                     disabled={incorrectCases.length === 0}
@@ -493,7 +493,7 @@ const CaseDrillScene = () => {
                     onClick={() => {
                       const last = results[results.length - 1];
                       if (!last) return;
-                      navigate(paths.app['case-review'].getHref(last.caseId));
+                      navigate(paths.app['case-attempt'].getHref(last.caseId));
                     }}
                     disabled={results.length === 0}
                   >
@@ -579,7 +579,7 @@ const CaseDrillScene = () => {
                         variant="link"
                         className="h-auto px-0 text-xs self-start sm:self-auto"
                         onClick={() =>
-                          navigate(paths.app['case-review'].getHref(r.caseId))
+                          navigate(paths.app['case-attempt'].getHref(r.caseId))
                         }
                       >
                         Review
@@ -642,7 +642,7 @@ const CaseDrillScene = () => {
 
   // Running — the same attempt surface as a single/random case (#61). The only
   // difference is the outcome: commit reveals inline on the chosen card and the
-  // drill advances, rather than routing to /review.
+  // drill advances, rather than resolving the full verdict in place.
   const labelOf = (c?: Label) =>
     c === 'benign' ? 'Benign' : c === 'malignant' ? 'Malignant' : 'Skip';
 

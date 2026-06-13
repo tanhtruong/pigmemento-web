@@ -17,6 +17,13 @@ type DiagnosisRevealProps = {
   outcomeCopy?: string;
   /** When false, the component renders nothing (pre-commit state). */
   visible?: boolean;
+  /**
+   * When false, the reveal renders in its final composed state with no entrance
+   * animation — used when the verdict is restored on a cold load (refresh, deep
+   * link to an already-answered case), where there was no live answer to reveal.
+   * Defaults to true: a live commit plays the full sequence.
+   */
+  animate?: boolean;
   className?: string;
 };
 
@@ -47,9 +54,13 @@ export const DiagnosisReveal = ({
   outcome,
   outcomeCopy,
   visible = true,
+  animate = true,
   className,
 }: DiagnosisRevealProps) => {
   const reducedMotion = useReducedMotion();
+  // A cold-restored verdict (animate=false) composes in place exactly like the
+  // reduced-motion path — no divider draw, no character stagger.
+  const still = reducedMotion || !animate;
   if (!visible) return null;
 
   const at = (ms: number) => ms / 1000;
@@ -61,7 +72,7 @@ export const DiagnosisReveal = ({
       className={cn('flex flex-col gap-4', className)}
     >
       {/* Beat 1 — hairline divider draws */}
-      {reducedMotion ? (
+      {still ? (
         <Hairline />
       ) : (
         <motion.div
@@ -79,12 +90,12 @@ export const DiagnosisReveal = ({
 
       {/* Beat 2 — eyebrow */}
       <motion.p
-        initial={reducedMotion ? false : { opacity: 0, y: 6 }}
+        initial={still ? false : { opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{
           duration: 0.3,
           ease: EASE,
-          delay: reducedMotion ? 0 : at(revealSequence.eyebrow),
+          delay: still ? 0 : at(revealSequence.eyebrow),
         }}
         className="text-primary font-mono text-xs tracking-[0.18em] uppercase"
       >
@@ -96,7 +107,7 @@ export const DiagnosisReveal = ({
         aria-label={diagnosis}
         className="font-display text-4xl leading-[1.05] sm:text-5xl"
       >
-        {reducedMotion
+        {still
           ? diagnosis
           : Array.from(diagnosis).map((ch, i) => (
               <motion.span
@@ -124,12 +135,12 @@ export const DiagnosisReveal = ({
       {/* Beat 4 — correctness indicator */}
       {outcome && outcomeCopy && (
         <motion.p
-          initial={reducedMotion ? false : { opacity: 0, y: 6 }}
+          initial={still ? false : { opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
             duration: 0.32,
             ease: EASE,
-            delay: reducedMotion ? 0 : at(revealSequence.correctness),
+            delay: still ? 0 : at(revealSequence.correctness),
           }}
           className="text-foreground flex items-center gap-2 text-sm"
         >
@@ -147,12 +158,12 @@ export const DiagnosisReveal = ({
       {/* Beat 5 — teaching prose */}
       {teaching && (
         <motion.p
-          initial={reducedMotion ? false : { opacity: 0, y: 6 }}
+          initial={still ? false : { opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
             duration: 0.42,
             ease: EASE,
-            delay: reducedMotion ? 0 : at(revealSequence.teaching),
+            delay: still ? 0 : at(revealSequence.teaching),
           }}
           className="text-muted-foreground text-base leading-relaxed"
         >

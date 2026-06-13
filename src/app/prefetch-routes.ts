@@ -19,7 +19,6 @@ const APP_CHUNKS: Record<AppRoutePrefetchKey, () => Promise<unknown>> = {
   cases: () => import('./routes/app/cases/cases'),
   'case-random': () => import('./routes/app/cases/random-attempt'),
   'case-attempt': () => import('./routes/app/cases/case-attempt'),
-  'case-review': () => import('./routes/app/cases/case-review'),
   'case-drill': () => import('./routes/app/cases/case-drill'),
   profile: () => import('./routes/app/profile'),
 };
