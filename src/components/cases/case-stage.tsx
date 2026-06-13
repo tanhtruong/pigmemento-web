@@ -13,6 +13,14 @@ type CaseStageProps = {
   title: ReactNode;
   /** Optional mono sub-line under the title (muted) — e.g. "Answered in 4.2s". */
   meta?: ReactNode;
+  /**
+   * Reserve the meta line's height even while `meta` is absent (renders an
+   * invisible one-line placeholder). The in-scene flow sets this for the
+   * question phase so the header doesn't grow — and shove the hero down a
+   * line — the moment the verdict resolves and the "Answered in Xs" meta
+   * appears. Do not remove without re-checking that question↔verdict parity.
+   */
+  reserveMeta?: boolean;
   /** Right-aligned header affordance — typically the "← Library" link. */
   headerActions?: ReactNode;
   /**
@@ -38,6 +46,7 @@ export const CaseStage = ({
   eyebrow,
   title,
   meta,
+  reserveMeta,
   headerActions,
   hero,
   children,
@@ -54,10 +63,19 @@ export const CaseStage = ({
         <h1 className="font-display text-3xl leading-tight sm:text-4xl">
           {title}
         </h1>
-        {meta && (
+        {meta ? (
           <p className="text-muted-foreground font-mono text-[0.6875rem] tracking-[0.18em] uppercase">
             {meta}
           </p>
+        ) : (
+          reserveMeta && (
+            <p
+              aria-hidden
+              className="invisible font-mono text-[0.6875rem] tracking-[0.18em] uppercase"
+            >
+              &nbsp;
+            </p>
+          )
         )}
       </div>
       {headerActions}
