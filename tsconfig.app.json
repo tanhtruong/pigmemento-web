@@ -8,7 +8,8 @@
     "skipLibCheck": true,
     "types": ["vitest/globals", "@testing-library/jest-dom"],
 
-    "baseUrl": ".",
+    // baseUrl removed: deprecated in TS 6, gone in TS 7. With bundler
+    // resolution, the relative "paths" targets resolve from this file's dir.
     "paths": {
       "@/*": ["./src/*"]
     },
