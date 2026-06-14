@@ -2,17 +2,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios.ts';
 import { queryKeys } from '@/lib/query-keys.ts';
 import { Label } from '@/features/cases/types/case-label.ts';
+import { AttemptResponse } from '@/features/cases/types/attempt-response.ts';
 
 type AttemptRequest = {
   chosenLabel: Label; // user's guess
   timeToAnswerMs: number;
-};
-
-type AttemptResponse = {
-  correct: boolean;
-  correctLabel: Label;
-  teachingPoints: string[];
-  disclaimer: string;
 };
 
 export const useCaseSubmitAttempt = () => {
