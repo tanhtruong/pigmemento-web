@@ -102,6 +102,14 @@ export const revealSequence = {
 export const STREAK_GLOW_DECAY_MS = 1400;
 
 /**
+ * Verdict column entry floor (#98). The question→verdict swap fades the incoming
+ * column up from this floor — present, not blank — so the `mode="wait"` handoff
+ * reads as a quick firm-up rather than an empty gap, with the verdict's own
+ * divider-draw covering it. Mirrors the develop LATENT_OPACITY rationale (#82).
+ */
+export const VERDICT_ENTER_OPACITY = 0.6;
+
+/**
  * The Develop — the in-app route gesture (#53), re-engineered for #59 and
  * quieted for #73.
  *

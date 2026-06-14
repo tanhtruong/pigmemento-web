@@ -22,6 +22,14 @@ type CaseChoiceCardProps = {
   selected?: boolean;
   /** Disabled — another card is committing. */
   disabled?: boolean;
+  /**
+   * Receding (#98) — an unselected card retiring as the chosen card commits.
+   * Fades and settles down so the world narrows to the answer. Collapses to the
+   * static dim under reduced motion.
+   */
+  receding?: boolean;
+  /** Stagger delay (s) for the recede, so the unchosen cards leave in sequence. */
+  recedeDelay?: number;
   /** Inline reveal colour (drill). Overrides the resting/selected border. */
   outcome?: CaseChoiceOutcome;
   onSelect: () => void;
@@ -43,10 +51,13 @@ export const CaseChoiceCard = ({
   shortcut,
   selected = false,
   disabled = false,
+  receding = false,
+  recedeDelay = 0,
   outcome,
   onSelect,
 }: CaseChoiceCardProps) => {
   const reducedMotion = useReducedMotion();
+  const recedeActive = receding && !reducedMotion;
 
   return (
     <motion.button
@@ -55,9 +66,19 @@ export const CaseChoiceCard = ({
       disabled={disabled}
       whileHover={!disabled && !selected ? { y: -2 } : undefined}
       whileTap={!disabled && !selected ? { scale: 0.97, y: -1 } : undefined}
+      animate={
+        recedeActive
+          ? {
+              opacity: 0.3,
+              y: 2,
+              transition: { ...motionTokens.quick, delay: recedeDelay },
+            }
+          : undefined
+      }
       transition={motionTokens.tapLift}
       aria-pressed={selected}
       data-state={selected ? 'selected' : disabled ? 'disabled' : 'idle'}
+      data-receding={recedeActive ? 'true' : undefined}
       data-outcome={outcome}
       className={cn(
         'group/choice relative isolate flex items-center justify-between gap-4',
@@ -70,7 +91,10 @@ export const CaseChoiceCard = ({
         outcome === 'correct' && 'border-correct shadow-warm',
         outcome === 'incorrect' && 'border-incorrect shadow-warm',
         outcome === 'reveal-correct' && 'border-correct/60',
-        disabled && !selected && !outcome && 'pointer-events-none opacity-40',
+        disabled && !selected && !outcome && 'pointer-events-none',
+        // Static dim for the disabled rest state; motion owns opacity while
+        // receding, so don't double up.
+        disabled && !selected && !outcome && !recedeActive && 'opacity-40',
       )}
     >
       <span className="font-display text-foreground text-xl">{label}</span>

@@ -11,6 +11,7 @@ import { prefetchWithCap } from '@/lib/route-loaders.ts';
 import { CaseAttemptSkeleton } from '@/components/cases/case-attempt-skeleton.tsx';
 import { CaseAttemptFlow } from './case-attempt-flow.tsx';
 import { queryKeys } from '@/lib/query-keys.ts';
+import { useRandomCasePeek } from '@/features/cases/hooks/use-random-case-peek.ts';
 
 /**
  * Prefetch a random case before the surface mounts (#60), capped so a slow
@@ -23,6 +24,8 @@ export const clientLoader = (queryClient: QueryClient) => () =>
 const RandomCaseScene = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // Look one case ahead so "Next" promotes an already-decoded lesion (#100).
+  const { promoteNext } = useRandomCasePeek();
 
   const { data: caseItem, isLoading, isError } = useRandomCase();
 
@@ -47,10 +50,13 @@ const RandomCaseScene = () => {
   return (
     <CaseAttemptFlow
       caseItem={caseItem}
-      // "Next case" pulls a fresh random case in place — the flow resets when
-      // the new case id arrives.
+      // "Next case" promotes the pre-decoded peek for an instant in-frame
+      // handoff (#100); if none has landed yet, fall back to a live refetch —
+      // the flow resets when the new case id arrives.
       onNextCase={() => {
-        queryClient.invalidateQueries({ queryKey: queryKeys['random-case'] });
+        if (!promoteNext()) {
+          queryClient.invalidateQueries({ queryKey: queryKeys['random-case'] });
+        }
       }}
       onExit={() => navigate(paths.app.cases.getHref())}
       headerActionsNode={

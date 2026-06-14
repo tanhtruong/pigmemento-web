@@ -4,6 +4,7 @@ import {
   motionTokens,
   SHAKE_KEYFRAMES_X,
   developVariants,
+  VERDICT_ENTER_OPACITY,
 } from './motion-tokens';
 import type { RouteTransitionVariant } from './route-transition';
 
@@ -66,6 +67,13 @@ describe('developVariants — the quiet dissolve handoff (#73)', () => {
       expect(resolveState('developed', variant).filter).toBeUndefined();
       expect(resolveState('fixed', variant).filter).toBeUndefined();
     }
+  });
+});
+
+describe('verdict entry floor (#98)', () => {
+  it('enters from a floor — present, never a blank gap, and below full', () => {
+    expect(VERDICT_ENTER_OPACITY).toBeGreaterThan(0);
+    expect(VERDICT_ENTER_OPACITY).toBeLessThan(1);
   });
 });
 

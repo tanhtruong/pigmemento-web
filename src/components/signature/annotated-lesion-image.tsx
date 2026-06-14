@@ -1,6 +1,8 @@
 import type { RefObject } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 import { cn } from '@/lib/utils';
+import { motionTokens } from '@/lib/motion-tokens';
 import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
 
 type AnnotatedLesionImageProps = {
@@ -24,6 +26,12 @@ type AnnotatedLesionImageProps = {
   frameHidden?: boolean;
   /** Load the image eagerly — set on the attempt hero, which is above the fold. */
   eager?: boolean;
+  /**
+   * Acknowledge glow (#98) — the amber radial behind the hero swells one step
+   * as the answer commits, so the call visibly lands on the image. Collapses
+   * under reduced motion.
+   */
+  acknowledged?: boolean;
   className?: string;
 };
 
@@ -58,13 +66,26 @@ export const AnnotatedLesionImage = ({
   frameRef,
   frameHidden = false,
   eager = false,
+  acknowledged = false,
   className,
 }: AnnotatedLesionImageProps) => {
+  const reducedMotion = useReducedMotion();
+  const glow = acknowledged && !reducedMotion;
   return (
     <figure
       data-slot="annotated-lesion-image"
-      className={cn('flex flex-col gap-3', className)}
+      className={cn('relative flex flex-col gap-3', className)}
     >
+      {glow && (
+        <motion.div
+          data-hero-glow
+          aria-hidden
+          className="glow-amber pointer-events-none absolute -inset-8 -z-10 rounded-[2rem]"
+          initial={{ opacity: 0, scale: 0.94 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={motionTokens.considered}
+        />
+      )}
       <div
         ref={frameRef}
         data-flight-target
@@ -76,13 +97,33 @@ export const AnnotatedLesionImage = ({
           ASPECT_CLASS[aspect],
         )}
       >
-        <img
-          src={src}
-          alt={alt}
-          className="absolute inset-0 h-full w-full object-cover"
-          loading={eager ? 'eager' : 'lazy'}
-          decoding="async"
-        />
+        {/* The lesion crossfades in-frame when the case changes — the fixed
+            lightbox holds while its contents dissolve A→B (#99). Reduced motion
+            hard-cuts. `initial={false}` keeps the first mount instant so a
+            lesion-flight entry isn't double-faded. */}
+        {reducedMotion ? (
+          <img
+            src={src}
+            alt={alt}
+            className="absolute inset-0 h-full w-full object-cover"
+            loading={eager ? 'eager' : 'lazy'}
+            decoding="async"
+          />
+        ) : (
+          <AnimatePresence initial={false}>
+            <motion.img
+              key={src}
+              src={src}
+              alt={alt}
+              className="absolute inset-0 h-full w-full object-cover"
+              loading={eager ? 'eager' : 'lazy'}
+              decoding="async"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: motionTokens.considered }}
+              exit={{ opacity: 0, transition: motionTokens.considered }}
+            />
+          </AnimatePresence>
+        )}
         {showAnnotations && features.length > 0 && (
           <svg
             className="absolute inset-0 h-full w-full"

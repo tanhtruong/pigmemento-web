@@ -31,7 +31,7 @@ import {
   type LesionFlightOrigin,
 } from '@/lib/lesion-flight';
 import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
-import { motionTokens } from '@/lib/motion-tokens';
+import { motionTokens, VERDICT_ENTER_OPACITY } from '@/lib/motion-tokens';
 import { CaseAttemptFlow } from './case-attempt-flow.tsx';
 
 export type Label = CaseChoice;
@@ -176,20 +176,26 @@ export const CaseAttemptView = ({
           Your call · tap to commit
         </p>
         <div className="flex flex-col gap-2">
-          {choices.map((c) => (
-            <CaseChoiceCard
-              key={c.value}
-              choice={c.value}
-              label={c.label}
-              shortcut={c.shortcut}
-              selected={committed === c.value}
-              disabled={
-                Boolean(committed) && committed !== c.value && !revealing
-              }
-              outcome={choiceOutcomes?.[c.value]}
-              onSelect={() => onCommit(c.value)}
-            />
-          ))}
+          {choices.map((c, i) => {
+            // The unchosen cards retire as the chosen card commits — but only on
+            // a live commit, never the drill's inline recolour (#98).
+            const unchosen =
+              Boolean(committed) && committed !== c.value && !revealing;
+            return (
+              <CaseChoiceCard
+                key={c.value}
+                choice={c.value}
+                label={c.label}
+                shortcut={c.shortcut}
+                selected={committed === c.value}
+                disabled={unchosen}
+                receding={unchosen}
+                recedeDelay={i * 0.04}
+                outcome={choiceOutcomes?.[c.value]}
+                onSelect={() => onCommit(c.value)}
+              />
+            );
+          })}
         </div>
 
         {revealNode}
@@ -219,10 +225,12 @@ export const CaseAttemptView = ({
         <motion.div
           key={resolved ? 'verdict' : 'question'}
           className="flex flex-col gap-8"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={motionTokens.normal}
+          // Enter from a floor (not blank) so the swap firms up over the
+          // verdict's own divider-draw; the outgoing column leaves quickly so
+          // there's no empty-column gap between them (#98).
+          initial={{ opacity: VERDICT_ENTER_OPACITY }}
+          animate={{ opacity: 1, transition: motionTokens.normal }}
+          exit={{ opacity: 0, transition: motionTokens.quick }}
         >
           {active}
         </motion.div>
@@ -246,6 +254,7 @@ export const CaseAttemptView = ({
             features={resolved ? (heroFeatures ?? []) : []}
             sourceCredit={resolved ? heroSourceCredit : undefined}
             showAnnotations={resolved}
+            acknowledged={Boolean(committed)}
             frameRef={heroRef}
             frameHidden={Boolean(flight)}
             eager
