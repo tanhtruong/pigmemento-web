@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router';
 import { useTheme } from 'next-themes';
 import {
   ArrowRight,
@@ -24,6 +23,7 @@ import {
   CommandShortcut,
 } from '@/components/ui/command.tsx';
 import { paths } from '@/config/paths.ts';
+import { useInAppNavigate } from '@/components/layouts/use-in-app-navigate.ts';
 import { useLogoutTransition } from '@/features/auth/hooks/use-logout-transition.ts';
 import { prefetchLandingRoute } from '@/app/prefetch-routes.ts';
 import { commitOrigin } from '@/lib/commit-origin.ts';
@@ -52,7 +52,7 @@ export const AppCommandPalette = ({
   onOpenChange,
   onStartACase,
 }: AppCommandPaletteProps) => {
-  const navigate = useNavigate();
+  const inAppNavigate = useInAppNavigate();
   const { resolvedTheme, setTheme } = useTheme();
   const logoutWithBloom = useLogoutTransition();
 
@@ -102,28 +102,30 @@ export const AppCommandPalette = ({
 
         <CommandGroup heading="Jump to">
           <CommandItem
-            onSelect={run(() => navigate(paths.app['case-random'].getHref()))}
+            onSelect={run(() =>
+              inAppNavigate(paths.app['case-random'].getHref()),
+            )}
           >
             <GraduationCap />
             Practice — random case
             <CommandShortcut>P</CommandShortcut>
           </CommandItem>
           <CommandItem
-            onSelect={run(() => navigate(paths.app.cases.getHref()))}
+            onSelect={run(() => inAppNavigate(paths.app.cases.getHref()))}
           >
             <Library />
             Library — browse all cases
             <CommandShortcut>L</CommandShortcut>
           </CommandItem>
           <CommandItem
-            onSelect={run(() => navigate(paths.app.dashboard.getHref()))}
+            onSelect={run(() => inAppNavigate(paths.app.dashboard.getHref()))}
           >
             <LayoutDashboard />
             Progress — study journal
             <CommandShortcut>G</CommandShortcut>
           </CommandItem>
           <CommandItem
-            onSelect={run(() => navigate(paths.app.profile.getHref()))}
+            onSelect={run(() => inAppNavigate(paths.app.profile.getHref()))}
           >
             <User2 />
             Profile — settings

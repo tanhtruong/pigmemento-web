@@ -1,8 +1,6 @@
-import { Link, useLocation, type LinkProps } from 'react-router';
-import { useReducedMotion } from 'motion/react';
+import { Link, type LinkProps } from 'react-router';
 
-import { planInAppTransition } from '@/lib/plan-in-app-transition';
-import { supportsViewTransitions } from '@/lib/view-transitions';
+import { useHopPlanner } from '@/components/layouts/use-in-app-navigate';
 
 type AppTabLinkProps = Omit<LinkProps, 'to'> & { to: string };
 
@@ -20,15 +18,7 @@ type AppTabLinkProps = Omit<LinkProps, 'to'> & { to: string };
  * alike (#105).
  */
 export const AppTabLink = ({ to, ...props }: AppTabLinkProps) => {
-  const { pathname } = useLocation();
-  const reducedMotion = useReducedMotion() ?? false;
-
-  const { mode } = planInAppTransition({
-    from: pathname,
-    to,
-    reducedMotion,
-    supportsVT: supportsViewTransitions(),
-  });
+  const { mode } = useHopPlanner()(to);
 
   return (
     <Link {...props} to={to} viewTransition={mode === 'view-transition'} />
