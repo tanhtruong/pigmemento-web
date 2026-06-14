@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
 import { ArrowRight, Sparkles } from 'lucide-react';
 
 import { Button } from '@/components/ui/button.tsx';
+import { useInAppNavigate } from '@/components/layouts/use-in-app-navigate.ts';
 import {
   Popover,
   PopoverContent,
@@ -50,7 +50,7 @@ export const AppStartACaseButton = ({
   withTrigger = true,
   className,
 }: AppStartACaseButtonProps) => {
-  const navigate = useNavigate();
+  const inAppNavigate = useInAppNavigate();
   const [internalOpen, setInternalOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -65,7 +65,7 @@ export const AppStartACaseButton = ({
       shortcut: 'R',
       onSelect: () => {
         setOpen(false);
-        navigate(paths.app['case-random'].getHref());
+        inAppNavigate(paths.app['case-random'].getHref());
       },
     },
     {
@@ -75,7 +75,7 @@ export const AppStartACaseButton = ({
       shortcut: '1',
       onSelect: () => {
         setOpen(false);
-        navigate(paths.app['case-drill'].getHref());
+        inAppNavigate(paths.app['case-drill'].getHref());
       },
     },
     {
@@ -85,7 +85,7 @@ export const AppStartACaseButton = ({
       shortcut: '2',
       onSelect: () => {
         setOpen(false);
-        navigate(paths.app['case-drill'].getHref());
+        inAppNavigate(paths.app['case-drill'].getHref());
       },
     },
   ];
