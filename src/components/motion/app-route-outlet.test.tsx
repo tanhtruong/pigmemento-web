@@ -8,15 +8,25 @@ vi.mock('motion/react', async () => {
   return { ...actual, useReducedMotion: vi.fn(() => false) };
 });
 
+// jsdom has no startViewTransition, so feature detection is stubbed to "supported"
+// — this is how the outlet behaves in a View-Transition-capable browser.
+vi.mock('@/lib/view-transitions', () => ({
+  supportsViewTransitions: vi.fn(() => true),
+}));
+
 import { useReducedMotion } from 'motion/react';
 
 import { AppRouteOutlet } from './app-route-outlet';
 import { rememberScroll } from '@/lib/route-scroll';
+import { supportsViewTransitions } from '@/lib/view-transitions';
 
 const mockedUseReducedMotion = vi.mocked(useReducedMotion);
+const mockedSupportsVT = vi.mocked(supportsViewTransitions);
 
 afterEach(() => {
   mockedUseReducedMotion.mockReturnValue(false);
+  mockedSupportsVT.mockReturnValue(true);
+  delete document.documentElement.dataset.vt;
 });
 
 const buildRouter = (
@@ -165,5 +175,51 @@ describe('pending fix-out dim (#54)', () => {
       await new Promise((resolve) => setTimeout(resolve, 200));
     });
     expect(surface()).toHaveAttribute('data-pending', 'false');
+  });
+});
+
+describe('develop conjugation (#103)', () => {
+  afterEach(() => {
+    vi.spyOn(window, 'scrollTo').mockRestore();
+  });
+
+  const navigateAndRead = async (from: string, to: string) => {
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    const { router } = renderWithRoute(from);
+    await act(async () => {
+      await router.navigate(to);
+    });
+    return document.documentElement.dataset.vt;
+  };
+
+  it('arms the directional keyframes via data-vt, conjugated by the hop', async () => {
+    expect(await navigateAndRead('/app/dashboard', '/app/profile')).toBe(
+      'lateral-forward',
+    );
+  });
+
+  it('conjugates a descend into case flow', async () => {
+    expect(
+      await navigateAndRead('/app/dashboard', '/app/cases/42/attempt'),
+    ).toBe('descend');
+  });
+
+  it('clears data-vt on an instant cut under reduced motion', async () => {
+    mockedUseReducedMotion.mockReturnValue(true);
+    // A stale value from an earlier animated hop must not survive an instant cut.
+    document.documentElement.dataset.vt = 'descend';
+
+    expect(
+      await navigateAndRead('/app/dashboard', '/app/profile'),
+    ).toBeUndefined();
+  });
+
+  it('clears data-vt when the browser lacks View Transitions', async () => {
+    mockedSupportsVT.mockReturnValue(false);
+    document.documentElement.dataset.vt = 'ascend';
+
+    expect(
+      await navigateAndRead('/app/dashboard', '/app/profile'),
+    ).toBeUndefined();
   });
 });

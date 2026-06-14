@@ -3,39 +3,58 @@ import { useReducedMotion } from 'motion/react';
 import { Outlet, useLocation, useNavigation } from 'react-router';
 
 import { PENDING_HOLD_MS } from '@/lib/motion-tokens';
-import {
-  classifyRouteTransition,
-  shouldAnimateRouteTransition,
-} from '@/lib/route-transition';
-import {
-  rememberScroll,
-  restoresScroll,
-  scrollTargetFor,
-} from '@/lib/route-scroll';
+import { shouldAnimateRouteTransition } from '@/lib/route-transition';
+import { rememberScroll, scrollTargetFor } from '@/lib/route-scroll';
+import { planInAppTransition } from '@/lib/plan-in-app-transition';
+import { supportsViewTransitions } from '@/lib/view-transitions';
 import { cn } from '@/lib/utils';
 
 /**
- * Grammar-aware scroll restoration for the View Transitions engine (#63, #102).
+ * Per-hop choreography for the View Transitions engine (#63, #102, #103).
  *
- * The outgoing scroll is saved, then the incoming surface is positioned:
- * back / ascend return to where you were, everything else starts at the top.
- * Both happen in a layout effect so that, when React Router drives the swap
- * inside `document.startViewTransition` (its `flushSync` commit), the *new*
- * snapshot is captured at the destination scroll and the crossfade never jumps.
- * It runs for instant cuts too, so reduced-motion / unsupported browsers
- * restore scroll exactly the same.
+ * One `planInAppTransition` decision drives two things, both inside a layout
+ * effect so they land in React Router's `flushSync` commit — the window between
+ * the old and new `document.startViewTransition` snapshots:
+ *
+ *  - Scroll restoration (#63): save the outgoing scroll, then place the
+ *    incoming surface — back / ascend return to where you were, everything else
+ *    starts at the top. Running here means the *new* snapshot is captured at the
+ *    destination scroll, so the crossfade never jumps. It runs for instant cuts
+ *    too, so reduced-motion / unsupported browsers restore scroll identically.
+ *  - Develop conjugation (#103): set `data-vt` on <html> so the directional
+ *    `::view-transition` keyframes are chosen before the pseudo-elements are
+ *    styled. Every animated hop sets it here, so a stale value is never
+ *    consumed; an instant cut clears it to keep the DOM honest.
  */
-const useRouteScrollRestoration = (pathname: string): void => {
+const useInAppHopChoreography = (
+  pathname: string,
+  reducedMotion: boolean,
+): void => {
   const previous = useRef(pathname);
 
   useLayoutEffect(() => {
     const from = previous.current;
     if (from === pathname) return;
+
+    const plan = planInAppTransition({
+      from,
+      to: pathname,
+      reducedMotion,
+      supportsVT: supportsViewTransitions(),
+    });
+
     rememberScroll(from, window.scrollY);
-    const variant = classifyRouteTransition(from, pathname);
-    window.scrollTo(0, scrollTargetFor(pathname, restoresScroll(variant)));
+    window.scrollTo(0, scrollTargetFor(pathname, plan.restoreScroll));
+
+    const root = document.documentElement;
+    if (plan.mode === 'view-transition') {
+      root.dataset.vt = plan.variant;
+    } else {
+      delete root.dataset.vt;
+    }
+
     previous.current = pathname;
-  }, [pathname]);
+  }, [pathname, reducedMotion]);
 };
 
 /**
@@ -45,9 +64,11 @@ const useRouteScrollRestoration = (pathname: string): void => {
  * under the threshold (the react-query cached majority) never trigger it, and
  * reduced motion opts out entirely (parity with the old engine).
  */
-const usePendingHold = (currentPath: string): boolean => {
+const usePendingHold = (
+  currentPath: string,
+  reducedMotion: boolean,
+): boolean => {
   const navigation = useNavigation();
-  const reducedMotion = useReducedMotion() ?? false;
   const [held, setHeld] = useState(false);
 
   const pendingPath =
@@ -81,8 +102,9 @@ const usePendingHold = (currentPath: string): boolean => {
  */
 export const AppRouteOutlet = () => {
   const { pathname } = useLocation();
-  useRouteScrollRestoration(pathname);
-  const held = usePendingHold(pathname);
+  const reducedMotion = useReducedMotion() ?? false;
+  useInAppHopChoreography(pathname, reducedMotion);
+  const held = usePendingHold(pathname, reducedMotion);
 
   return (
     <div
