@@ -325,3 +325,95 @@
     transition-timing-function: var(--ease-considered);
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * IN-APP VIEW TRANSITIONS — the Develop grammar, conjugated by hop (#102, #103)
+ *
+ * The route swap rides the browser's View Transitions API (#102). Here the
+ * directional grammar is re-expressed as ::view-transition keyframes, chosen by
+ * `data-vt` on <html> — set by AppRouteOutlet inside React Router's flushSync
+ * snapshot window, before the pseudo-elements are styled. Same 8px drift
+ * vocabulary as the retired motion engine (motion ENTER_DRIFT), now with
+ * genuine overlap. The chrome (grain / topbar / tabs / fab) is pinned into its
+ * own named groups, so only `root` — the main surface — develops.
+ *
+ * The incoming surface develops in from the hop's direction; the outgoing one
+ * just fixes out (a quiet fade, never drifts), mirroring the old Develop.
+ * ------------------------------------------------------------------------ */
+@keyframes vt-fix-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes vt-develop-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes vt-develop-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+}
+@keyframes vt-develop-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+}
+@keyframes vt-develop-from-above {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+@keyframes vt-develop-from-below {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: var(--duration-normal);
+    animation-timing-function: var(--ease-considered);
+  }
+
+  ::view-transition-old(root) {
+    animation-name: vt-fix-out;
+  }
+  ::view-transition-new(root) {
+    animation-name: vt-develop-in;
+  }
+
+  /* Conjugation — drift direction mirrors the motion engine's ENTER_DRIFT.
+     lateral-forward / advance arrive from the right, lateral-back from the
+     left, descend from above, ascend from below. neutral keeps the plain
+     fade. */
+  :root[data-vt='lateral-forward']::view-transition-new(root),
+  :root[data-vt='advance']::view-transition-new(root) {
+    animation-name: vt-develop-from-right;
+  }
+  :root[data-vt='lateral-back']::view-transition-new(root) {
+    animation-name: vt-develop-from-left;
+  }
+  :root[data-vt='descend']::view-transition-new(root) {
+    animation-name: vt-develop-from-above;
+  }
+  :root[data-vt='ascend']::view-transition-new(root) {
+    animation-name: vt-develop-from-below;
+  }
+}
+
+/* Reduced motion never sees a develop — AppRouteOutlet already cuts instantly,
+   and this nulls the browser's default cross-fade as belt-and-suspenders. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
