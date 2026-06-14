@@ -148,6 +148,7 @@ const SilentReveal = ({
   useEffect(() => {
     if (reducedMotion || !autoplay) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- seeds the autoplay sweep's start position before motion's animate() drives it imperatively
     setPosition(0);
     let settleRef: ReturnType<typeof animate> | null = null;
     const sweep = animate(0, 100, {

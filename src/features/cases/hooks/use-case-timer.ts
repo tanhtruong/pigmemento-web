@@ -7,6 +7,7 @@ export const useCaseTimer = (deps: any[] = []) => {
 
   useEffect(() => {
     startedAtRef.current = performance.now();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets the readout when deps change; the elapsed value is then driven by the interval (external timer)
     setElapsedMs(0);
 
     const interval = window.setInterval(() => {

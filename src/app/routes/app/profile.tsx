@@ -152,11 +152,17 @@ const ProfileScene = () => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
+  const [seededUser, setSeededUser] = useState<typeof user>(undefined);
 
-  useEffect(() => {
-    if (!user) return;
+  // Seed the editable name draft from the loaded profile during render,
+  // re-seeding whenever the user reference changes (it arrives async and may
+  // be refetched). This is the React-recommended alternative to syncing state
+  // in an effect ("You Might Not Need an Effect"); it converges because the
+  // next render has user === seededUser.
+  if (user && user !== seededUser) {
+    setSeededUser(user);
     setNameDraft(user.name ?? '');
-  }, [user]);
+  }
 
   const initials =
     (user?.name || user?.email || '')

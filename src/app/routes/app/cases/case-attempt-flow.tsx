@@ -131,6 +131,7 @@ export const CaseAttemptFlow = ({
   // Reset the whole flow when the case changes (next case, random reload).
   useEffect(() => {
     clearResolveTimeout();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional full-flow reset when the case changes; also drives external clearResolveTimeout()/resetSubmit(), so it belongs in an effect
     setCommitted(null);
     setPhase('question');
     setLiveReveal(false);
@@ -147,6 +148,7 @@ export const CaseAttemptFlow = ({
     if (!resumeIfAnswered || resumedRef.current) return;
     if (phase !== 'question' || committed || !attempt) return;
     resumedRef.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot cold resume: opens an already-answered case at its verdict, gated by resumedRef so it runs once per mount
     setLiveReveal(false);
     setPhase('resolved');
   }, [resumeIfAnswered, attempt, committed, phase]);

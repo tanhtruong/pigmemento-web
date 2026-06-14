@@ -112,6 +112,7 @@ const CaseDrillScene = () => {
     if (phase !== 'running') return;
     if (!randomCase?.id) return;
     startedAtRef.current = performance.now();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional reset when the case changes; also calls the external resetSubmit(), so it belongs in an effect
     setChoice(null);
     setReveal(null);
     resetSubmit();
@@ -182,6 +183,7 @@ const CaseDrillScene = () => {
    * advances once the ring closes.
    */
   const handleCommit = useCallback(
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization -- deps intentionally key on randomCase?.id (stable across refetches) rather than the whole randomCase object the compiler infers
     (committed: CaseChoice) => {
       if (!randomCase?.id || choice || isSubmitting || reveal) return;
       setChoice(committed);

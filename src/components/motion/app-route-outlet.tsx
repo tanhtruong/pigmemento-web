@@ -81,6 +81,7 @@ const usePendingHold = (
 
   useEffect(() => {
     if (pendingPath === undefined) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- releases the pending-hold when navigation settles; its paired set is driven by the timer below
       setHeld(false);
       return;
     }

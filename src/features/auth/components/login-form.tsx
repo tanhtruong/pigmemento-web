@@ -65,6 +65,7 @@ export const LoginForm = ({ className, ...props }: ComponentProps<'div'>) => {
     <div className={cn(className)} {...props}>
       <motion.div animate={shakeControls} className="flex flex-col gap-5">
         <Form {...form}>
+          {/* eslint-disable-next-line react-hooks/refs -- onSubmit reads submitRef.current only inside the onSuccess event callback (navigation origin), never during render */}
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
