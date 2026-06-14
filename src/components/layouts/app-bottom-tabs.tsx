@@ -1,8 +1,9 @@
-import { Link, useLocation } from 'react-router';
+import { useLocation } from 'react-router';
 import { GraduationCap, LayoutDashboard, Library, User2 } from 'lucide-react';
 
 import { paths } from '@/config/paths.ts';
 import { cn } from '@/lib/utils.ts';
+import { AppTabLink } from '@/components/layouts/app-tab-link.tsx';
 
 type Tab = {
   to: string;
@@ -81,6 +82,9 @@ export const AppBottomTabs = () => {
         'sticky bottom-0 z-30 md:hidden',
         'border-t border-hairline bg-background/90 backdrop-blur-md',
         'pb-[env(safe-area-inset-bottom,0)]',
+        // Pinned out of the View Transition root so the bar never slides or
+        // double-renders its blur during an in-app hop (#102).
+        '[view-transition-name:app-tabs]',
       )}
     >
       <ul className="grid grid-cols-4">
@@ -89,7 +93,7 @@ export const AppBottomTabs = () => {
           const Icon = tab.Icon;
           return (
             <li key={tab.to}>
-              <Link
+              <AppTabLink
                 to={tab.to}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
@@ -111,7 +115,7 @@ export const AppBottomTabs = () => {
                 <span className="text-[0.65rem] leading-tight font-medium">
                   {tab.label}
                 </span>
-              </Link>
+              </AppTabLink>
             </li>
           );
         })}

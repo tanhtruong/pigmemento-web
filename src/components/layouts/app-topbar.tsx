@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router';
 import { paths } from '@/config/paths.ts';
 import { cn } from '@/lib/utils.ts';
 import { AppAvatarMenu } from '@/components/layouts/app-avatar-menu.tsx';
+import { AppTabLink } from '@/components/layouts/app-tab-link.tsx';
 
 type NavItem = {
   to: string;
@@ -79,6 +80,9 @@ const AppTopBar = () => {
       className={cn(
         'sticky top-0 z-40 w-full',
         'border-b border-hairline bg-background/85 backdrop-blur-md',
+        // Pinned out of the View Transition root so the strip never slides or
+        // double-renders its blur during an in-app hop (#102).
+        '[view-transition-name:app-topbar]',
       )}
     >
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
@@ -111,7 +115,7 @@ const AppTopBar = () => {
             {NAV_ITEMS.map((item) => {
               const isActive = item === active;
               return (
-                <Link
+                <AppTabLink
                   key={item.to}
                   to={item.to}
                   aria-current={isActive ? 'page' : undefined}
@@ -130,7 +134,7 @@ const AppTopBar = () => {
                       className="bg-primary absolute inset-x-2 bottom-0 h-0.5 rounded-full"
                     />
                   )}
-                </Link>
+                </AppTabLink>
               );
             })}
           </nav>

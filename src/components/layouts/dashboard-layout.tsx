@@ -64,8 +64,13 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     >
       <Helmet title="Pigmemento" />
       <SkipToContent />
-      {/* Paper-warm grain — 1% opacity, free, the secret-sauce material texture */}
-      <GrainOverlay intensity={0.9} />
+      {/* Paper-warm grain — 1% opacity, free, the secret-sauce material texture.
+          Pinned out of the View Transition root so it never double-renders into
+          a momentary double-density pulse during an in-app hop (#102). */}
+      <GrainOverlay
+        intensity={0.9}
+        className="[view-transition-name:app-grain]"
+      />
 
       <AppTopBar />
 
@@ -79,11 +84,13 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
       <AppBottomTabs />
 
-      {/* Mobile FAB — fixed position, hidden when redundant */}
+      {/* Mobile FAB — fixed position, hidden when redundant. Pinned out of the
+          View Transition root so it holds still across an in-app hop (#102). */}
       {!shouldHideFab(pathname) && (
         <AmberFAB
           aria-label="Start a case"
           onClick={() => setStartACaseOpen(true)}
+          className="[view-transition-name:app-fab]"
         />
       )}
 

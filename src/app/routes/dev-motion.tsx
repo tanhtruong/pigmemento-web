@@ -228,11 +228,13 @@ const LesionFlightDemo = () => {
 const DEMO_SLOW_LOAD_MS = 1200;
 
 /**
- * Replays the in-app Develop (#53) on a mock surface without real
- * navigation — same `developVariants` the RouteTransitionOutlet conjugates,
- * one button per grammar variant. The slow-load button simulates a route
- * loader holding navigation (#54): past PENDING_HOLD_MS the outgoing surface
- * eases into the held fix and waits there until the mock data resolves.
+ * Replays the in-app Develop grammar (#53) on a mock surface without real
+ * navigation — the same `developVariants` vocabulary, one button per variant.
+ * Live tab hops now ride the View Transitions engine (#102); this demo previews
+ * the directional feel that #103 re-expresses as `::view-transition` keyframes.
+ * The slow-load button simulates a route loader holding navigation (#54): past
+ * PENDING_HOLD_MS the outgoing surface eases into the held fix and waits there
+ * until the mock data resolves.
  */
 const DevelopGrammarDemo = () => {
   const [stage, setStage] = useState<{
