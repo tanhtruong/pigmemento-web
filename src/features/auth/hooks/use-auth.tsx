@@ -7,6 +7,8 @@ import {
 import { useNavigate, useSearchParams } from 'react-router';
 import { AuthResponse, LoginDto, RegisterPayload } from '../types/auth';
 import api from '@/lib/axios';
+import { setToken, clearToken } from '@/lib/session';
+import { clearScrollMemory } from '@/lib/route-scroll';
 
 /**
  * Login + register mutations.
@@ -32,7 +34,7 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: async (data: LoginDto) => {
       const res = await api.post<AuthResponse>('/auth/login', data);
-      localStorage.setItem('token', res.data.token);
+      setToken(res.data.token);
       return res.data;
     },
     onError: (err) => {
@@ -45,7 +47,7 @@ export const useRegister = () => {
   return useMutation({
     mutationFn: async (data: RegisterPayload) => {
       const res = await api.post<AuthResponse>('/auth/register', data);
-      localStorage.setItem('token', res.data.token);
+      setToken(res.data.token);
       return res.data;
     },
     onError: (err) => {
@@ -72,6 +74,7 @@ export const useLogout = () => {
  * conductor's exit-app bloom; the bloom is the goodbye).
  */
 export const performLogout = (queryClient: QueryClient): void => {
-  localStorage.removeItem('token');
+  clearToken();
+  clearScrollMemory();
   queryClient.clear();
 };

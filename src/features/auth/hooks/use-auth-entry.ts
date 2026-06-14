@@ -1,7 +1,8 @@
 import type { MouseEvent } from 'react';
 
 import { paths } from '@/config/paths';
-import { isTokenValid } from '@/lib/auth';
+import { isAuthenticated } from '@/lib/session';
+import { useSession } from '@/lib/use-session';
 import { gestureOrigin } from '@/lib/commit-origin';
 import type { TransitionKind } from '@/lib/transition-conductor';
 import { useTransitionNavigate } from '@/components/motion/transition-conductor';
@@ -41,7 +42,7 @@ export const resolveAuthEntry = (
  * visitor warms the auth chunk.
  */
 const prefetchEntryTarget = async () =>
-  isTokenValid()
+  isAuthenticated()
     ? prefetchAppRoute(paths.app.dashboard.getHref())
     : prefetchLoginRoute();
 
@@ -55,15 +56,16 @@ export type AuthEntryGesture = {
 export const useAuthEntry = (): AuthEntryGesture => {
   const startTransition = useTransitionNavigate();
   const prefetch = usePrefetchOnHoverFocus(prefetchEntryTarget);
+  const { status } = useSession();
 
-  const { destination: href } = resolveAuthEntry(isTokenValid());
+  const { destination: href } = resolveAuthEntry(status === 'authenticated');
 
   const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
     const modified =
       event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
     if (modified || event.button !== 0) return;
     // Token may have expired since render — decide at click time.
-    const entry = resolveAuthEntry(isTokenValid());
+    const entry = resolveAuthEntry(isAuthenticated());
     event.preventDefault();
     startTransition({
       kind: entry.kind,

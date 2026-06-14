@@ -38,7 +38,7 @@ import { useProfile } from '@/features/profile/api/use-profile.ts';
 import { useStats } from '@/features/profile/api/use-stats.ts';
 import { useUpdateProfile } from '@/features/profile/api/use-update-profile';
 import { useDeleteAccount } from '@/features/profile/api/use-delete-account.ts';
-import { clearAuthToken } from '@/lib/auth';
+import { clearToken } from '@/lib/session';
 
 const useCoarsePointer = () => {
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
@@ -174,7 +174,7 @@ const ProfileScene = () => {
       .join('') || 'U';
 
   const onSignOut = () => {
-    clearAuthToken();
+    clearToken();
     queryClient.clear();
     toast('Signed out');
     navigate('/', { replace: true });

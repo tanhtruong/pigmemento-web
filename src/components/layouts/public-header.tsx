@@ -4,7 +4,7 @@ import { useReducedMotion } from 'framer-motion';
 
 import { Button } from '@/components/ui/button.tsx';
 import { paths } from '@/config/paths.ts';
-import { isTokenValid } from '@/lib/auth.tsx';
+import { useSession } from '@/lib/use-session';
 
 /**
  * PublicHeader — the minimal header for non-landing public routes (currently
@@ -20,7 +20,7 @@ export const PublicHeader = () => {
   const shouldReduceMotion = useReducedMotion();
   const location = useLocation();
   const navigate = useNavigate();
-  const isLoggedIn = isTokenValid();
+  const isLoggedIn = useSession().status === 'authenticated';
 
   // Landing owns its own scroll-born rail; suppress the standard header here.
   if (location.pathname === paths.home.path) {
