@@ -20,8 +20,10 @@ import { hasAbcdeFeatures } from '@/features/cases/types/abcde-feature.ts';
 import type { CaseDetail } from '@/features/cases/types/case-detail.ts';
 import { RING_FILL_MS, easeOut } from '@/lib/motion-tokens';
 import { useCoarsePointer } from '@/features/cases/hooks/use-coarse-pointer.ts';
-
-type Outcome = 'correct' | 'incorrect' | 'skipped';
+import {
+  interpretAttempt,
+  type Outcome,
+} from '@/features/cases/lib/interpret-attempt.ts';
 
 const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -245,19 +247,8 @@ export const CaseAttemptFlow = ({
   let meta: ReactNode;
   let diagnosis: string | undefined;
   if (resolved && attempt) {
-    const chosen = String(attempt.chosenLabel).toLowerCase();
-    const correctLabel = String(attempt.correctLabel).toLowerCase();
-    const outcome: Outcome =
-      chosen === 'skipped'
-        ? 'skipped'
-        : attempt.correct
-          ? 'correct'
-          : 'incorrect';
-    diagnosis = titleCase(correctLabel);
-    const teaching =
-      attempt.teachingPoints?.length > 0
-        ? attempt.teachingPoints.join(' ')
-        : 'Compare against the ABCDE markers — those are the features that drove the call.';
+    const verdict = interpretAttempt(attempt);
+    diagnosis = verdict.diagnosis;
 
     // The question phase reserves this line's height (reserveMeta), so the
     // header holds still as the verdict resolves and the timing settles in — a
@@ -276,9 +267,13 @@ export const CaseAttemptFlow = ({
     verdictNode = (
       <CaseVerdict
         diagnosis={diagnosis}
-        outcome={outcome}
-        outcomeCopy={outcomeCopy(outcome, titleCase(chosen), diagnosis)}
-        teaching={teaching}
+        outcome={verdict.outcome}
+        outcomeCopy={outcomeCopy(
+          verdict.outcome,
+          titleCase(verdict.chosenLabel),
+          verdict.diagnosis,
+        )}
+        teaching={verdict.teaching}
         animate={liveReveal && !reducedMotion}
         onNext={onNextCase}
         onRetry={onRetry}
