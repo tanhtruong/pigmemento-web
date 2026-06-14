@@ -413,6 +413,13 @@
     animation-duration: var(--duration-normal);
     animation-timing-function: var(--ease-considered);
   }
+
+  /* The Library thumb morphs into the attempt hero (#106) — the considered pace
+     the hand-built flight used, now a native shared-element group. */
+  ::view-transition-group(case-hero) {
+    animation-duration: var(--duration-considered);
+    animation-timing-function: var(--ease-considered);
+  }
 }
 
 /* Reduced motion never sees a develop — AppRouteOutlet already cuts instantly,

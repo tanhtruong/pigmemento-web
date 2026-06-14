@@ -1,8 +1,9 @@
-import { type ReactNode, useRef, useState } from 'react';
+import { type ReactNode } from 'react';
 import {
   Link,
   useNavigate,
   useParams,
+  useViewTransitionState,
   type LoaderFunctionArgs,
 } from 'react-router';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
@@ -25,11 +26,6 @@ import { queryKeys } from '@/lib/query-keys.ts';
 import { CaseStage } from '@/components/cases/case-stage.tsx';
 import { AnnotatedLesionImage } from '@/components/signature/annotated-lesion-image.tsx';
 import { shortCaseId } from '@/features/cases/lib/case-id.ts';
-import { LesionFlight } from '@/components/motion/lesion-flight';
-import {
-  consumeLesionFlight,
-  type LesionFlightOrigin,
-} from '@/lib/lesion-flight';
 import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
 import { motionTokens, VERDICT_ENTER_OPACITY } from '@/lib/motion-tokens';
 import { CaseAttemptFlow } from './case-attempt-flow.tsx';
@@ -105,6 +101,12 @@ type CaseAttemptViewProps = {
   heroFeatures?: AbcdeFeature[];
   /** Hero caption once resolved — e.g. "CASE 4F2A · MALIGNANT". */
   heroSourceCredit?: string;
+  /**
+   * View Transition name for the hero frame (#106). The id-attempt route passes
+   * `case-hero` while a Library card is morphing in; drill / random leave it
+   * unset (no card to morph from).
+   */
+  frameViewTransitionName?: string;
 };
 
 export const CaseAttemptView = ({
@@ -124,23 +126,10 @@ export const CaseAttemptView = ({
   resolved = false,
   heroFeatures,
   heroSourceCredit,
+  frameViewTransitionName,
 }: CaseAttemptViewProps) => {
   const revealing = Boolean(choiceOutcomes);
   const reducedMotion = useReducedMotion();
-  const heroRef = useRef<HTMLDivElement>(null);
-
-  // Consume the Library→attempt flight origin exactly once per mount, during
-  // the first render — before first paint, so a click-originated entry never
-  // flashes the hero ahead of the flight. Non-click entries (deep link,
-  // refresh, history pop) find the module empty and render plain.
-  const consumedRef = useRef<LesionFlightOrigin | null | undefined>(undefined);
-  if (consumedRef.current === undefined) {
-    consumedRef.current = consumeLesionFlight(String(caseItem.id));
-  }
-  const [flight, setFlight] = useState<LesionFlightOrigin | null>(
-    reducedMotion ? null : consumedRef.current,
-  );
-  const landFlight = () => setFlight(null);
 
   const choices: {
     value: CaseChoice;
@@ -246,27 +235,17 @@ export const CaseAttemptView = ({
       reserveMeta={reserveMeta}
       headerActions={headerActionsNode}
       hero={
-        <>
-          <AnnotatedLesionImage
-            src={caseItem.imageUrl}
-            alt={`Case ${caseItem.id}`}
-            aspect="4:5"
-            features={resolved ? (heroFeatures ?? []) : []}
-            sourceCredit={resolved ? heroSourceCredit : undefined}
-            showAnnotations={resolved}
-            acknowledged={Boolean(committed)}
-            frameRef={heroRef}
-            frameHidden={Boolean(flight)}
-            eager
-          />
-          {flight && (
-            <LesionFlight
-              origin={flight}
-              targetRef={heroRef}
-              onLanded={landFlight}
-            />
-          )}
-        </>
+        <AnnotatedLesionImage
+          src={caseItem.imageUrl}
+          alt={`Case ${caseItem.id}`}
+          aspect="4:5"
+          features={resolved ? (heroFeatures ?? []) : []}
+          sourceCredit={resolved ? heroSourceCredit : undefined}
+          showAnnotations={resolved}
+          acknowledged={Boolean(committed)}
+          frameViewTransitionName={frameViewTransitionName}
+          eager
+        />
       }
     >
       {workingColumn}
@@ -282,6 +261,14 @@ const CaseAttemptScene = () => {
   const safeCaseId = caseId ?? '';
   const navigate = useNavigate();
 
+  // Pair the hero with the Library card it was opened from (#106): while the
+  // View Transition into this case is live, both carry `case-hero` and the
+  // browser morphs the thumb into the hero. Only this id route does it — drill /
+  // random reach the same view with no originating card.
+  const heroMorphing = useViewTransitionState(
+    paths.app['case-attempt'].getHref(safeCaseId),
+  );
+
   const { data: caseItem, isLoading, isError } = useCase(safeCaseId);
 
   if (!safeCaseId) return <CaseMissing />;
@@ -291,6 +278,7 @@ const CaseAttemptScene = () => {
   return (
     <CaseAttemptFlow
       caseItem={caseItem}
+      frameViewTransitionName={heroMorphing ? 'case-hero' : undefined}
       // A keyed case can be re-entered already answered (refresh, history pop,
       // a dashboard tap): boot straight to the verdict when an attempt exists.
       resumeIfAnswered

@@ -24,6 +24,12 @@ type AnnotatedLesionImageProps = {
   frameRef?: RefObject<HTMLDivElement | null>;
   /** Hide the image frame while a flight is mid-air, so it reveals on landing (#62). */
   frameHidden?: boolean;
+  /**
+   * View Transition name for the image frame (#106). Set to `case-hero` while a
+   * Library card is morphing into this hero, so the browser pairs the card's
+   * thumb with this frame and animates the box between them.
+   */
+  frameViewTransitionName?: string;
   /** Load the image eagerly — set on the attempt hero, which is above the fold. */
   eager?: boolean;
   /**
@@ -65,6 +71,7 @@ export const AnnotatedLesionImage = ({
   showAnnotations = true,
   frameRef,
   frameHidden = false,
+  frameViewTransitionName,
   eager = false,
   acknowledged = false,
   className,
@@ -90,7 +97,10 @@ export const AnnotatedLesionImage = ({
         ref={frameRef}
         data-flight-target
         data-flight-hidden={frameHidden ? 'true' : 'false'}
-        style={frameHidden ? { visibility: 'hidden' } : undefined}
+        style={{
+          visibility: frameHidden ? 'hidden' : undefined,
+          viewTransitionName: frameViewTransitionName,
+        }}
         className={cn(
           'relative overflow-hidden rounded-card border border-hairline',
           'bg-muted/30 shadow-warm dark:shadow-cinematic dark:surface-card-dark',

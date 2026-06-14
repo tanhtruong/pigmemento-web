@@ -1,14 +1,12 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter, Route, Routes } from 'react-router';
+import { createMemoryRouter, RouterProvider } from 'react-router';
 
 vi.mock('@/features/cases/api/use-cases.ts', () => ({
   useCases: vi.fn(),
 }));
 
 import { useCases } from '@/features/cases/api/use-cases.ts';
-
-import { consumeLesionFlight } from '@/lib/lesion-flight';
 
 import CasesScene from './cases';
 
@@ -25,7 +23,6 @@ const stubItem = {
 
 afterEach(() => {
   mockedUseCases.mockReset();
-  consumeLesionFlight('__drain__');
 });
 
 const renderLibrary = () => {
@@ -34,27 +31,24 @@ const renderLibrary = () => {
     isLoading: false,
     isError: false,
   } as unknown as ReturnType<typeof useCases>);
-  return render(
-    <MemoryRouter initialEntries={['/app/cases']}>
-      <Routes>
-        <Route path="/app/cases" element={<CasesScene />} />
-        <Route path="*" element={<div>elsewhere</div>} />
-      </Routes>
-    </MemoryRouter>,
+  const router = createMemoryRouter(
+    [
+      { path: '/app/cases', element: <CasesScene /> },
+      { path: '*', element: <div>elsewhere</div> },
+    ],
+    { initialEntries: ['/app/cases'] },
   );
+  return render(<RouterProvider router={router} />);
 };
 
-describe('Library case card flight origin (#55)', () => {
-  it('records the lesion flight origin when a case card is clicked', () => {
+describe('Library case card (#106)', () => {
+  it('links each case card to its attempt route', () => {
     renderLibrary();
 
-    fireEvent.click(screen.getByRole('link', { name: /case · 1001/i }));
-
-    const origin = consumeLesionFlight('1001');
-    expect(origin).toMatchObject({
-      caseId: '1001',
-      src: '/lesion-1001.png',
-    });
+    expect(screen.getByRole('link', { name: /case · 1001/i })).toHaveAttribute(
+      'href',
+      '/app/cases/1001/attempt',
+    );
   });
 });
 

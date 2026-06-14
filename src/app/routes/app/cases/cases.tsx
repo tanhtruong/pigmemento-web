@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useViewTransitionState } from 'react-router';
 import { Search, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import { paths } from '@/config/paths';
 import type { CaseListItem } from '@/features/cases/types/case-list-item.ts';
 import { useCases } from '@/features/cases/api/use-cases.ts';
 import { shortCaseId } from '@/features/cases/lib/case-id.ts';
-import { captureLesionFlight } from '@/lib/lesion-flight';
+import { AppTabLink } from '@/components/layouts/app-tab-link.tsx';
 import { cn } from '@/lib/utils';
 
 type Difficulty = 'all' | 'easy' | 'medium' | 'hard';
@@ -345,12 +345,14 @@ const FilterChip = ({
 
 const CaseCard = ({ item }: { item: CaseListItem }) => {
   const meta = formatAttemptMeta(item);
+  const href = paths.app['case-attempt'].getHref(item.id);
+  // While descending into this case, the thumb frame morphs into the attempt
+  // hero (#106): both carry `case-hero` only for the in-flight card, so exactly
+  // one is named per snapshot. AppTabLink plays the descend underneath.
+  const morphing = useViewTransitionState(href);
   return (
-    <Link
-      to={paths.app['case-attempt'].getHref(item.id)}
-      onClick={(event) =>
-        captureLesionFlight(event.currentTarget, item.id, item.imageUrl)
-      }
+    <AppTabLink
+      to={href}
       className={cn(
         'group/case-card border-hairline relative isolate flex flex-col overflow-hidden rounded-card border bg-card',
         'shadow-warm-sm transition-all ease-considered duration-200',
@@ -361,6 +363,7 @@ const CaseCard = ({ item }: { item: CaseListItem }) => {
       <div
         data-case-thumb
         className="bg-muted/40 aspect-square w-full overflow-hidden"
+        style={{ viewTransitionName: morphing ? 'case-hero' : undefined }}
       >
         <img
           src={item.imageUrl}
@@ -403,7 +406,7 @@ const CaseCard = ({ item }: { item: CaseListItem }) => {
           </p>
         )}
       </div>
-    </Link>
+    </AppTabLink>
   );
 };
 

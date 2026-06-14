@@ -66,6 +66,9 @@ type CaseAttemptFlowProps = {
   /** Leave the case for the Library ("← Library" / L / Esc). */
   onExit: () => void;
   submitErrorNode?: ReactNode;
+  /** Hero View Transition name (#106) — set to `case-hero` by the id route when
+   *  a Library card is morphing in; the random flow leaves it unset. */
+  frameViewTransitionName?: string;
 };
 
 /**
@@ -84,6 +87,7 @@ export const CaseAttemptFlow = ({
   onNextCase,
   onExit,
   submitErrorNode,
+  frameViewTransitionName,
 }: CaseAttemptFlowProps) => {
   const caseId = String(caseItem.id);
   const reducedMotion = useReducedMotion();
@@ -297,6 +301,7 @@ export const CaseAttemptFlow = ({
       committed={committed}
       isPending={isPending}
       onCommit={onCommit}
+      frameViewTransitionName={frameViewTransitionName}
       eyebrow={eyebrow}
       title={resolved ? 'Review' : undefined}
       meta={meta}
