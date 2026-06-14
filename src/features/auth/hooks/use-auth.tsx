@@ -8,6 +8,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { AuthResponse, LoginDto, RegisterPayload } from '../types/auth';
 import api from '@/lib/axios';
 import { setToken, clearToken } from '@/lib/session';
+import { clearScrollMemory } from '@/lib/route-scroll';
 
 /**
  * Login + register mutations.
@@ -74,5 +75,6 @@ export const useLogout = () => {
  */
 export const performLogout = (queryClient: QueryClient): void => {
   clearToken();
+  clearScrollMemory();
   queryClient.clear();
 };
