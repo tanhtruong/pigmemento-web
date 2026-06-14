@@ -110,6 +110,12 @@ export const AppBottomTabs = () => {
                     'mb-0.5 h-1 w-1 rounded-full transition-all',
                     active ? 'bg-primary' : 'bg-transparent',
                   )}
+                  // Only the active dot is named, so exactly one `tab-indicator`
+                  // exists per snapshot (no duplicate-name abort); the View
+                  // Transition then slides it between tabs (#104).
+                  style={
+                    active ? { viewTransitionName: 'tab-indicator' } : undefined
+                  }
                 />
                 <Icon className="h-5 w-5" strokeWidth={active ? 2 : 1.5} />
                 <span className="text-[0.65rem] leading-tight font-medium">
