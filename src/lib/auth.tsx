@@ -21,7 +21,7 @@ export const isTokenValid = () => {
     const decoded = jwtDecode<JwtPayload>(token);
     const now = Date.now() / 1000;
     return decoded.exp > now;
-  } catch (e) {
+  } catch {
     return false;
   }
 };
