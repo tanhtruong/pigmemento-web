@@ -1,7 +1,6 @@
 import { type ReactNode } from 'react';
 import {
   Link,
-  useNavigate,
   useParams,
   useViewTransitionState,
   type LoaderFunctionArgs,
@@ -24,6 +23,7 @@ import { prefetchWithCap } from '@/lib/route-loaders.ts';
 import { CaseAttemptSkeleton } from '@/components/cases/case-attempt-skeleton.tsx';
 import { queryKeys } from '@/lib/query-keys.ts';
 import { CaseStage } from '@/components/cases/case-stage.tsx';
+import { useInAppNavigate } from '@/components/layouts/use-in-app-navigate.ts';
 import { AnnotatedLesionImage } from '@/components/signature/annotated-lesion-image.tsx';
 import { shortCaseId } from '@/features/cases/lib/case-id.ts';
 import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
@@ -259,7 +259,7 @@ const CaseAttemptScene = () => {
   const queryClient = useQueryClient();
   const { caseId } = useParams();
   const safeCaseId = caseId ?? '';
-  const navigate = useNavigate();
+  const inAppNavigate = useInAppNavigate();
 
   // Pair the hero with the Library card it was opened from (#106): while the
   // View Transition into this case is live, both carry `case-hero` and the
@@ -284,12 +284,14 @@ const CaseAttemptScene = () => {
       resumeIfAnswered
       onNextCase={() => {
         queryClient.invalidateQueries({ queryKey: queryKeys['random-case'] });
-        navigate(paths.app['case-random'].getHref());
+        inAppNavigate(paths.app['case-random'].getHref());
       }}
-      onExit={() => navigate(paths.app.cases.getHref())}
+      onExit={() => inAppNavigate(paths.app.cases.getHref())}
       headerActionsNode={
         <Button asChild variant="ghost" size="sm">
-          <Link to={paths.app.cases.getHref()}>← Library</Link>
+          <Link to={paths.app.cases.getHref()} viewTransition>
+            ← Library
+          </Link>
         </Button>
       }
     />
@@ -307,7 +309,9 @@ const CaseMissing = () => (
       It may have been removed, or you may not have access.
     </p>
     <Button asChild>
-      <Link to={paths.app.cases.getHref()}>Back to library</Link>
+      <Link to={paths.app.cases.getHref()} viewTransition>
+        Back to library
+      </Link>
     </Button>
   </div>
 );
