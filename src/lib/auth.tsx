@@ -21,7 +21,7 @@ export const isTokenValid = () => {
     const decoded = jwtDecode<JwtPayload>(token);
     const now = Date.now() / 1000;
     return decoded.exp > now;
-  } catch (e) {
+  } catch {
     return false;
   }
 };
@@ -42,6 +42,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const valid = isTokenValid();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time auth-gate check on mount; kept in an effect to preserve the loading→decision flow of this protected-route boundary
     setIsValid(valid);
     setIsLoading(false);
   }, []);

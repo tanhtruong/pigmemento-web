@@ -118,6 +118,11 @@ function ChartTooltipContent({
   labelKey,
 }: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
   React.ComponentProps<'div'> & {
+    // recharts 3 reads active/payload/label from context, so they are no
+    // longer part of <Tooltip>'s own prop types — declare them explicitly.
+    active?: boolean;
+    payload?: RechartsPrimitive.TooltipPayloadEntry[];
+    label?: React.ReactNode;
     hideLabel?: boolean;
     hideIndicator?: boolean;
     indicator?: 'line' | 'dot' | 'dashed';
@@ -184,7 +189,7 @@ function ChartTooltipContent({
 
           return (
             <div
-              key={item.dataKey}
+              key={key}
               className={cn(
                 '[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5',
                 indicator === 'dot' && 'items-center',
@@ -254,11 +259,14 @@ function ChartLegendContent({
   payload,
   verticalAlign = 'bottom',
   nameKey,
-}: React.ComponentProps<'div'> &
-  Pick<RechartsPrimitive.LegendProps, 'payload' | 'verticalAlign'> & {
-    hideIcon?: boolean;
-    nameKey?: string;
-  }) {
+}: React.ComponentProps<'div'> & {
+  // recharts 3 renamed the legend payload type and no longer exposes these
+  // via a single LegendProps Pick; declare the fields this content reads.
+  payload?: RechartsPrimitive.LegendPayload[];
+  verticalAlign?: 'top' | 'middle' | 'bottom';
+  hideIcon?: boolean;
+  nameKey?: string;
+}) {
   const { config } = useChart();
 
   if (!payload?.length) {

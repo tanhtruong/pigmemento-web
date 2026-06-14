@@ -42,6 +42,7 @@ export const StreakChip = ({
     // not the same value.
     if (prev === null || value <= prev) return;
     if (reducedMotion) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fires a transient celebration on genuine streak increments; decays via the timeout below
     setInternalPunching(true);
     const t = window.setTimeout(
       () => setInternalPunching(false),

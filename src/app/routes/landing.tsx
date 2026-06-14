@@ -164,12 +164,10 @@ const LandingRoute = () => {
       {/* Structured data for SEO */}
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
       />
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <Head title="Pigmemento – Melanoma Recognition Training for Clinicians" />
