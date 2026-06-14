@@ -129,9 +129,14 @@ const AppTopBar = () => {
                 >
                   {item.label}
                   {isActive && (
+                    // The active underline is a relocating singleton: rendered
+                    // only on the current tab and named so the View Transition
+                    // morphs it from the old tab's box to the new one — it
+                    // glides between tabs instead of snapping (#104).
                     <span
                       aria-hidden
                       className="bg-primary absolute inset-x-2 bottom-0 h-0.5 rounded-full"
+                      style={{ viewTransitionName: 'tab-indicator' }}
                     />
                   )}
                 </AppTabLink>

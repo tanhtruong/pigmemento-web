@@ -406,6 +406,13 @@
   :root[data-vt='ascend']::view-transition-new(root) {
     animation-name: vt-develop-from-below;
   }
+
+  /* The active-tab indicator is its own group (a relocating singleton, #104):
+     let it glide between tabs on the house easing instead of the UA default. */
+  ::view-transition-group(tab-indicator) {
+    animation-duration: var(--duration-normal);
+    animation-timing-function: var(--ease-considered);
+  }
 }
 
 /* Reduced motion never sees a develop — AppRouteOutlet already cuts instantly,

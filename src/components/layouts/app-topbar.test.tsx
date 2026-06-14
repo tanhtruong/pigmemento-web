@@ -80,4 +80,21 @@ describe('AppTopBar — stripped-minimal chrome (#66)', () => {
       'page',
     );
   });
+
+  it('names only the active tab indicator, so the View Transition morphs it (#104)', () => {
+    const { container } = renderAt('/app/dashboard');
+    // Exactly one `tab-indicator` exists in the bar — no duplicate-name abort.
+    const named = container.querySelectorAll('[style*="view-transition-name"]');
+    expect(named).toHaveLength(1);
+    expect(
+      screen
+        .getByRole('link', { name: 'Dashboard' })
+        .querySelector('[style*="view-transition-name"]'),
+    ).not.toBeNull();
+    expect(
+      screen
+        .getByRole('link', { name: 'Library' })
+        .querySelector('[style*="view-transition-name"]'),
+    ).toBeNull();
+  });
 });
