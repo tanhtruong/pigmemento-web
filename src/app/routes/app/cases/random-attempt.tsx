@@ -1,7 +1,8 @@
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 
 import { Button } from '@/components/ui/button';
+import { useInAppNavigate } from '@/components/layouts/use-in-app-navigate.ts';
 import { paths } from '@/config/paths';
 import {
   randomCaseQueryOptions,
@@ -22,7 +23,7 @@ export const clientLoader = (queryClient: QueryClient) => () =>
   prefetchWithCap(queryClient.ensureQueryData(randomCaseQueryOptions()));
 
 const RandomCaseScene = () => {
-  const navigate = useNavigate();
+  const inAppNavigate = useInAppNavigate();
   const queryClient = useQueryClient();
   // Look one case ahead so "Next" promotes an already-decoded lesion (#100).
   const { promoteNext } = useRandomCasePeek();
@@ -41,7 +42,9 @@ const RandomCaseScene = () => {
           The Library might be empty, or you may not have access.
         </p>
         <Button asChild>
-          <Link to={paths.app.cases.getHref()}>Back to library</Link>
+          <Link to={paths.app.cases.getHref()} viewTransition>
+            Back to library
+          </Link>
         </Button>
       </div>
     );
@@ -58,10 +61,12 @@ const RandomCaseScene = () => {
           queryClient.invalidateQueries({ queryKey: queryKeys['random-case'] });
         }
       }}
-      onExit={() => navigate(paths.app.cases.getHref())}
+      onExit={() => inAppNavigate(paths.app.cases.getHref())}
       headerActionsNode={
         <Button asChild variant="ghost" size="sm">
-          <Link to={paths.app.cases.getHref()}>← Library</Link>
+          <Link to={paths.app.cases.getHref()} viewTransition>
+            ← Library
+          </Link>
         </Button>
       }
     />

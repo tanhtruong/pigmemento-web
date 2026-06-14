@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 import { Button } from '@/components/ui/button';
+import { useInAppNavigate } from '@/components/layouts/use-in-app-navigate.ts';
 import {
   Card,
   CardContent,
@@ -52,7 +52,7 @@ const formatMs = (ms: number) => {
 };
 
 const CaseDrillScene = () => {
-  const navigate = useNavigate();
+  const inAppNavigate = useInAppNavigate();
   const queryClient = useQueryClient();
   const reducedMotion = useReducedMotion();
 
@@ -381,7 +381,7 @@ const CaseDrillScene = () => {
             variant="ghost"
             size="lg"
             className="sm:w-fit"
-            onClick={() => navigate(paths.app.dashboard.getHref())}
+            onClick={() => inAppNavigate(paths.app.dashboard.getHref())}
           >
             ← Back
           </Button>
@@ -479,7 +479,7 @@ const CaseDrillScene = () => {
                     onClick={() => {
                       const firstMiss = incorrectCases[0];
                       if (!firstMiss) return;
-                      navigate(
+                      inAppNavigate(
                         paths.app['case-attempt'].getHref(firstMiss.caseId),
                       );
                     }}
@@ -493,7 +493,9 @@ const CaseDrillScene = () => {
                     onClick={() => {
                       const last = results[results.length - 1];
                       if (!last) return;
-                      navigate(paths.app['case-attempt'].getHref(last.caseId));
+                      inAppNavigate(
+                        paths.app['case-attempt'].getHref(last.caseId),
+                      );
                     }}
                     disabled={results.length === 0}
                   >
@@ -579,7 +581,9 @@ const CaseDrillScene = () => {
                         variant="link"
                         className="h-auto px-0 text-xs self-start sm:self-auto"
                         onClick={() =>
-                          navigate(paths.app['case-attempt'].getHref(r.caseId))
+                          inAppNavigate(
+                            paths.app['case-attempt'].getHref(r.caseId),
+                          )
                         }
                       >
                         Review
@@ -629,7 +633,7 @@ const CaseDrillScene = () => {
               </Button>
               <Button
                 className="w-full sm:w-auto"
-                onClick={() => navigate(paths.app.dashboard.getHref())}
+                onClick={() => inAppNavigate(paths.app.dashboard.getHref())}
               >
                 Back to dashboard
               </Button>
