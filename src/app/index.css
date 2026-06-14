@@ -141,6 +141,12 @@
   --input: oklch(0 0 0 / 10%);
   --ring: oklch(0.7 0.17 42); /* amber focus */
 
+  /* Scrollbar — neutral at rest, deeper on hover; amber lives in the active
+     (drag) state only. Both derive from --muted-foreground, so they track the
+     surface automatically. */
+  --scrollbar-thumb: oklch(from var(--muted-foreground) l c h / 0.35);
+  --scrollbar-thumb-hover: oklch(from var(--muted-foreground) l c h / 0.55);
+
   /* Charts — analogous warm range */
   --chart-1: oklch(0.7 0.17 42); /* amber */
   --chart-2: oklch(0.62 0.09 165); /* mint */
@@ -199,6 +205,11 @@
   --hairline: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 14%);
   --ring: oklch(0.75 0.18 42);
+
+  /* Scrollbar — see :root for the rationale; same expression resolves against
+     the dark --muted-foreground. */
+  --scrollbar-thumb: oklch(from var(--muted-foreground) l c h / 0.35);
+  --scrollbar-thumb-hover: oklch(from var(--muted-foreground) l c h / 0.55);
 
   --chart-1: oklch(0.75 0.18 42);
   --chart-2: oklch(0.7 0.1 165);
@@ -324,6 +335,79 @@
   .ease-considered {
     transition-timing-function: var(--ease-considered);
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * SCROLLBAR — global native, thin & theme-aware
+ *   bone-warm on the light app · graphite on the dark landing
+ *
+ * Pure CSS, no JS. One treatment covers the page scroll AND every inner
+ * overflow container (the case-drill list, command palette, Radix menus).
+ *
+ * Neutral at rest, deeper on hover, amber ONLY while you actively drag the
+ * thumb — the single moment direct manipulation earns the accent. (WebKit
+ * hover/active only; Firefox can't restyle a scrollbar on interaction, so it
+ * holds the resting tone — a graceful floor.)
+ *
+ * Theme correctness across the html/body split: the app rides next-themes'
+ * class on <html> (body unclassed); the landing force-darks <body> while
+ * <html> may still be light. scrollbar-width/-color are inherited and the
+ * viewport bar propagates from <body>, so Firefox is driven off <body>.
+ * ::-webkit-scrollbar isn't inherited, so the page bar takes a body-scoped
+ * override (wins by specificity) over the generic rule. Both read colour from
+ * --scrollbar-thumb / --primary, themed on whichever element carries the
+ * active surface — correct even for a light-system visitor on the dark landing.
+ * ------------------------------------------------------------------------ */
+
+/* Reserve the page gutter so the bar appearing never shifts content sideways
+   (most visible under View Transitions). Not inherited → document-only, as
+   intended. No-op on overlay-scrollbar Macs. */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Firefox — standard, inherited properties. Set on <body> so the viewport bar
+   propagates correctly on both surfaces and descendants inherit the same. */
+body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* WebKit / Blink — generic rules cover every scroll container. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: var(--scrollbar-thumb);
+  /* Float the pill ~1.5px inside the 8px lane; the hit area stays the full lane. */
+  border: 1.5px solid transparent;
+  background-clip: padding-box;
+  transition: background-color var(--duration-quick) var(--ease-considered);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--primary);
+}
+
+/* Page-level bar — body-scoped so it themes off <body> (correct on the dark
+   landing even when <html> is light); higher specificity beats the generic
+   rule for the viewport thumb while inheriting its shape + transition. */
+body::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+}
+body::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+body::-webkit-scrollbar-thumb:active {
+  background-color: var(--primary);
 }
 
 /* ---------------------------------------------------------------------------
