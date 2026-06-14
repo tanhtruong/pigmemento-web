@@ -1,5 +1,7 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createMemoryRouter, RouterProvider } from 'react-router';
+import type { ReactElement } from 'react';
 
 vi.mock('motion/react', async () => {
   const actual =
@@ -8,8 +10,6 @@ vi.mock('motion/react', async () => {
 });
 
 import { useReducedMotion } from 'motion/react';
-
-import { captureLesionFlight, consumeLesionFlight } from '@/lib/lesion-flight';
 
 import { CaseAttemptView } from './case-attempt';
 
@@ -23,85 +23,38 @@ const stubCase = {
   clinicalNote: 'A pigmented lesion on the arm.',
 };
 
-const recordOriginFor = (caseId: string) => {
-  const card = document.createElement('a');
-  const thumb = document.createElement('div');
-  thumb.setAttribute('data-case-thumb', '');
-  card.appendChild(thumb);
-  document.body.appendChild(card);
-  captureLesionFlight(card, caseId, '/lesion-42.png');
-};
-
-const renderView = () =>
-  render(
-    <CaseAttemptView
-      caseItem={stubCase}
-      committed={null}
-      isPending={false}
-      onCommit={() => {}}
-    />,
+// CaseAttemptView reads useViewTransitionState (#106), so it needs a data
+// router. Mount it at the id-attempt route a Library card links to.
+const renderInRouter = (ui: ReactElement) => {
+  const router = createMemoryRouter(
+    [{ path: '/app/cases/:id/attempt', element: ui }],
+    { initialEntries: ['/app/cases/42/attempt'] },
   );
+  return render(<RouterProvider router={router} />);
+};
 
 afterEach(() => {
   mockedUseReducedMotion.mockReturnValue(false);
-  consumeLesionFlight('__drain__');
-  document.body.innerHTML = '';
 });
 
-describe('CaseAttemptView lesion flight (#55)', () => {
-  it('flies the print from a recorded origin and lands it in the hero', async () => {
-    recordOriginFor('42');
-    renderView();
-
-    // In flight: the portal print exists and the hero stays hidden under it.
-    expect(document.querySelector('[data-lesion-flight]')).not.toBeNull();
-    expect(document.querySelector('[data-flight-target]')).toHaveAttribute(
-      'data-flight-hidden',
-      'true',
+describe('CaseAttemptView hero (#106)', () => {
+  it('renders the case hero image', () => {
+    renderInRouter(
+      <CaseAttemptView
+        caseItem={stubCase}
+        committed={null}
+        isPending={false}
+        onCommit={() => {}}
+      />,
     );
 
-    // Landing: overlay gone and hero revealed in the same commit.
-    await waitFor(
-      () => {
-        expect(document.querySelector('[data-lesion-flight]')).toBeNull();
-        expect(document.querySelector('[data-flight-target]')).toHaveAttribute(
-          'data-flight-hidden',
-          'false',
-        );
-      },
-      { timeout: 3000 },
-    );
     expect(screen.getByAltText('Case 42')).toBeInTheDocument();
-  });
-
-  it('renders plain when no origin was recorded — deep links and refreshes never fly', () => {
-    renderView();
-
-    expect(document.querySelector('[data-lesion-flight]')).toBeNull();
-    expect(document.querySelector('[data-flight-target]')).toHaveAttribute(
-      'data-flight-hidden',
-      'false',
-    );
-  });
-
-  it('cuts straight to the hero under reduced motion, consuming the origin', () => {
-    mockedUseReducedMotion.mockReturnValue(true);
-    recordOriginFor('42');
-    renderView();
-
-    expect(document.querySelector('[data-lesion-flight]')).toBeNull();
-    expect(document.querySelector('[data-flight-target]')).toHaveAttribute(
-      'data-flight-hidden',
-      'false',
-    );
-    // The skipped origin must not leak into a later mount.
-    expect(consumeLesionFlight('42')).toBeNull();
   });
 });
 
 describe('CaseAttemptView resolve polish (#98)', () => {
   const renderCommitting = () =>
-    render(
+    renderInRouter(
       <CaseAttemptView
         caseItem={stubCase}
         committed="benign"
@@ -142,7 +95,7 @@ describe('CaseAttemptView resolve polish (#98)', () => {
   });
 
   it('shows no acknowledge glow before a commit', () => {
-    render(
+    renderInRouter(
       <CaseAttemptView
         caseItem={stubCase}
         committed={null}
@@ -166,7 +119,7 @@ describe('CaseAttemptView resolve polish (#98)', () => {
 
 describe('CaseAttemptView verdict in place (#85)', () => {
   const renderWithVerdict = (resolved: boolean) =>
-    render(
+    renderInRouter(
       <CaseAttemptView
         caseItem={stubCase}
         committed={resolved ? 'benign' : null}

@@ -35,13 +35,7 @@ import {
 } from '@/lib/motion-tokens';
 import type { RouteTransitionVariant } from '@/lib/route-transition';
 import { useTransitionNavigate } from '@/components/motion/transition-conductor';
-import { LesionFlight } from '@/components/motion/lesion-flight';
 import { commitOrigin } from '@/lib/commit-origin';
-import {
-  captureLesionFlight,
-  consumeLesionFlight,
-  type LesionFlightOrigin,
-} from '@/lib/lesion-flight';
 
 const SHOWCASE_IMAGE = '/dashboard-drill-mock.png';
 const LESION_IMAGE = '/ISIC_0000022.jpg';
@@ -137,92 +131,6 @@ const GRAMMAR_VARIANTS = [
   'advance',
   'neutral',
 ] as const satisfies readonly RouteTransitionVariant[];
-
-/**
- * Replays the Library thumb → attempt hero flight (#55) between two mock
- * frames — the production capture/consume/LesionFlight path end to end,
- * no navigation. Click the card; the print lifts, flies, and docks.
- */
-const LesionFlightDemo = () => {
-  const [stage, setStage] = useState<'idle' | 'flying' | 'landed'>('idle');
-  const [flight, setFlight] = useState<LesionFlightOrigin | null>(null);
-  const cardRef = useRef<HTMLButtonElement>(null);
-  const heroRef = useRef<HTMLDivElement>(null);
-
-  const launch = () => {
-    const card = cardRef.current;
-    if (!card || stage === 'flying') return;
-    captureLesionFlight(card, 'demo', LESION_IMAGE);
-    const origin = consumeLesionFlight('demo');
-    if (!origin) return;
-    setFlight(origin);
-    setStage('flying');
-  };
-
-  return (
-    <div className="flex flex-col gap-4">
-      <p className="text-muted-foreground text-sm">
-        Click the Library card — the print lifts from the thumb and docks in the
-        attempt hero, radius morphing between the frames.
-      </p>
-      <div className="border-hairline flex min-h-56 items-center justify-around gap-6 rounded-lg border bg-background p-8">
-        <button
-          ref={cardRef}
-          type="button"
-          onClick={launch}
-          className="border-hairline rounded-card shadow-warm-sm w-32 overflow-hidden border bg-card text-left"
-        >
-          <div
-            data-case-thumb
-            className="bg-muted/40 aspect-square w-full overflow-hidden"
-          >
-            <img
-              src={LESION_IMAGE}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          </div>
-          <p className="p-2 font-mono text-[0.6rem] tracking-wider uppercase">
-            Case · demo
-          </p>
-        </button>
-
-        <span className="text-muted-foreground font-mono text-xs">
-          {stage === 'flying' ? 'in flight…' : '→'}
-        </span>
-
-        <div
-          ref={heroRef}
-          style={stage === 'flying' ? { visibility: 'hidden' } : undefined}
-          className="border-hairline rounded-card shadow-warm w-48 overflow-hidden border bg-muted/40"
-        >
-          {stage === 'landed' ? (
-            <img
-              src={LESION_IMAGE}
-              alt=""
-              className="aspect-square h-auto w-full object-cover"
-            />
-          ) : (
-            <div className="text-muted-foreground/60 flex aspect-square w-full items-center justify-center font-mono text-[0.6rem] tracking-wider uppercase">
-              attempt hero
-            </div>
-          )}
-        </div>
-
-        {flight && (
-          <LesionFlight
-            origin={flight}
-            targetRef={heroRef}
-            onLanded={() => {
-              setFlight(null);
-              setStage('landed');
-            }}
-          />
-        )}
-      </div>
-    </div>
-  );
-};
 
 /** Mock loader time for the slow-load simulation — long enough to read the held dim. */
 const DEMO_SLOW_LOAD_MS = 1200;
@@ -761,11 +669,10 @@ const DevMotionRoute = () => {
         <Section
           eyebrow="10 · Route grammar"
           title="The Develop."
-          description="The bloom's quieter sibling — every in-app hop develops the incoming surface from a warm latent print and fixes the outgoing one. Conjugated by the relationship between routes: lateral along the tab strip, descend into a case, ascend back out, advance to the next. When a loader holds the hop, the outgoing surface waits in the early fix — dimmed, lifted from the bath — until data resolves. On the Library → attempt hop, the lesion print itself leads the descend: it lifts off the card and flies into the hero."
+          description="The bloom's quieter sibling — every in-app hop develops the incoming surface from a warm latent print and fixes the outgoing one. Conjugated by the relationship between routes: lateral along the tab strip, descend into a case, ascend back out, advance to the next. When a loader holds the hop, the outgoing surface waits in the early fix — dimmed, lifted from the bath — until data resolves. Live hops now ride the View Transitions engine (#102–#106); this previews the directional feel. On the Library → attempt hop, the thumb morphs into the hero as a native shared element (case-hero), no longer a hand-built flight."
         >
           <div className="flex flex-col gap-10">
             <DevelopGrammarDemo />
-            <LesionFlightDemo />
           </div>
         </Section>
 
