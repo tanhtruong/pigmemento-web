@@ -99,6 +99,71 @@ describe('CaseAttemptView lesion flight (#55)', () => {
   });
 });
 
+describe('CaseAttemptView resolve polish (#98)', () => {
+  const renderCommitting = () =>
+    render(
+      <CaseAttemptView
+        caseItem={stubCase}
+        committed="benign"
+        isPending={false}
+        onCommit={() => {}}
+        resolved={false}
+        verdictNode={<p>verdict in place</p>}
+      />,
+    );
+
+  it('recedes the unselected choices on commit, leaving the chosen card', () => {
+    renderCommitting();
+
+    const benign = screen.getByRole('button', { name: /benign/i });
+    const malignant = screen.getByRole('button', { name: /malignant/i });
+    const skip = screen.getByRole('button', { name: /skip/i });
+
+    // The world narrows to the answer: the two unchosen cards recede.
+    expect(malignant).toHaveAttribute('data-receding', 'true');
+    expect(skip).toHaveAttribute('data-receding', 'true');
+    // The chosen card holds — it is filling its ring, not receding.
+    expect(benign).not.toHaveAttribute('data-receding', 'true');
+  });
+
+  it('does not recede the choices under reduced motion', () => {
+    mockedUseReducedMotion.mockReturnValue(true);
+    renderCommitting();
+
+    expect(
+      screen.getByRole('button', { name: /malignant/i }),
+    ).not.toHaveAttribute('data-receding', 'true');
+  });
+
+  it('swells the hero acknowledge glow on commit', () => {
+    renderCommitting();
+
+    expect(document.querySelector('[data-hero-glow]')).not.toBeNull();
+  });
+
+  it('shows no acknowledge glow before a commit', () => {
+    render(
+      <CaseAttemptView
+        caseItem={stubCase}
+        committed={null}
+        isPending={false}
+        onCommit={() => {}}
+        resolved={false}
+        verdictNode={<p>verdict in place</p>}
+      />,
+    );
+
+    expect(document.querySelector('[data-hero-glow]')).toBeNull();
+  });
+
+  it('shows no acknowledge glow under reduced motion', () => {
+    mockedUseReducedMotion.mockReturnValue(true);
+    renderCommitting();
+
+    expect(document.querySelector('[data-hero-glow]')).toBeNull();
+  });
+});
+
 describe('CaseAttemptView verdict in place (#85)', () => {
   const renderWithVerdict = (resolved: boolean) =>
     render(
