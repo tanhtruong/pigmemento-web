@@ -383,22 +383,18 @@ const CaseCard = ({ item }: { item: CaseListItem }) => {
               {meta.label}
             </Badge>
           ) : (
-            <Badge variant="outline" className="text-[0.65rem]">
+            <Badge variant="secondary" className="text-[0.65rem]">
               New
             </Badge>
           )}
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
-          <Badge variant="mono">{String(item.difficulty)}</Badge>
-          <Badge variant="outline" className="text-[0.65rem] font-normal">
-            {item.site}
-          </Badge>
+          <Badge variant="fact">{item.site}</Badge>
           {item.patientAge > 0 && (
-            <Badge variant="outline" className="text-[0.65rem] font-normal">
-              {item.patientAge}y
-            </Badge>
+            <Badge variant="fact">{item.patientAge}y</Badge>
           )}
+          <Badge variant="mono">{String(item.difficulty)}</Badge>
         </div>
 
         {meta.when && (

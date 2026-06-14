@@ -23,6 +23,12 @@ const badgeVariants = cva(
         /** Outlined badge — hairline border, no fill. The premium-editorial chip. */
         outline:
           'border-hairline bg-transparent text-foreground [a&]:hover:bg-accent',
+        /**
+         * Quiet clinical-fact chip — site, patient age. The outline chip at
+         * normal weight; the canonical look wherever case facts appear (library
+         * card + attempt screen) so the two surfaces can't drift (#107).
+         */
+        fact: 'border-hairline bg-transparent text-foreground font-normal [a&]:hover:bg-accent',
         /** Dampened mint — correct, never bright "WIN" green. */
         correct: 'bg-correct/15 text-correct border-correct/30',
         /** Dampened coral — incorrect, never alarm red. */
