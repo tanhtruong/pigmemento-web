@@ -6,7 +6,10 @@ dist/
 build/
 
 # Local env files
-.env.* 
+.env.*
+
+# Local-only Claude context (credentials, machine-specific notes — never commit)
+CLAUDE.local.md
 
 # Log files
 npm-debug.log*
