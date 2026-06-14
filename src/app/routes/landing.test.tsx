@@ -72,11 +72,18 @@ describe('landing route', () => {
     expect(cta.getAttribute('href')).toMatch(/\/auth\/login/);
   });
 
-  it('keeps the persistent login FAB available from page-load', () => {
+  it('keeps login one click away at page-load — via the primary CTA, not a standalone FAB (#87–#95)', () => {
     renderLandingRoute();
 
-    const fab = screen.getByRole('link', { name: /^log in$/i });
-    expect(fab.getAttribute('href')).toMatch(/\/auth\/login/);
+    // The redesign replaced the persistent PublicHeader with a scroll-born
+    // rail: its "Log in" link only mounts once the hero is scrolled past
+    // (ScrollRail's `visible` flips at ~0.6 viewport). So at page-load there is
+    // no standalone Log in affordance — login is reached through the always-
+    // present primary CTA, which routes an unauthenticated visitor to auth.
+    expect(screen.queryByRole('link', { name: /^log in$/i })).toBeNull();
+    expect(
+      screen.getByRole('link', { name: /start a case/i }).getAttribute('href'),
+    ).toMatch(/\/auth\/login/);
   });
 
   it('exposes the ISIC source credit beneath each lesion image', () => {
