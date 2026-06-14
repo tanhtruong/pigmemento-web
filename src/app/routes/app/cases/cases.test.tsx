@@ -57,3 +57,24 @@ describe('Library case card flight origin (#55)', () => {
     });
   });
 });
+
+describe('Library case card meta chips (#108)', () => {
+  it('presents the clinical facts before difficulty: site → age → difficulty', () => {
+    renderLibrary();
+
+    const chips = {
+      site: screen.getByText('back'),
+      age: screen.getByText('55y'),
+      difficulty: screen.getByText('medium'),
+    };
+    const rendered = Object.entries(chips)
+      .sort(([, a], [, b]) =>
+        a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING
+          ? -1
+          : 1,
+      )
+      .map(([role]) => role);
+
+    expect(rendered).toEqual(['site', 'age', 'difficulty']);
+  });
+});
