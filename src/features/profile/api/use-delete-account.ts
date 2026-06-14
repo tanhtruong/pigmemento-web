@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios.ts';
-import { clearAuthToken } from '@/lib/auth';
+import { clearToken } from '@/lib/session';
 import { toast } from 'sonner';
 
 export const useDeleteAccount = () => {
@@ -12,7 +12,7 @@ export const useDeleteAccount = () => {
     },
     onSuccess: () => {
       // Clear auth + cached data after account deletion
-      clearAuthToken();
+      clearToken();
       queryClient.clear();
       toast('Account deleted', {
         description:

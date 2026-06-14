@@ -6,7 +6,7 @@ import { motion, useReducedMotion, type Variants } from 'motion/react';
 import { paths } from '@/config/paths';
 import { prefetchAppRoute } from '@/app/prefetch-routes';
 import { Head } from '../seo/head';
-import { isTokenValid } from '@/lib/auth';
+import { useSession } from '@/lib/use-session';
 import { GrainOverlay } from '@/components/foundation/grain-overlay';
 import { AmberGlow } from '@/components/foundation/amber-glow';
 import { motionDurations } from '@/lib/motion-tokens';
@@ -32,7 +32,7 @@ type LayoutProps = {
  * (Toaster, any future dialogs) inherit the dark tokens.
  */
 export const AuthLayout = ({ children, title, subtitle }: LayoutProps) => {
-  const isLoggedIn = isTokenValid();
+  const isLoggedIn = useSession().status === 'authenticated';
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get('redirectTo');
   const reducedMotion = useReducedMotion();
