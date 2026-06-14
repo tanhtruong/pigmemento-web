@@ -159,9 +159,9 @@ export const CaseAttemptView = ({
           Clinical context
         </p>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">{caseItem.site}</Badge>
+          <Badge variant="fact">{caseItem.site}</Badge>
           {caseItem.patientAge > 0 && (
-            <Badge variant="outline">{caseItem.patientAge}y</Badge>
+            <Badge variant="fact">{caseItem.patientAge}y</Badge>
           )}
         </div>
         <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">
