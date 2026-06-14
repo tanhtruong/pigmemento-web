@@ -41,6 +41,8 @@ export type AttemptState = {
   commit: (choice: CaseChoice) => void;
   /** Re-ask this same case (client-only; the prior attempt still stands on the server). */
   retry: () => void;
+  /** Elapsed answer time for the current case — for a surface's no-submit path (the drill's skip). */
+  getElapsedMs: () => number;
 };
 
 /**
@@ -179,5 +181,6 @@ export const useAttempt = (
     error,
     commit,
     retry,
+    getElapsedMs,
   };
 };

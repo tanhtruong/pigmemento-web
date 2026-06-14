@@ -14,7 +14,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { paths } from '@/config/paths';
 import { useRandomCase } from '@/features/cases/api/use-case-random.ts';
-import { useCaseSubmitAttempt } from '@/features/cases/api/use-case-submit-attempt.ts';
+import { useAttempt } from '@/features/cases/hooks/use-attempt.ts';
 import { useCaseAttemptShortcuts } from '@/features/cases/hooks/use-case-attempt-shortcuts.ts';
 import { CheckCircle2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress.tsx';
@@ -78,14 +78,11 @@ const CaseDrillScene = () => {
   // Running state
   const [index, setIndex] = useState(0);
   const [results, setResults] = useState<DrillResult[]>([]);
-  const [choice, setChoice] = useState<Label | null>(null);
-  const startedAtRef = useRef<number>(0);
+  // Skip is recorded locally and never submitted, so it carries its own commit
+  // flag; graded commits live in the engine (its `committed`).
+  const [skipped, setSkipped] = useState(false);
   const advanceTimeoutRef = useRef<number | null>(null);
-
-  const [reveal, setReveal] = useState<{
-    isCorrect: boolean | null;
-    correctLabel?: Exclude<Label, 'skipped'>;
-  } | null>(null);
+  const recordedRef = useRef(false);
 
   const {
     data: randomCase,
@@ -94,29 +91,35 @@ const CaseDrillScene = () => {
     refetch,
   } = useRandomCase(phase === 'running');
 
+  // The single-case lifecycle lives in the engine (#122); the drill composes a
+  // session of these. Graded commits go through it; skip stays drill-local.
+  const currentCaseId = randomCase?.id ? String(randomCase.id) : '';
   const {
-    mutate: submitAttempt,
+    commit,
+    getElapsedMs,
     isPending: isSubmitting,
     isError: isSubmitError,
     error: submitError,
-    reset: resetSubmit,
-  } = useCaseSubmitAttempt();
+    verdict,
+    committed: gradedChoice,
+    timeToAnswerMs,
+  } = useAttempt(currentCaseId, { revealDelayMs: 0 });
+
+  const committed: CaseChoice | null =
+    gradedChoice ?? (skipped ? 'skipped' : null);
 
   const safeTarget = useMemo(
     () => clampInt(Number.isFinite(targetCount) ? targetCount : 5, 1, 50),
     [targetCount],
   );
 
-  // Start timer whenever a new case is shown
+  // Reset the drill's per-case local state when the case changes (the engine
+  // resets its own lifecycle).
   useEffect(() => {
-    if (phase !== 'running') return;
-    if (!randomCase?.id) return;
-    startedAtRef.current = performance.now();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional reset when the case changes; also calls the external resetSubmit(), so it belongs in an effect
-    setChoice(null);
-    setReveal(null);
-    resetSubmit();
-  }, [phase, randomCase?.id, resetSubmit]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- clears the drill's per-case local flags when the case changes; the engine resets itself
+    setSkipped(false);
+    recordedRef.current = false;
+  }, [currentCaseId]);
 
   const startDrill = async () => {
     setResults([]);
@@ -167,7 +170,6 @@ const CaseDrillScene = () => {
         window.clearTimeout(advanceTimeoutRef.current);
       }
       advanceTimeoutRef.current = window.setTimeout(() => {
-        setReveal(null);
         advance();
         advanceTimeoutRef.current = null;
       }, delayMs);
@@ -177,77 +179,64 @@ const CaseDrillScene = () => {
 
   /**
    * Direct-commit, like the single/random attempt (#61): tap or key B/M/S
-   * commits straight away — no separate Submit step. Benign/malignant submit,
-   * reveal correctness inline on the chosen card, then advance. Skip keeps the
-   * drill's own semantics — recorded locally, no submit, no grade — and
+   * commits straight away. Benign/malignant run through the engine (submit →
+   * verdict); the graded result is recorded when it resolves (below). Skip keeps
+   * the drill's own semantics — recorded locally, no submit, no grade — and
    * advances once the ring closes.
    */
   const handleCommit = useCallback(
-    // eslint-disable-next-line react-hooks/preserve-manual-memoization -- deps intentionally key on randomCase?.id (stable across refetches) rather than the whole randomCase object the compiler infers
-    (committed: CaseChoice) => {
-      if (!randomCase?.id || choice || isSubmitting || reveal) return;
-      setChoice(committed);
+    (chosen: CaseChoice) => {
+      if (!currentCaseId || committed || isSubmitting || verdict) return;
 
-      const timeToAnswerMs = Math.max(
-        0,
-        Math.round(performance.now() - startedAtRef.current),
-      );
-
-      if (committed === 'skipped') {
+      if (chosen === 'skipped') {
+        setSkipped(true);
         setResults((prev) => [
           ...prev,
           {
-            caseId: String(randomCase.id),
+            caseId: currentCaseId,
             chosenLabel: 'skipped',
-            timeToAnswerMs,
+            timeToAnswerMs: getElapsedMs(),
           },
         ]);
         scheduleAdvance(RING_FILL_MS);
         return;
       }
 
-      resetSubmit();
-      submitAttempt(
-        {
-          caseId: String(randomCase.id),
-          attempt: { chosenLabel: committed, timeToAnswerMs },
-        },
-        {
-          onSuccess: (res) => {
-            const isCorrect =
-              typeof res?.correct === 'boolean' ? res.correct : null;
-            const correctLabel =
-              res?.correctLabel === 'benign' ||
-              res?.correctLabel === 'malignant'
-                ? res.correctLabel
-                : undefined;
-
-            setResults((prev) => [
-              ...prev,
-              {
-                caseId: String(randomCase.id),
-                chosenLabel: committed,
-                timeToAnswerMs,
-                isCorrect: isCorrect === null ? undefined : isCorrect,
-                correctLabel,
-              },
-            ]);
-            setReveal({ isCorrect, correctLabel });
-            scheduleAdvance(REVEAL_HOLD_MS);
-          },
-        },
-      );
+      commit(chosen);
     },
     [
-      choice,
+      currentCaseId,
+      committed,
       isSubmitting,
-      randomCase?.id,
-      resetSubmit,
-      reveal,
+      verdict,
+      getElapsedMs,
+      commit,
       scheduleAdvance,
-      submitAttempt,
     ],
   );
+
+  // Record the graded result and advance once the engine resolves the verdict
+  // (skip records itself, above). Guarded so it runs once per case.
+  useEffect(() => {
+    if (!verdict || recordedRef.current) return;
+    recordedRef.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- records the graded result when the engine resolves; guarded by recordedRef to run once per case
+    setResults((prev) => [
+      ...prev,
+      {
+        caseId: currentCaseId,
+        chosenLabel: gradedChoice ?? 'skipped',
+        timeToAnswerMs: timeToAnswerMs ?? 0,
+        isCorrect: verdict.outcome === 'correct',
+        correctLabel:
+          verdict.correctLabel === 'benign' ||
+          verdict.correctLabel === 'malignant'
+            ? verdict.correctLabel
+            : undefined,
+      },
+    ]);
+    scheduleAdvance(REVEAL_HOLD_MS);
+  }, [verdict, gradedChoice, timeToAnswerMs, currentCaseId, scheduleAdvance]);
 
   const confirmExit = useCallback(() => {
     const ok = window.confirm(
@@ -261,8 +250,7 @@ const CaseDrillScene = () => {
     setPhase('setup');
     setResults([]);
     setIndex(0);
-    setChoice(null);
-    setReveal(null);
+    setSkipped(false);
   }, []);
 
   // Same keyboard grammar as the single/random attempt (#61): B/M/S commit,
@@ -272,8 +260,8 @@ const CaseDrillScene = () => {
       phase === 'running' &&
       Boolean(randomCase) &&
       !isCoarsePointer &&
-      !choice &&
-      !reveal &&
+      !committed &&
+      !verdict &&
       !isSubmitting,
     isPending: isSubmitting,
     onCommit: handleCommit,
@@ -611,7 +599,7 @@ const CaseDrillScene = () => {
                 setPhase('setup');
                 setResults([]);
                 setIndex(0);
-                setChoice(null);
+                setSkipped(false);
               }}
             >
               New drill
@@ -625,7 +613,7 @@ const CaseDrillScene = () => {
                   // Start the same drill immediately
                   setResults([]);
                   setIndex(0);
-                  setChoice(null);
+                  setSkipped(false);
                   setPhase('running');
                   queryClient.invalidateQueries({ queryKey: ['random-case'] });
                   refetch();
@@ -649,38 +637,39 @@ const CaseDrillScene = () => {
   // Running — the same attempt surface as a single/random case (#61). The only
   // difference is the outcome: commit reveals inline on the chosen card and the
   // drill advances, rather than resolving the full verdict in place.
-  const labelOf = (c?: Label) =>
+  const labelOf = (c?: string) =>
     c === 'benign' ? 'Benign' : c === 'malignant' ? 'Malignant' : 'Skip';
 
   let choiceOutcomes:
     | Partial<Record<CaseChoice, CaseChoiceOutcome>>
     | undefined;
-  if (reveal && choice && choice !== 'skipped' && reveal.isCorrect !== null) {
+  if (verdict && gradedChoice && gradedChoice !== 'skipped') {
     const oc: Partial<Record<CaseChoice, CaseChoiceOutcome>> = {};
-    oc[choice] = reveal.isCorrect ? 'correct' : 'incorrect';
-    if (!reveal.isCorrect && reveal.correctLabel) {
-      oc[reveal.correctLabel] = 'reveal-correct';
+    oc[gradedChoice] = verdict.outcome === 'correct' ? 'correct' : 'incorrect';
+    if (
+      verdict.outcome !== 'correct' &&
+      (verdict.correctLabel === 'benign' ||
+        verdict.correctLabel === 'malignant')
+    ) {
+      oc[verdict.correctLabel] = 'reveal-correct';
     }
     choiceOutcomes = oc;
   }
 
   const revealNode =
-    reveal && choice && choice !== 'skipped' ? (
+    verdict && gradedChoice && gradedChoice !== 'skipped' ? (
       <p
         className={cn(
           'font-mono text-xs tracking-[0.04em]',
-          reveal.isCorrect === true && 'text-correct',
-          reveal.isCorrect === false && 'text-incorrect',
-          reveal.isCorrect === null && 'text-muted-foreground',
+          verdict.outcome === 'correct' && 'text-correct',
+          verdict.outcome !== 'correct' && 'text-incorrect',
         )}
       >
-        {reveal.isCorrect === true
-          ? `Correct — ${labelOf(choice)}`
-          : reveal.isCorrect === false
-            ? reveal.correctLabel
-              ? `Incorrect — answer: ${labelOf(reveal.correctLabel)}`
-              : 'Incorrect'
-            : 'Checked'}
+        {verdict.outcome === 'correct'
+          ? `Correct — ${labelOf(gradedChoice)}`
+          : verdict.correctLabel
+            ? `Incorrect — answer: ${labelOf(verdict.correctLabel)}`
+            : 'Incorrect'}
       </p>
     ) : undefined;
 
@@ -719,7 +708,7 @@ const CaseDrillScene = () => {
     ) : (
       <CaseAttemptView
         caseItem={randomCase}
-        committed={choice}
+        committed={committed}
         isPending={isSubmitting}
         onCommit={handleCommit}
         eyebrow={`Drill · ${index + 1} / ${safeTarget}`}
