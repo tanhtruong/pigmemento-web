@@ -5,6 +5,7 @@ import {
   Sparkles,
   useTexture,
 } from '@react-three/drei';
+import { DepthOfField, EffectComposer } from '@react-three/postprocessing';
 import { type RefObject, Suspense, useRef, useState } from 'react';
 import * as THREE from 'three';
 
@@ -100,6 +101,19 @@ export default function R3fScene({
         opacity={0.35}
         color="#ff9a6a"
       />
+      {/* Cinematic depth-of-field (#141): focus the lesion plane at the origin,
+          letting the ambient field fall soft. Top tier only — dropped on the
+          adaptive step-down and never reached once bailed to static. */}
+      {tier === 'high' && (
+        <EffectComposer>
+          <DepthOfField
+            target={[0, 0, 0]}
+            focalLength={0.04}
+            bokehScale={2.5}
+            height={480}
+          />
+        </EffectComposer>
+      )}
     </Canvas>
   );
 }

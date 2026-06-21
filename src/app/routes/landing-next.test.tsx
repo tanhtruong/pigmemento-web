@@ -73,10 +73,10 @@ describe('/next static landing', () => {
     expect(cta.getAttribute('href')).toMatch(/\/auth\/login/);
   });
 
-  it('shows the static ABCDE breakdown of Case 001', () => {
+  it('shows the static ABCDE breakdown of Case 001 with the diagnosis reveal', () => {
     renderNext();
     expect(
-      screen.getByRole('heading', { name: /trained eye catches/i }),
+      screen.getByRole('heading', { name: /^Melanoma$/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/Asymmetric across the long axis/i),
