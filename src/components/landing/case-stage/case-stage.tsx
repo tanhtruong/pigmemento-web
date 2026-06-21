@@ -4,6 +4,7 @@ import { AnnotatedLesionImage } from '@/components/signature/annotated-lesion-im
 import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
 import { useRenderLoopActive, useShouldRender3D } from '@/lib/render-3d';
 import { useMountedAfterPaint } from './use-mounted-after-paint';
+import { useScrollCameraProgress } from './use-scroll-camera-progress';
 
 // Lazy so three/r3f/drei land in the quarantined async `r3f-scene` chunk that
 // the bundle guard (#126) allowlists — never the landing first-paint bundle.
@@ -32,10 +33,15 @@ export const CaseStage = ({
   sourceCredit,
 }: CaseStageProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollProgressRef = useRef(0);
   const capable = useShouldRender3D();
   const paintedOnce = useMountedAfterPaint();
   const active = useRenderLoopActive(containerRef);
   const show3D = capable && paintedOnce;
+
+  // Drive the camera dolly from the lazy GSAP ScrollTrigger only while 3D is up;
+  // reduced-motion / static install nothing and hold the wide framing (#130).
+  useScrollCameraProgress(scrollProgressRef, show3D);
 
   return (
     <div ref={containerRef} className="relative">
@@ -54,6 +60,7 @@ export const CaseStage = ({
           <R3fScene
             imageSrc={imageSrc}
             active={active}
+            scrollProgressRef={scrollProgressRef}
             className="rounded-card absolute inset-x-0 top-0 aspect-[4/5] overflow-hidden"
           />
         </Suspense>
