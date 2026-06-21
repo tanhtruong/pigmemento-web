@@ -1,4 +1,4 @@
-import { Suspense, lazy, useRef } from 'react';
+import { Suspense, lazy, useRef, useState } from 'react';
 
 import { AnnotatedLesionImage } from '@/components/signature/annotated-lesion-image.tsx';
 import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
@@ -38,7 +38,10 @@ export const CaseStage = ({
   const capable = useShouldRender3D();
   const paintedOnce = useMountedAfterPaint();
   const active = useRenderLoopActive(containerRef);
-  const show3D = capable && paintedOnce;
+  // Once adaptive quality bails (can't hold the floor), stay on static for the
+  // session — don't thrash the canvas back up (#132).
+  const [degraded, setDegraded] = useState(false);
+  const show3D = capable && paintedOnce && !degraded;
 
   // Drive the camera dolly from the lazy GSAP ScrollTrigger only while 3D is up,
   // mapped to the lesion frame's viewport transit so the framings + ABCDE pins
@@ -65,6 +68,7 @@ export const CaseStage = ({
             active={active}
             scrollProgressRef={scrollProgressRef}
             features={features}
+            onDegrade={() => setDegraded(true)}
             className="rounded-card absolute inset-x-0 top-0 aspect-[4/5] overflow-hidden"
           />
         </Suspense>
