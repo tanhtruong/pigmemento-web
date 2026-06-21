@@ -1,9 +1,16 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { PerformanceMonitor, Sparkles, useTexture } from '@react-three/drei';
+import {
+  Html,
+  PerformanceMonitor,
+  Sparkles,
+  useTexture,
+} from '@react-three/drei';
 import { type RefObject, Suspense, useRef, useState } from 'react';
 import * as THREE from 'three';
 
+import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
 import { cameraPositionAt } from './camera-beats';
+import { pinPositionFromCenter, pinReveal } from './pin-layout';
 
 type R3fSceneProps = {
   imageSrc: string;
@@ -11,6 +18,8 @@ type R3fSceneProps = {
   active: boolean;
   /** Page scroll progress (0–1) driving the camera dolly — see camera-beats. */
   scrollProgressRef: RefObject<number>;
+  /** ABCDE annotations pinned onto the specimen, revealed on the close-up beat. */
+  features?: AbcdeFeature[];
   className?: string;
 };
 
@@ -22,16 +31,19 @@ const PARALLAX = 0.12;
  * slide, with a restrained ambient "dermoscopy field" (drei <Sparkles>) and fog
  * for atmospheric depth. The dermoscopy plane stays an honest flat 2D image —
  * we never fake topology on a melanoma. A scroll-driven camera dollies through
- * four framings (#130); ABCDE pins are still #131.
+ * four framings (#130) and ABCDE pins reveal off the surface during the
+ * close-up beat (#131).
  *
  * Decorative + `aria-hidden`: the real, accessible, indexable content is the
- * static AnnotatedLesionImage underneath. Lazy-loaded so three/r3f/drei stay in
+ * static AnnotatedLesionImage underneath — including its ABCDE labels, so the
+ * pin labels here stay decorative DOM. Lazy-loaded so three/r3f/drei stay in
  * the quarantined async chunk enforced by the bundle guard (#126).
  */
 export default function R3fScene({
   imageSrc,
   active,
   scrollProgressRef,
+  features,
   className,
 }: R3fSceneProps) {
   // Adaptive quality: PerformanceMonitor lowers the DPR ceiling on sustained
@@ -62,7 +74,11 @@ export default function R3fScene({
         intensity={1.4}
       />
       <Suspense fallback={null}>
-        <Specimen imageSrc={imageSrc} />
+        <Specimen
+          imageSrc={imageSrc}
+          features={features}
+          scrollProgressRef={scrollProgressRef}
+        />
       </Suspense>
       <Sparkles
         count={36}
@@ -100,7 +116,15 @@ function CameraRig({
   return null;
 }
 
-function Specimen({ imageSrc }: { imageSrc: string }) {
+function Specimen({
+  imageSrc,
+  features,
+  scrollProgressRef,
+}: {
+  imageSrc: string;
+  features?: AbcdeFeature[];
+  scrollProgressRef: RefObject<number>;
+}) {
   const texture = useTexture(imageSrc);
   const groupRef = useRef<THREE.Group>(null);
 
@@ -126,6 +150,86 @@ function Specimen({ imageSrc }: { imageSrc: string }) {
         <planeGeometry args={[2.1, 2.6]} />
         <meshStandardMaterial map={texture} roughness={0.65} metalness={0} />
       </mesh>
+      {/* ABCDE pins live inside the tilting group, so they parallax off the
+          plane with the pointer and the camera dolly. */}
+      {features && features.length > 0 && (
+        <AbcdePins features={features} scrollProgressRef={scrollProgressRef} />
+      )}
     </group>
+  );
+}
+
+/**
+ * Five ABCDE pins floating off the lesion surface, revealed one at a time as
+ * the camera holds the close-up beat (#131). Each pin is a hairline amber ring
+ * (echoing the static annotation circles) plus a DOM reasoning label (drei
+ * `<Html>`) anchored to the pin's projected screen position. Reveal is driven
+ * imperatively from `scrollProgressRef` in useFrame — no per-frame React render.
+ *
+ * The labels are `aria-hidden` decorative DOM: the accessible + indexable ABCDE
+ * text is the static AnnotatedLesionImage list beneath the canvas, and these
+ * reuse the same `feature.reasoning` so the teaching content can't drift.
+ */
+function AbcdePins({
+  features,
+  scrollProgressRef,
+}: {
+  features: AbcdeFeature[];
+  scrollProgressRef: RefObject<number>;
+}) {
+  const pinRefs = useRef<(THREE.Group | null)[]>([]);
+  const labelRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useFrame(() => {
+    const progress = scrollProgressRef.current;
+    for (let i = 0; i < features.length; i++) {
+      const reveal = pinReveal(i, features.length, progress);
+      const pin = pinRefs.current[i];
+      if (pin) pin.scale.setScalar(reveal);
+      const label = labelRefs.current[i];
+      if (label) label.style.opacity = String(reveal);
+    }
+  });
+
+  return (
+    <>
+      {features.map((feature, i) => (
+        <group
+          key={feature.letter}
+          position={pinPositionFromCenter(feature.centerPoint)}
+          scale={0}
+          ref={(el) => {
+            pinRefs.current[i] = el;
+          }}
+        >
+          <mesh>
+            <ringGeometry args={[0.05, 0.066, 40]} />
+            <meshBasicMaterial
+              color="#ff9a6a"
+              transparent
+              opacity={0.95}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+          <Html position={[0.14, 0.1, 0]} center pointerEvents="none">
+            <div
+              aria-hidden
+              ref={(el) => {
+                labelRefs.current[i] = el;
+              }}
+              style={{ opacity: 0 }}
+              className="border-hairline bg-background/80 flex items-baseline gap-1.5 rounded-full border px-2 py-0.5 whitespace-nowrap backdrop-blur-sm"
+            >
+              <span className="text-primary font-mono text-[0.7rem] tabular-nums">
+                {feature.letter}
+              </span>
+              <span className="text-foreground/90 text-[0.7rem]">
+                {feature.reasoning}
+              </span>
+            </div>
+          </Html>
+        </group>
+      ))}
+    </>
   );
 }

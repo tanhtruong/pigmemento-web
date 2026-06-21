@@ -33,15 +33,17 @@ export const CaseStage = ({
   sourceCredit,
 }: CaseStageProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
   const scrollProgressRef = useRef(0);
   const capable = useShouldRender3D();
   const paintedOnce = useMountedAfterPaint();
   const active = useRenderLoopActive(containerRef);
   const show3D = capable && paintedOnce;
 
-  // Drive the camera dolly from the lazy GSAP ScrollTrigger only while 3D is up;
-  // reduced-motion / static install nothing and hold the wide framing (#130).
-  useScrollCameraProgress(scrollProgressRef, show3D);
+  // Drive the camera dolly from the lazy GSAP ScrollTrigger only while 3D is up,
+  // mapped to the lesion frame's viewport transit so the framings + ABCDE pins
+  // play on-screen (#130/#131). Reduced-motion / static install nothing.
+  useScrollCameraProgress(scrollProgressRef, frameRef, show3D);
 
   return (
     <div ref={containerRef} className="relative">
@@ -51,6 +53,7 @@ export const CaseStage = ({
         features={features}
         aspect="4:5"
         sourceCredit={sourceCredit}
+        frameRef={frameRef}
       />
       {show3D && (
         <Suspense fallback={null}>
@@ -61,6 +64,7 @@ export const CaseStage = ({
             imageSrc={imageSrc}
             active={active}
             scrollProgressRef={scrollProgressRef}
+            features={features}
             className="rounded-card absolute inset-x-0 top-0 aspect-[4/5] overflow-hidden"
           />
         </Suspense>

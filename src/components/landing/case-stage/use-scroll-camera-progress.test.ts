@@ -6,6 +6,9 @@ const { createSpy, killSpy, loadGsapMock } = vi.hoisted(() => {
   const createSpy = vi
     .fn<
       (config: {
+        trigger: Element;
+        start: string;
+        end: string;
         scrub: boolean;
         onUpdate: (self: { progress: number }) => void;
       }) => { kill: () => void }
@@ -29,20 +32,32 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+const triggerEl = () => ({ current: document.createElement('div') });
+
 describe('useScrollCameraProgress', () => {
   it('installs nothing when disabled (reduced-motion / static — no scrub)', () => {
     const ref = { current: 0 };
-    renderHook(() => useScrollCameraProgress(ref, false));
+    renderHook(() => useScrollCameraProgress(ref, triggerEl(), false));
     expect(loadGsapMock).not.toHaveBeenCalled();
   });
 
-  it('maps ScrollTrigger progress into the ref when enabled', async () => {
+  it('installs nothing when the trigger element is not mounted yet', () => {
     const ref = { current: 0 };
-    renderHook(() => useScrollCameraProgress(ref, true));
+    renderHook(() => useScrollCameraProgress(ref, { current: null }, true));
+    expect(loadGsapMock).not.toHaveBeenCalled();
+  });
+
+  it('scrubs the frame transit into the ref when enabled', async () => {
+    const ref = { current: 0 };
+    const trigger = triggerEl();
+    renderHook(() => useScrollCameraProgress(ref, trigger, true));
 
     await vi.waitFor(() => expect(createSpy).toHaveBeenCalledTimes(1));
     const config = createSpy.mock.calls[0][0];
     expect(config.scrub).toBe(true);
+    expect(config.trigger).toBe(trigger.current);
+    expect(config.start).toBe('top bottom');
+    expect(config.end).toBe('bottom top');
 
     config.onUpdate({ progress: 0.42 });
     expect(ref.current).toBe(0.42);
@@ -50,7 +65,9 @@ describe('useScrollCameraProgress', () => {
 
   it('kills the trigger on cleanup', async () => {
     const ref = { current: 0 };
-    const { unmount } = renderHook(() => useScrollCameraProgress(ref, true));
+    const { unmount } = renderHook(() =>
+      useScrollCameraProgress(ref, triggerEl(), true),
+    );
     await vi.waitFor(() => expect(createSpy).toHaveBeenCalledTimes(1));
     unmount();
     expect(killSpy).toHaveBeenCalledTimes(1);
