@@ -30,12 +30,14 @@ export default defineConfig({
             id.includes('node_modules/scheduler/')
           )
             return 'react-vendor';
-          // Quarantine the 3D stack (three + react-three-fiber + drei) in its
-          // own chunk so it never reaches the landing first-paint chunk or any
-          // `/app/*` chunk. The bundle-guard allowlist accepts `three-` names.
+          // Quarantine the 3D stack (three + react-three-fiber + drei + the
+          // postprocessing engine behind DoF) in its own chunk so it never
+          // reaches the landing first-paint chunk or any `/app/*` chunk. The
+          // bundle-guard allowlist accepts `three-` names.
           if (
             id.includes('node_modules/three') ||
-            id.includes('node_modules/@react-three')
+            id.includes('node_modules/@react-three') ||
+            id.includes('node_modules/postprocessing')
           )
             return 'three-vendor';
         },
