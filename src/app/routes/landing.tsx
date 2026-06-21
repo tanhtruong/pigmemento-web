@@ -1,25 +1,88 @@
-import { motion, useReducedMotion, type Variants } from 'framer-motion';
+import { useCallback, useMemo, type ReactNode } from 'react';
+import { Link } from 'react-router';
+import { motion, useReducedMotion, type Variants } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useCallback, useEffect, useMemo } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
-import { faqs, heroCase } from '@/lib/landing-seed-data';
+
 import { Head } from '@/components/seo/head.tsx';
-import { motionDurations } from '@/lib/motion-tokens.ts';
+import { Button } from '@/components/ui/button.tsx';
+import { AmberGlow } from '@/components/foundation/amber-glow.tsx';
+import { CaseStage } from '@/components/landing/case-stage/case-stage.tsx';
 import { LandingHero } from '@/components/landing/landing-hero.tsx';
-import { loadGsap } from '@/lib/lazy-gsap.ts';
-import { CenterpiecePinned } from '@/components/signature/centerpiece-pinned.tsx';
-import { ScrollRail } from '@/components/landing/scroll-rail.tsx';
-import { WhyScrubReel } from '@/components/landing/why-scrub-reel.tsx';
 import { FaqAccordion } from '@/components/landing/faq-accordion.tsx';
 import { useAuthEntry } from '@/features/auth/hooks/use-auth-entry.ts';
+import { motionDurations } from '@/lib/motion-tokens.ts';
+import {
+  case001Breakdown,
+  faqs,
+  features,
+  heroCase,
+} from '@/lib/landing-seed-data.tsx';
+
+/**
+ * The landing page (epic #125, cinematic rebuild) — the page as a *specimen
+ * dossier* shot through a viewfinder. Editorial scale-contrast (oversized
+ * Instrument Serif against tiny Geist Mono slate), registration/crop marks, a
+ * ghosted case numeral, and the 3D specimen as the centerpiece — on the
+ * established amber-on-graphite brand. Static-first: pure DOM/CSS at the floor;
+ * the 3D canvas (CaseStage) mounts over the case-stage on capable desktops.
+ *
+ * Narrative spine: playable Case 001 → ABCDE breakdown → method → FAQ → Case 002.
+ * Mounted under PublicLayout (dark, grain, footer).
+ */
+
+/** Tiny amber registration corners — frames a region like a film/print crop. */
+const CropMarks = ({ className }: { className?: string }) => (
+  <div
+    aria-hidden
+    className={`pointer-events-none absolute inset-0 ${className ?? ''}`}
+  >
+    <span className="border-primary/40 absolute top-0 left-0 size-3 border-t border-l" />
+    <span className="border-primary/40 absolute top-0 right-0 size-3 border-t border-r" />
+    <span className="border-primary/40 absolute bottom-0 left-0 size-3 border-b border-l" />
+    <span className="border-primary/40 absolute right-0 bottom-0 size-3 border-r border-b" />
+  </div>
+);
+
+/** A clinical slate strip — mono caps metadata, wide-tracked, dossier voice. */
+const Slate = ({ children }: { children: ReactNode }) => (
+  <div className="text-muted-foreground/70 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[0.62rem] tracking-[0.28em] uppercase">
+    {children}
+  </div>
+);
+
+const Tick = () => (
+  <span aria-hidden className="bg-primary/50 inline-block h-px w-5" />
+);
 
 const LandingRoute = () => {
   const shouldReduceMotion = useReducedMotion();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const primaryCta = useAuthEntry();
 
   const viewportOnce = useMemo(() => ({ once: true, amount: 0.2 }), []);
+
+  const rise = useMemo<Variants>(
+    () => ({
+      hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 24 },
+      visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+          duration: shouldReduceMotion ? 0 : motionDurations.hero,
+          ease: [0.16, 1, 0.3, 1],
+        },
+      },
+    }),
+    [shouldReduceMotion],
+  );
+
+  const scrollToId = useCallback(
+    (id: string) => {
+      document
+        .getElementById(id)
+        ?.scrollIntoView({ behavior: shouldReduceMotion ? 'auto' : 'smooth' });
+    },
+    [shouldReduceMotion],
+  );
 
   const faqJsonLd = useMemo(
     () => ({
@@ -28,10 +91,7 @@ const LandingRoute = () => {
       mainEntity: faqs.map((faq) => ({
         '@type': 'Question',
         name: faq.question,
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: faq.answer,
-        },
+        acceptedAnswer: { '@type': 'Answer', text: faq.answer },
       })),
     }),
     [],
@@ -54,114 +114,8 @@ const LandingRoute = () => {
     [],
   );
 
-  const fadeIn = useMemo(
-    () =>
-      ({
-        hidden: { opacity: 0 },
-        visible: {
-          opacity: 1,
-          transition: {
-            duration: shouldReduceMotion ? 0 : motionDurations.hero,
-            ease: [0.2, 0.8, 0.2, 1],
-          },
-        },
-      }) satisfies Variants,
-    [shouldReduceMotion],
-  );
-
-  // The "Start a case" gesture — auth-state-aware href, enter-auth bloom
-  // when signed out, auth-chunk prefetch on hover/focus. Shared by the
-  // hero and the CTA band.
-  const primaryCta = useAuthEntry();
-
-  const scrollToId = useCallback(
-    (id: string) => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.scrollIntoView({ behavior: shouldReduceMotion ? 'auto' : 'smooth' });
-      }
-    },
-    [shouldReduceMotion],
-  );
-
-  // Three pinned ScrollTriggers initialize independently (centerpiece → Why
-  // → FAQ). During the first ~800ms the layout shifts as each pin spacer
-  // wraps its section, and React Router + GSAP can both attempt to "restore"
-  // a scroll position against a stale layout. We hold the page at the top
-  // through that window, then issue a single ScrollTrigger.refresh so every
-  // trigger computes its start against the final document height. After the
-  // hold we let the browser take over again.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const prevRestoration = history.scrollRestoration;
-    history.scrollRestoration = 'manual';
-
-    let cancelled = false;
-    let interval: ReturnType<typeof setInterval> | null = null;
-    let raf = 0;
-
-    const pinTop = () => {
-      if (window.scrollY !== 0) window.scrollTo(0, 0);
-    };
-    pinTop();
-    interval = setInterval(pinTop, 32);
-
-    loadGsap().then(({ ScrollTrigger }) => {
-      if (cancelled) return;
-      // After 800ms the three pinned components have all created their
-      // triggers and the layout is final. Release the scroll hold, refresh,
-      // and the user can scroll normally from scroll 0.
-      raf = window.setTimeout(() => {
-        if (cancelled) return;
-        if (interval) {
-          clearInterval(interval);
-          interval = null;
-        }
-        window.scrollTo(0, 0);
-        ScrollTrigger.refresh();
-      }, 800);
-    });
-
-    return () => {
-      cancelled = true;
-      if (interval) clearInterval(interval);
-      if (raf) clearTimeout(raf);
-      history.scrollRestoration = prevRestoration;
-    };
-  }, []);
-
-  useEffect(() => {
-    const state = location.state as { scrollTo?: string } | null;
-    const target = state?.scrollTo;
-    if (!target) return;
-
-    // Defer until after paint so sections exist
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        if (target === '__top__') {
-          window.scrollTo({
-            top: 0,
-            behavior: shouldReduceMotion ? 'auto' : 'smooth',
-          });
-        } else {
-          scrollToId(target);
-        }
-
-        // Clear the state so refresh/back doesn't re-scroll
-        navigate(location.pathname, { replace: true, state: null });
-      }, 0);
-    });
-  }, [
-    location.pathname,
-    location.state,
-    navigate,
-    scrollToId,
-    shouldReduceMotion,
-  ]);
-
   return (
     <>
-      {/* Structured data for SEO */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
@@ -172,29 +126,21 @@ const LandingRoute = () => {
       />
       <Head title="Pigmemento – Melanoma Recognition Training for Clinicians" />
 
-      {/* Scroll-born film-strip rail — replaces the previous PublicHeader on
-          this route. Hidden at the hero, born once the user scrolls past it. */}
-      <ScrollRail />
+      {/* Fixed viewfinder — corner registration marks + a clinical slate. Reads
+          as "looking through the scope"; decorative, never intercepts input. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-3 z-30 hidden md:block"
+      >
+        <span className="border-primary/30 absolute top-0 left-0 size-5 border-t border-l" />
+        <span className="border-primary/30 absolute top-0 right-0 size-5 border-t border-r" />
+        <span className="border-primary/30 absolute bottom-0 left-0 size-5 border-b border-l" />
+        <span className="border-primary/30 absolute right-0 bottom-0 size-5 border-r border-b" />
+        <span className="bg-primary/40 absolute top-1/2 left-0 h-4 w-px -translate-y-1/2" />
+        <span className="bg-primary/40 absolute top-1/2 right-0 h-4 w-px -translate-y-1/2" />
+      </div>
 
-      {/* Hero — playable Case 001: judge the lesion, then "See why" into the
-          centerpiece breakdown of that same case. */}
-      <LandingHero
-        primaryCta={primaryCta}
-        onSeeHowItWorks={() => scrollToId('how')}
-        heroCase={heroCase}
-      />
-
-      {/* Centerpiece — the expert breakdown of the very case the user just
-          judged in the hero. Shares Case 001's image so the identity can't
-          drift; the credit here reveals the diagnosis (the hero's hid it).
-          The id="how" anchor is the ScrollRail's CASE frame target. */}
-      <CenterpiecePinned
-        imageSrc={heroCase.imageSrc}
-        imageAlt={heroCase.imageAlt}
-      />
-
-      {/* SEO intro — sr-only. Crawlers see the framing; the visible page
-          stays editorial. */}
+      {/* SEO intro — sr-only. */}
       <section className="sr-only">
         <h2>What is Pigmemento?</h2>
         <p>
@@ -209,94 +155,222 @@ const LandingRoute = () => {
         </p>
       </section>
 
-      {/* Why Pigmemento — horizontal scrub reel of 4 beats. Carries the
-          id="why" anchor for the ScrollRail's WHY frame. */}
-      <WhyScrubReel />
+      {/* 1. Hero — the case opens. A slate header, the playable Case 001, and a
+          ghosted oversized numeral bleeding off the edge. */}
+      <motion.section
+        initial="hidden"
+        animate="visible"
+        variants={rise}
+        className="relative isolate overflow-hidden"
+      >
+        <span
+          aria-hidden
+          className="font-display text-foreground/[0.03] pointer-events-none absolute -top-24 -right-10 text-[24rem] leading-none italic select-none md:text-[34rem]"
+        >
+          001
+        </span>
+        <div className="mx-auto w-full max-w-6xl px-6 pt-10 md:px-10">
+          <Slate>
+            <span className="text-primary">Case File 001</span>
+            <Tick />
+            <span>ISIC Archive</span>
+            <Tick />
+            <span>Dermoscopy · 20×</span>
+            <span className="ml-auto hidden sm:inline">
+              Melanoma recognition · Live drill
+            </span>
+          </Slate>
+          <div className="border-hairline mt-4 border-t" />
+        </div>
+        <LandingHero
+          primaryCta={primaryCta}
+          onSeeHowItWorks={() => scrollToId('how')}
+          heroCase={heroCase}
+        />
+      </motion.section>
 
-      {/* FAQ — scannable click-to-expand accordion. id="faq" target. */}
-      <FaqAccordion faqs={faqs} />
+      {/* 2. The breakdown — the cinematic centerpiece. The specimen on its stage,
+          crop-framed, with the diagnosis revealed like a title card. */}
+      <motion.section
+        id="how"
+        initial="hidden"
+        whileInView="visible"
+        viewport={viewportOnce}
+        variants={rise}
+        aria-label="How a Pigmemento case works"
+        className="border-hairline relative isolate border-t"
+      >
+        <AmberGlow
+          size="lg"
+          variant="soft"
+          className="-top-20 left-1/3 -z-10 opacity-40"
+        />
+        <div className="mx-auto w-full max-w-6xl px-6 py-20 md:px-10 md:py-28">
+          <Slate>
+            <span className="text-primary">Exhibit A</span>
+            <Tick />
+            <span>The lesion you just judged</span>
+            <span className="ml-auto hidden sm:inline">Expert read</span>
+          </Slate>
 
-      {/* CTA band — closes the page's narrative loop. The hero asked "Could
-          you spot it?" and the centerpiece answered it with "Diagnosis:
-          Melanoma" in big serif. This band echoes that lockup: a hairline
-          frame with a single serif "?" inside, mono-caps "DIAGNOSIS ·
-          AWAITING" — the user is now Case 002, and their diagnosis is the
-          one missing. Asymmetric editorial layout matches the Why beats and
-          the FAQ split-screen; no gradient backdrop. id="cta" is the
-          ScrollRail's START frame target. */}
+          <div className="mt-10 grid items-start gap-12 md:grid-cols-[1.05fr_0.95fr] md:gap-16">
+            {/* The stage — crop-framed specimen (3D on capable desktops). */}
+            <div className="relative">
+              <CropMarks className="-m-3" />
+              <CaseStage
+                imageSrc={heroCase.imageSrc}
+                imageAlt={heroCase.imageAlt}
+                features={case001Breakdown.features}
+                sourceCredit={case001Breakdown.sourceCredit}
+              />
+            </div>
+
+            {/* The verdict — a title-card reveal. */}
+            <div className="flex flex-col gap-8 md:pt-6">
+              <p className="text-foreground/90 font-display text-3xl leading-[1.15] md:text-4xl">
+                Here&rsquo;s what a trained eye catches in{' '}
+                <span className="text-primary italic">ninety seconds.</span>
+              </p>
+              <div className="border-hairline border-t pt-8">
+                <Slate>
+                  <span>Diagnosis</span>
+                  <Tick />
+                  <span>Confirmed</span>
+                </Slate>
+                <h2 className="font-display text-foreground mt-3 text-6xl leading-[0.95] tracking-tight md:text-8xl">
+                  {case001Breakdown.diagnosis}
+                </h2>
+                <p className="text-muted-foreground mt-6 max-w-md text-base leading-relaxed">
+                  {case001Breakdown.teaching}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* 3. Method — editorial numbered findings, not a card grid. */}
+      <motion.section
+        id="why"
+        initial="hidden"
+        whileInView="visible"
+        viewport={viewportOnce}
+        variants={rise}
+        aria-label="Why Pigmemento"
+        className="border-hairline relative isolate border-t"
+      >
+        <div className="mx-auto w-full max-w-6xl px-6 py-20 md:px-10 md:py-28">
+          <div className="grid gap-10 md:grid-cols-[0.8fr_1.2fr] md:gap-16">
+            <div className="md:sticky md:top-24 md:self-start">
+              <Slate>
+                <span className="text-primary">The method</span>
+              </Slate>
+              <h2 className="font-display text-foreground mt-4 text-4xl leading-[1.02] md:text-6xl">
+                Looking,
+                <br />
+                made <span className="text-primary italic">knowing.</span>
+              </h2>
+              <p className="text-muted-foreground mt-6 max-w-sm text-base leading-relaxed">
+                Four deliberate choices that turn pattern-spotting into a
+                trainable reflex.
+              </p>
+            </div>
+
+            <ul className="flex flex-col">
+              {features.map((feature, i) => (
+                <li
+                  key={feature.title}
+                  className="border-hairline grid grid-cols-[auto_1fr] items-baseline gap-x-6 gap-y-2 border-t py-8 first:border-t-0 first:pt-0 md:gap-x-10"
+                >
+                  <span className="text-primary/30 font-display text-5xl tabular-nums md:text-6xl">
+                    0{i + 1}
+                  </span>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-primary [&_svg]:size-5" aria-hidden>
+                        {feature.icon}
+                      </span>
+                      <h3 className="font-display text-foreground text-2xl">
+                        {feature.title}
+                      </h3>
+                    </div>
+                    <p className="text-muted-foreground max-w-md text-sm leading-relaxed">
+                      {feature.description}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* 4. FAQ */}
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={viewportOnce}
+        variants={rise}
+        className="border-hairline relative isolate border-t"
+      >
+        <div className="mx-auto w-full max-w-6xl px-6 pt-20 md:px-10 md:pt-28">
+          <Slate>
+            <span className="text-primary">Briefing</span>
+            <Tick />
+            <span>Frequently asked</span>
+          </Slate>
+        </div>
+        <FaqAccordion faqs={faqs} />
+      </motion.section>
+
+      {/* 5. Case 002 — the reader is the next case. */}
       <motion.section
         id="cta"
         initial="hidden"
         whileInView="visible"
         viewport={viewportOnce}
-        variants={fadeIn}
-        className="border-hairline relative isolate border-t"
+        variants={rise}
+        className="border-hairline relative isolate overflow-hidden border-t"
       >
-        <div className="mx-auto grid w-full max-w-6xl items-center gap-14 px-6 py-24 md:grid-cols-[1.3fr_1fr] md:gap-20 md:py-32">
-          {/* LEFT — the copy stack, left-aligned */}
-          <div className="flex flex-col items-start gap-7">
-            <div className="flex items-baseline gap-3">
-              <p className="text-primary font-mono text-[0.7rem] tabular-nums tracking-[0.22em] uppercase">
-                Case 002
-              </p>
-              <span className="bg-hairline h-px w-12" aria-hidden />
-              <p className="text-muted-foreground/70 font-mono text-[0.65rem] tracking-[0.22em] uppercase">
-                Your turn
-              </p>
-            </div>
-            <h2 className="font-display text-foreground text-5xl leading-[1.02] tracking-tight md:text-7xl">
-              Ready to spot it?
-            </h2>
-            <p className="text-muted-foreground max-w-md text-base leading-relaxed">
-              Real dermoscopic cases. Real feedback. Ninety seconds at a time.
-            </p>
-            <Button asChild size="lg">
-              <Link
-                to={primaryCta.href}
-                onClick={primaryCta.onClick}
-                onMouseEnter={primaryCta.onMouseEnter}
-                onFocus={primaryCta.onFocus}
-              >
-                Start your first case
-                <ArrowRight />
-              </Link>
-            </Button>
-            <p className="text-muted-foreground/60 mt-1 font-mono text-[0.65rem] tracking-[0.22em] uppercase">
-              For GPs · For trainees · For OSCE prep · Built with dermatologists
-              &amp; GPs
-            </p>
-          </div>
-
-          {/* RIGHT — the empty-diagnosis lockup. Mirrors the centerpiece's
-              "Melanoma" reveal with a vacant slot the reader has to fill. The
-              hairline frame uses the same vocabulary as the Why beat 04 ring
-              and the ABCDE annotation circles. */}
-          <figure className="relative hidden flex-col items-center md:flex">
-            <div className="border-hairline relative aspect-[4/5] w-full max-w-xs overflow-hidden rounded-card border">
-              {/* Faint amber wash so the frame doesn't read as empty */}
-              <div
-                aria-hidden
-                className="from-primary/[0.04] absolute inset-0 bg-gradient-to-br to-transparent"
-              />
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                <p className="text-primary font-mono text-[0.65rem] tracking-[0.22em] uppercase">
-                  Diagnosis
-                </p>
-                <span
-                  aria-hidden
-                  className="font-display text-foreground/40 text-8xl leading-none italic"
-                >
-                  ?
-                </span>
-                <p className="text-muted-foreground/60 font-mono text-[0.6rem] tracking-[0.22em] uppercase">
-                  Awaiting
-                </p>
-              </div>
-            </div>
-            <figcaption className="text-muted-foreground/70 mt-3 font-mono text-[0.65rem] tracking-[0.22em] uppercase">
-              Case 002 · You
-            </figcaption>
-          </figure>
+        <AmberGlow
+          size="xl"
+          variant="full"
+          className="-bottom-40 left-1/2 -z-10 -translate-x-1/2 opacity-50"
+        />
+        <span
+          aria-hidden
+          className="font-display text-foreground/[0.03] pointer-events-none absolute -bottom-32 -left-10 text-[24rem] leading-none italic select-none md:text-[34rem]"
+        >
+          002
+        </span>
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 px-6 py-28 text-center md:px-10 md:py-36">
+          <Slate>
+            <span className="text-primary">Case 002</span>
+            <Tick />
+            <span>Diagnosis · Awaiting</span>
+            <Tick />
+            <span>Subject · You</span>
+          </Slate>
+          <h2 className="font-display text-foreground max-w-3xl text-6xl leading-[0.98] tracking-tight md:text-8xl">
+            Ready to spot it?
+          </h2>
+          <p className="text-muted-foreground max-w-md text-base leading-relaxed">
+            Real dermoscopic cases. Real feedback. Ninety seconds at a time.
+          </p>
+          <Button asChild size="lg" className="mt-2">
+            <Link
+              to={primaryCta.href}
+              onClick={primaryCta.onClick}
+              onMouseEnter={primaryCta.onMouseEnter}
+              onFocus={primaryCta.onFocus}
+            >
+              Start your first case
+              <ArrowRight />
+            </Link>
+          </Button>
+          <p className="text-muted-foreground/60 font-mono text-[0.62rem] tracking-[0.28em] uppercase">
+            For GPs · For trainees · For OSCE prep · Built with dermatologists
+          </p>
         </div>
       </motion.section>
     </>

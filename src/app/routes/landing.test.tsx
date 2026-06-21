@@ -1,41 +1,39 @@
 import { render, screen } from '@testing-library/react';
-import { afterEach, describe, it, expect, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { describe, it, expect, vi } from 'vitest';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { HelmetProvider } from '@dr.pogodin/react-helmet';
 
+// Render the static floor deterministically: reduced motion collapses the
+// hero's ask⇄verdict cross-fade to an instant swap and drops the whileInView
+// reveals, so every section is queryable without animation timing.
 vi.mock('motion/react', async () => {
   const actual =
     await vi.importActual<typeof import('motion/react')>('motion/react');
-  return { ...actual, useReducedMotion: vi.fn(() => false) };
+  return { ...actual, useReducedMotion: vi.fn(() => true) };
 });
 
 vi.mock('framer-motion', async () => {
   const actual =
     await vi.importActual<typeof import('framer-motion')>('framer-motion');
-  return { ...actual, useReducedMotion: vi.fn(() => false) };
+  return { ...actual, useReducedMotion: vi.fn(() => true) };
 });
-
-import { useReducedMotion } from 'motion/react';
 
 import LandingRoute from './landing';
 import { TransitionConductor } from '@/components/motion/transition-conductor';
 
-const mockedUseReducedMotion = vi.mocked(useReducedMotion);
-
-afterEach(() => {
-  mockedUseReducedMotion.mockReturnValue(false);
-});
-
-// The landing renders inside the conductor route shell in production
-// (pathless root route in router.tsx) — mirror that here so the amber
+// Mirror production: the route renders inside the conductor shell so the amber
 // CTAs' useAuthEntry gesture has its context.
-const renderLandingRoute = () => {
-  const router = createMemoryRouter([
-    {
-      element: <TransitionConductor />,
-      children: [{ path: '/', element: <LandingRoute /> }],
-    },
-  ]);
+const renderLanding = () => {
+  const router = createMemoryRouter(
+    [
+      {
+        element: <TransitionConductor />,
+        children: [{ path: '/', element: <LandingRoute /> }],
+      },
+    ],
+    { initialEntries: ['/'] },
+  );
   return render(
     <HelmetProvider>
       <RouterProvider router={router} />
@@ -44,56 +42,93 @@ const renderLandingRoute = () => {
 };
 
 describe('landing route', () => {
-  it('renders the question hero headline', () => {
-    renderLandingRoute();
-
-    // The Instrument Serif hero — split across <span>s for italic + amber
-    // accent — exposes itself via accessible level-1 heading text content.
-    const heading = screen.getByRole('heading', { level: 1 });
-    expect(heading.textContent).toMatch(/Could you\s+spot\s+it\??/);
+  it('renders the playable hero headline', () => {
+    renderLanding();
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(
+      /Could you\s+spot\s+it\??/,
+    );
   });
 
-  it('renders the primary "Start a case" CTA pointing to the auth entry point', () => {
-    renderLandingRoute();
+  it('flips the playable rep from question to verdict on answer', async () => {
+    const user = userEvent.setup();
+    renderLanding();
 
-    const cta = screen.getByRole('link', { name: /start a case/i });
-    expect(cta).toBeInTheDocument();
-    // Unauthenticated visitor (no token) routes to /auth/login.
-    expect(cta.getAttribute('href')).toMatch(/\/auth\/login/);
-  });
+    // Question state.
+    expect(screen.getByText(/your call/i)).toBeInTheDocument();
 
-  it('closes the narrative loop with the CTA band', () => {
-    renderLandingRoute();
+    await user.click(screen.getByRole('button', { name: /melanoma/i }));
 
+    // Verdict state — the live region appears with the scored result and the
+    // "See why" nudge into the breakdown.
+    const verdict = await screen.findByRole('status');
+    expect(verdict).toHaveTextContent(/correct\./i);
     expect(
-      screen.getByRole('heading', { name: /ready to spot it\?/i }),
+      screen.getByRole('button', { name: /see why/i }),
     ).toBeInTheDocument();
+  });
+
+  it('routes the auth-aware CTA to /auth/login when signed out', () => {
+    renderLanding();
     const cta = screen.getByRole('link', { name: /start your first case/i });
     expect(cta.getAttribute('href')).toMatch(/\/auth\/login/);
   });
 
-  it('keeps login one click away at page-load — via the primary CTA, not a standalone FAB (#87–#95)', () => {
-    renderLandingRoute();
-
-    // The redesign replaced the persistent PublicHeader with a scroll-born
-    // rail: its "Log in" link only mounts once the hero is scrolled past
-    // (ScrollRail's `visible` flips at ~0.6 viewport). So at page-load there is
-    // no standalone Log in affordance — login is reached through the always-
-    // present primary CTA, which routes an unauthenticated visitor to auth.
-    expect(screen.queryByRole('link', { name: /^log in$/i })).toBeNull();
+  it('shows the static ABCDE breakdown of Case 001 with the diagnosis reveal', () => {
+    renderLanding();
     expect(
-      screen.getByRole('link', { name: /start a case/i }).getAttribute('href'),
-    ).toMatch(/\/auth\/login/);
+      screen.getByRole('heading', { name: /^Melanoma$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Asymmetric across the long axis/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Evolving — gradual darkening over months/i),
+    ).toBeInTheDocument();
   });
 
-  it('exposes the ISIC source credit beneath each lesion image', () => {
-    renderLandingRoute();
+  it('lists the four Why value props', () => {
+    renderLanding();
+    expect(
+      screen.getByRole('heading', { name: /^Real dermoscopic cases$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /feedback that teaches/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /abcde-aware/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /respects your time/i }),
+    ).toBeInTheDocument();
+  });
 
-    // The hero + centerpiece both render the source credit; that's the
-    // brand-credibility move, both should be present.
-    const credits = screen.getAllByText(
-      /ISIC_0000022 · MELANOMA · COURTESY ISIC ARCHIVE/,
+  it('renders the FAQ content', () => {
+    renderLanding();
+    expect(screen.getByText(/Who is Pigmemento for\?/i)).toBeInTheDocument();
+  });
+
+  it('closes the loop with the Case 002 CTA band', () => {
+    renderLanding();
+    expect(
+      screen.getByRole('heading', { name: /ready to spot it\?/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('embeds FAQPage + Organization JSON-LD', () => {
+    const { container } = renderLanding();
+    const scripts = container.querySelectorAll(
+      'script[type="application/ld+json"]',
     );
-    expect(credits.length).toBeGreaterThanOrEqual(1);
+    expect(scripts).toHaveLength(2);
+    const payloads = Array.from(scripts).map((s) => s.textContent ?? '');
+    expect(payloads.some((p) => p.includes('"FAQPage"'))).toBe(true);
+    expect(payloads.some((p) => p.includes('"Organization"'))).toBe(true);
+  });
+
+  it('includes the sr-only SEO intro', () => {
+    renderLanding();
+    expect(
+      screen.getByRole('heading', { name: /what is pigmemento\?/i }),
+    ).toBeInTheDocument();
   });
 });
