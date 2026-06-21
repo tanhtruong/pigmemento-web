@@ -41,6 +41,13 @@ export const createAppRouter = (queryClient: QueryClient) =>
               lazy: () =>
                 import('./routes/privacy-policy').then(convert(queryClient)),
             },
+            {
+              // Temporary parallel build of the 3D-first landing rebuild
+              // (epic #125). Unlisted + noindex; `/` adopts it at cutover (#133).
+              path: '/next',
+              lazy: () =>
+                import('./routes/landing-next').then(convert(queryClient)),
+            },
           ],
         },
         {

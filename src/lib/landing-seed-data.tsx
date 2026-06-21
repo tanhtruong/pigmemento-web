@@ -2,6 +2,7 @@ import { FAQ } from '@/types/faq';
 import { Feature } from '@/types/feature';
 import { Stat } from '@/types/stat';
 import { HeroCase } from '@/types/hero-case';
+import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
 import { Microscope, MessageSquareText, Crosshair, Timer } from 'lucide-react';
 
 /**
@@ -17,6 +18,49 @@ export const heroCase: HeroCase = {
   correctLabel: 'malignant',
   truth: 'It’s a melanoma.',
   cue: 'The colour shifts asymmetrically across the lesion — one of the strongest signals here.',
+};
+
+/**
+ * Case 001's expert ABCDE breakdown — the static payoff the `/next` landing
+ * shows after the hero's playable rep (the flat-2D floor of the centerpiece
+ * walkthrough). The credit reveals the diagnosis the hero kept hidden. ABCDE
+ * coordinates mirror the centerpiece reading of this same lesion so the two
+ * fidelities never disagree.
+ */
+const case001Features: AbcdeFeature[] = [
+  {
+    letter: 'A',
+    centerPoint: [0.32, 0.38],
+    reasoning: 'Asymmetric across the long axis',
+  },
+  {
+    letter: 'B',
+    centerPoint: [0.62, 0.5],
+    reasoning: 'Irregular border on the medial edge',
+  },
+  {
+    letter: 'C',
+    centerPoint: [0.5, 0.32],
+    reasoning: 'Multiple colours within the lesion',
+  },
+  {
+    letter: 'D',
+    centerPoint: [0.46, 0.62],
+    reasoning: 'Diameter exceeds 6 mm at widest',
+  },
+  {
+    letter: 'E',
+    centerPoint: [0.7, 0.36],
+    reasoning: 'Evolving — gradual darkening over months',
+  },
+];
+
+export const case001Breakdown = {
+  diagnosis: 'Melanoma',
+  sourceCredit: 'ISIC_0000022 · MELANOMA · COURTESY ISIC ARCHIVE',
+  teaching:
+    'Look at how the colour shifts left-to-right — that asymmetry is one of the strongest signals here, paired with the irregular medial border and the patient’s history of gradual darkening.',
+  features: case001Features,
 };
 
 export const features: Feature[] = [
