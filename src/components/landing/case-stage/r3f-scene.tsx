@@ -1,12 +1,16 @@
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PerformanceMonitor, Sparkles, useTexture } from '@react-three/drei';
-import { Suspense, useRef, useState } from 'react';
+import { type RefObject, Suspense, useRef, useState } from 'react';
 import * as THREE from 'three';
+
+import { cameraPositionAt } from './camera-beats';
 
 type R3fSceneProps = {
   imageSrc: string;
   /** Run the render loop only while true (tab visible + canvas on-screen). */
   active: boolean;
+  /** Page scroll progress (0–1) driving the camera dolly — see camera-beats. */
+  scrollProgressRef: RefObject<number>;
   className?: string;
 };
 
@@ -17,8 +21,8 @@ const PARALLAX = 0.12;
  * The "specimen on the stage" (#125): a flat case-image plane on a softly-lit
  * slide, with a restrained ambient "dermoscopy field" (drei <Sparkles>) and fog
  * for atmospheric depth. The dermoscopy plane stays an honest flat 2D image —
- * we never fake topology on a melanoma. No camera choreography or ABCDE pins
- * yet (#130, #131).
+ * we never fake topology on a melanoma. A scroll-driven camera dollies through
+ * four framings (#130); ABCDE pins are still #131.
  *
  * Decorative + `aria-hidden`: the real, accessible, indexable content is the
  * static AnnotatedLesionImage underneath. Lazy-loaded so three/r3f/drei stay in
@@ -27,6 +31,7 @@ const PARALLAX = 0.12;
 export default function R3fScene({
   imageSrc,
   active,
+  scrollProgressRef,
   className,
 }: R3fSceneProps) {
   // Adaptive quality: PerformanceMonitor lowers the DPR ceiling on sustained
@@ -39,13 +44,14 @@ export default function R3fScene({
       aria-hidden
       frameloop={active ? 'always' : 'never'}
       dpr={[1, dprCeiling]}
-      camera={{ position: [0, 0, 3.2], fov: 38 }}
+      camera={{ position: cameraPositionAt(0), fov: 38 }}
       gl={{ antialias: true }}
     >
       <PerformanceMonitor
         onDecline={() => setDprCeiling(1)}
         onIncline={() => setDprCeiling(DPR_CEILING)}
       />
+      <CameraRig scrollProgressRef={scrollProgressRef} />
       <color attach="background" args={['#0a0a0b']} />
       <fog attach="fog" args={['#0a0a0b', 4.2, 9]} />
       <ambientLight intensity={0.7} />
@@ -68,6 +74,30 @@ export default function R3fScene({
       />
     </Canvas>
   );
+}
+
+/**
+ * Eases the camera toward the scroll-mapped framing each frame. Only runs while
+ * the loop is active (on-screen + visible); paused off-screen, so the camera
+ * holds. The initial Canvas camera sits at the wide framing, so reduced-motion /
+ * static (which never scrub) match the entry beat.
+ */
+function CameraRig({
+  scrollProgressRef,
+}: {
+  scrollProgressRef: RefObject<number>;
+}) {
+  const camera = useThree((state) => state.camera);
+  const target = useRef(new THREE.Vector3(...cameraPositionAt(0)));
+
+  useFrame(() => {
+    const [x, y, z] = cameraPositionAt(scrollProgressRef.current);
+    target.current.set(x, y, z);
+    camera.position.lerp(target.current, 0.08);
+    camera.lookAt(0, 0, 0);
+  });
+
+  return null;
 }
 
 function Specimen({ imageSrc }: { imageSrc: string }) {
