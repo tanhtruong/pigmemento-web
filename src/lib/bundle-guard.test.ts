@@ -124,6 +124,20 @@ describe('findForbiddenThreeChunks', () => {
     ).toEqual([]);
   });
 
+  it('does not flag a lazy boundary that only names three-vendor in its preload dep map', () => {
+    // The chunk dynamically imports the r3f scene; Vite embeds three-vendor in
+    // the dynamic import's preload dep array, but three is fetched only when the
+    // gated `import()` fires — not at this chunk's load. Must not be a leak.
+    expect(
+      findForbiddenThreeChunks([
+        {
+          fileName: 'landing-next-x.js',
+          code: 'q(()=>import("./r3f-scene-x.js"),__vite__mapDeps([0,1])),m.f=["assets/r3f-scene-x.js","assets/three-vendor-x.js"]',
+        },
+      ]),
+    ).toEqual([]);
+  });
+
   it('reports every violating chunk, not just the first', () => {
     expect(
       findForbiddenThreeChunks([
