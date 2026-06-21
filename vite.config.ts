@@ -19,6 +19,14 @@ export default defineConfig({
           // Keep GSAP (core + plugins) in its own chunk so it stays out of the
           // main bundle. The bundle-guard allowlist accepts `gsap-` filenames.
           if (id.includes('node_modules/gsap')) return 'gsap-vendor';
+          // Quarantine the 3D stack (three + react-three-fiber + drei) in its
+          // own chunk so it never reaches the landing first-paint chunk or any
+          // `/app/*` chunk. The bundle-guard allowlist accepts `three-` names.
+          if (
+            id.includes('node_modules/three') ||
+            id.includes('node_modules/@react-three')
+          )
+            return 'three-vendor';
         },
       },
     },
