@@ -20,10 +20,20 @@ type R3fSceneProps = {
   scrollProgressRef: RefObject<number>;
   /** ABCDE annotations pinned onto the specimen, revealed on the close-up beat. */
   features?: AbcdeFeature[];
+  /** Called when adaptive quality can't hold the perf floor — bail to static (#132). */
+  onDegrade?: () => void;
   className?: string;
 };
 
-const DPR_CEILING = 1.5;
+// Adaptive-quality ladder (#132): step DPR ceiling + ambient particle count down
+// together on sustained frame-rate decline, restore on recovery. If quality keeps
+// flip-flopping (can't stabilise even at the floor), PerformanceMonitor's
+// onFallback bails the whole scene to the static layer.
+const QUALITY = {
+  high: { dpr: 1.5, sparkles: 36 },
+  low: { dpr: 1, sparkles: 18 },
+} as const;
+
 const PARALLAX = 0.12;
 
 /**
@@ -44,24 +54,26 @@ export default function R3fScene({
   active,
   scrollProgressRef,
   features,
+  onDegrade,
   className,
 }: R3fSceneProps) {
-  // Adaptive quality: PerformanceMonitor lowers the DPR ceiling on sustained
-  // frame-rate decline and restores it on recovery. Capped at 1.5 either way.
-  const [dprCeiling, setDprCeiling] = useState(DPR_CEILING);
+  const [tier, setTier] = useState<keyof typeof QUALITY>('high');
+  const quality = QUALITY[tier];
 
   return (
     <Canvas
       className={className}
       aria-hidden
       frameloop={active ? 'always' : 'never'}
-      dpr={[1, dprCeiling]}
+      dpr={[1, quality.dpr]}
       camera={{ position: cameraPositionAt(0), fov: 38 }}
       gl={{ antialias: true }}
     >
       <PerformanceMonitor
-        onDecline={() => setDprCeiling(1)}
-        onIncline={() => setDprCeiling(DPR_CEILING)}
+        onDecline={() => setTier('low')}
+        onIncline={() => setTier('high')}
+        flipflops={3}
+        onFallback={() => onDegrade?.()}
       />
       <CameraRig scrollProgressRef={scrollProgressRef} />
       <color attach="background" args={['#0a0a0b']} />
@@ -81,7 +93,7 @@ export default function R3fScene({
         />
       </Suspense>
       <Sparkles
-        count={36}
+        count={quality.sparkles}
         scale={[5, 6, 2.5]}
         size={2}
         speed={0.25}
