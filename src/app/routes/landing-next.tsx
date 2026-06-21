@@ -6,7 +6,7 @@ import { ArrowRight } from 'lucide-react';
 import { Head } from '@/components/seo/head.tsx';
 import { Button } from '@/components/ui/button.tsx';
 import { AmberGlow } from '@/components/foundation/amber-glow.tsx';
-import { AnnotatedLesionImage } from '@/components/signature/annotated-lesion-image.tsx';
+import { CaseStage } from '@/components/landing/case-stage/case-stage.tsx';
 import { LandingHero } from '@/components/landing/landing-hero.tsx';
 import { FaqAccordion } from '@/components/landing/faq-accordion.tsx';
 import { useAuthEntry } from '@/features/auth/hooks/use-auth-entry.ts';
@@ -145,11 +145,12 @@ const LandingNextRoute = () => {
         className="border-hairline relative isolate border-t"
       >
         <div className="mx-auto grid w-full max-w-6xl items-start gap-12 px-6 py-20 md:grid-cols-2 md:py-28">
-          <AnnotatedLesionImage
-            src={heroCase.imageSrc}
-            alt={heroCase.imageAlt}
+          {/* Case-stage: static lesion image is the floor; a decorative 3D
+              "specimen on the stage" mounts over it on capable desktops (#129). */}
+          <CaseStage
+            imageSrc={heroCase.imageSrc}
+            imageAlt={heroCase.imageAlt}
             features={case001Breakdown.features}
-            aspect="4:5"
             sourceCredit={case001Breakdown.sourceCredit}
           />
 

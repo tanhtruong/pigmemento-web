@@ -25,10 +25,16 @@ const containsGsap = (code) =>
 const isAllowedGsapChunk = (fileName) =>
   fileName.startsWith('landing-') || fileName.startsWith('gsap-');
 
-// three-specific markers: the `three-vendor` import path, the `THREE`
-// namespace, and the `@react-three` scope — never a bare `three`, which would
-// false-positive on the English word in UI copy.
-const THREE_MARKERS = [/three-vendor/, /\bTHREE\b/, /@react-three\b/];
+// three-specific markers: (1) a STATIC import of the three-vendor chunk
+// (`from"./three-vendor…"` — a chunk that evaluates three at load), NOT the
+// `three-vendor` string a lazy boundary embeds in its dynamic-import preload
+// dep map; (2/3) the `THREE` namespace / `@react-three` scope for inlined three
+// code — never a bare `three`, which false-positives on the English word.
+const THREE_MARKERS = [
+  /\b(?:from|import)\s*"[^"]*three-vendor/,
+  /\bTHREE\b/,
+  /@react-three\b/,
+];
 
 const containsThree = (code) =>
   THREE_MARKERS.some((pattern) => pattern.test(code));
