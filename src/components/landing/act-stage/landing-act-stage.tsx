@@ -101,7 +101,7 @@ export default function LandingActStage({
             <R3fActScene
               imageSrc={imageSrc}
               features={features}
-              active
+              trackRef={pinRef}
               scrollProgressRef={scrollProgressRef}
             />
           </Suspense>

@@ -1,8 +1,9 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 
 import { Head } from '@/components/seo/head.tsx';
 import { paths } from '@/config/paths';
+import { useShouldRender3D } from '@/lib/render-3d';
 import { case001Breakdown, faqs, heroCase } from '@/lib/landing-seed-data.tsx';
 
 // Lazy so the GSAP-driven Act + its three/r3f scene stay out of the landing
@@ -10,6 +11,16 @@ import { case001Breakdown, faqs, heroCase } from '@/lib/landing-seed-data.tsx';
 // them); the bundle guard keeps GSAP/three in their allowed chunks.
 const LandingActStage = lazy(
   () => import('@/components/landing/act-stage/landing-act-stage'),
+);
+// The single shared WebGL context for the whole landing (PIG-159) — the Act and
+// (later) the specimen library render into it as drei <View>s. Lazy + r3f-* so
+// three/r3f/drei stay quarantined out of the first-paint chunk.
+const LandingCanvas = lazy(
+  () => import('@/components/landing/r3f-landing-canvas'),
+);
+// Dev-only: proves a second scene shares the one canvas (slice-0 go/no-go).
+const PlaceholderView = lazy(
+  () => import('@/components/landing/r3f-placeholder-view'),
 );
 
 const METHOD = [
@@ -69,8 +80,15 @@ export default function LandingRoute() {
     };
   }, []);
 
+  // One WebGL context for the whole page: mount the shared canvas only for
+  // capable clients (the same gate the Act uses), and use the landing root as
+  // its pointer event source. Incapable / reduced-motion clients never mount it
+  // and get the Act's crafted-2D path, exactly as before.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const capable = useShouldRender3D();
+
   return (
-    <div className="landing">
+    <div className="landing" ref={rootRef}>
       <Head
         title="Pigmemento — melanoma recognition, case by case"
         description="Real dermoscopic cases. Commit to a diagnosis, then see exactly what you missed. Educational use only."
@@ -84,6 +102,13 @@ export default function LandingRoute() {
       <a className="ln-skip" href="#start">
         Skip to start
       </a>
+
+      {capable && (
+        <Suspense fallback={null}>
+          <LandingCanvas eventSource={rootRef} />
+          {import.meta.env.DEV && <PlaceholderView />}
+        </Suspense>
+      )}
 
       <header className="ln-head">
         <span className="ln-wordmark">Pigmemento</span>
