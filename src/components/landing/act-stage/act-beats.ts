@@ -20,7 +20,14 @@ export const ACT_CAMERA_BEATS: CameraBeat[] = [
 ];
 
 export const READING_START = 0.55;
-export const READING_END = 1.0;
+export const READING_END = 0.8;
+
+/**
+ * Where the take holds for the commitment (#147): the camera is already close
+ * (it holds from 0.55 on), all ABCDE crosshairs are read in by READING_END, and
+ * the scroll-hold + Benign/Malignant prompt take over the 0.8–1.0 tail.
+ */
+export const COMMIT_AT = 0.82;
 
 const clamp01 = (x: number): number => Math.max(0, Math.min(1, x));
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
