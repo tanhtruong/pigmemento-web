@@ -30,12 +30,14 @@ export const createAppRouter = (queryClient: QueryClient) =>
       element: <TransitionConductor />,
       children: [
         {
+          // #149 cutover: the new landing is self-contained (own dark chrome +
+          // visual system), so it sits outside PublicLayout's old header/footer.
+          path: paths.home.path,
+          lazy: () => import('./routes/landing').then(convert(queryClient)),
+        },
+        {
           element: <PublicLayout />,
           children: [
-            {
-              path: paths.home.path,
-              lazy: () => import('./routes/landing').then(convert(queryClient)),
-            },
             {
               path: paths.privacy.path,
               lazy: () =>

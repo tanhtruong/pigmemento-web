@@ -1,380 +1,280 @@
-import { useCallback, useMemo, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { Link } from 'react-router';
-import { motion, useReducedMotion, type Variants } from 'motion/react';
-import { ArrowRight } from 'lucide-react';
 
 import { Head } from '@/components/seo/head.tsx';
-import { Button } from '@/components/ui/button.tsx';
-import { AmberGlow } from '@/components/foundation/amber-glow.tsx';
-import { CaseStage } from '@/components/landing/case-stage/case-stage.tsx';
-import { LandingHero } from '@/components/landing/landing-hero.tsx';
-import { FaqAccordion } from '@/components/landing/faq-accordion.tsx';
-import { useAuthEntry } from '@/features/auth/hooks/use-auth-entry.ts';
-import { motionDurations } from '@/lib/motion-tokens.ts';
-import {
-  case001Breakdown,
-  faqs,
-  features,
-  heroCase,
-} from '@/lib/landing-seed-data.tsx';
+import { paths } from '@/config/paths';
+import { case001Breakdown, faqs, heroCase } from '@/lib/landing-seed-data.tsx';
 
-/**
- * The landing page (epic #125, cinematic rebuild) — the page as a *specimen
- * dossier* shot through a viewfinder. Editorial scale-contrast (oversized
- * Instrument Serif against tiny Geist Mono slate), registration/crop marks, a
- * ghosted case numeral, and the 3D specimen as the centerpiece — on the
- * established amber-on-graphite brand. Static-first: pure DOM/CSS at the floor;
- * the 3D canvas (CaseStage) mounts over the case-stage on capable desktops.
- *
- * Narrative spine: playable Case 001 → ABCDE breakdown → method → FAQ → Case 002.
- * Mounted under PublicLayout (dark, grain, footer).
- */
-
-/** Tiny amber registration corners — frames a region like a film/print crop. */
-const CropMarks = ({ className }: { className?: string }) => (
-  <div
-    aria-hidden
-    className={`pointer-events-none absolute inset-0 ${className ?? ''}`}
-  >
-    <span className="border-primary/40 absolute top-0 left-0 size-3 border-t border-l" />
-    <span className="border-primary/40 absolute top-0 right-0 size-3 border-t border-r" />
-    <span className="border-primary/40 absolute bottom-0 left-0 size-3 border-b border-l" />
-    <span className="border-primary/40 absolute right-0 bottom-0 size-3 border-r border-b" />
-  </div>
+// Lazy so the GSAP-driven Act + its three/r3f scene stay out of the landing
+// first-paint chunk (the static hero + release sections below render without
+// them); the bundle guard keeps GSAP/three in their allowed chunks.
+const LandingActStage = lazy(
+  () => import('@/components/landing/act-stage/landing-act-stage'),
 );
 
-/** A clinical slate strip — mono caps metadata, wide-tracked, dossier voice. */
-const Slate = ({ children }: { children: ReactNode }) => (
-  <div className="text-muted-foreground/70 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[0.62rem] tracking-[0.28em] uppercase">
-    {children}
-  </div>
-);
+const METHOD = [
+  {
+    kicker: 'Source',
+    title: 'Real cases',
+    body: 'From the ISIC Archive — the image a clinician actually sees, not the textbook ideal.',
+  },
+  {
+    kicker: 'Feedback',
+    title: 'Teaches, not scores',
+    body: 'The pattern reasoning behind every call. Not just right or wrong.',
+  },
+  {
+    kicker: 'Features',
+    title: 'ABCDE on the lesion',
+    body: 'The decision-driving features, marked where they sit.',
+  },
+  {
+    kicker: 'Format',
+    title: 'Built for clinic time',
+    body: 'Ninety-second drills. A session fits a coffee break.',
+  },
+];
 
-const Tick = () => (
-  <span aria-hidden className="bg-primary/50 inline-block h-px w-5" />
-);
+const FONT_HREF =
+  'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap';
 
-const LandingRoute = () => {
-  const shouldReduceMotion = useReducedMotion();
-  const primaryCta = useAuthEntry();
-
-  const viewportOnce = useMemo(() => ({ once: true, amount: 0.2 }), []);
-
-  const rise = useMemo<Variants>(
-    () => ({
-      hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 24 },
-      visible: {
-        opacity: 1,
-        y: 0,
-        transition: {
-          duration: shouldReduceMotion ? 0 : motionDurations.hero,
-          ease: [0.16, 1, 0.3, 1],
-        },
-      },
-    }),
-    [shouldReduceMotion],
-  );
-
-  const scrollToId = useCallback(
-    (id: string) => {
-      document
-        .getElementById(id)
-        ?.scrollIntoView({ behavior: shouldReduceMotion ? 'auto' : 'smooth' });
-    },
-    [shouldReduceMotion],
-  );
-
-  const faqJsonLd = useMemo(
-    () => ({
-      '@context': 'https://schema.org',
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
       '@type': 'FAQPage',
-      mainEntity: faqs.map((faq) => ({
+      mainEntity: faqs.map((f) => ({
         '@type': 'Question',
-        name: faq.question,
-        acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+        name: f.question,
+        acceptedAnswer: { '@type': 'Answer', text: f.answer },
       })),
-    }),
-    [],
-  );
-
-  const organizationJsonLd = useMemo(
-    () => ({
-      '@context': 'https://schema.org',
+    },
+    {
       '@type': 'Organization',
       name: 'Pigmemento',
       url: 'https://pigmemento.app',
-      contactPoint: [
-        {
-          '@type': 'ContactPoint',
-          contactType: 'customer support',
-          email: 'contact@pigmemento.app',
-        },
-      ],
-    }),
-    [],
-  );
-
-  return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
-      />
-      <Head title="Pigmemento – Melanoma Recognition Training for Clinicians" />
-
-      {/* Fixed viewfinder — corner registration marks + a clinical slate. Reads
-          as "looking through the scope"; decorative, never intercepts input. */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-3 z-30 hidden md:block"
-      >
-        <span className="border-primary/30 absolute top-0 left-0 size-5 border-t border-l" />
-        <span className="border-primary/30 absolute top-0 right-0 size-5 border-t border-r" />
-        <span className="border-primary/30 absolute bottom-0 left-0 size-5 border-b border-l" />
-        <span className="border-primary/30 absolute right-0 bottom-0 size-5 border-r border-b" />
-        <span className="bg-primary/40 absolute top-1/2 left-0 h-4 w-px -translate-y-1/2" />
-        <span className="bg-primary/40 absolute top-1/2 right-0 h-4 w-px -translate-y-1/2" />
-      </div>
-
-      {/* SEO intro — sr-only. */}
-      <section className="sr-only">
-        <h2>What is Pigmemento?</h2>
-        <p>
-          Pigmemento is an educational melanoma recognition trainer designed for
-          clinicians, general practitioners, and dermatology trainees. Practice
-          pattern recognition with case-based drills and structured feedback to
-          help you spot high-risk features.
-        </p>
-        <p>
-          This product is for medical education only and does not provide
-          diagnosis or treatment recommendations.
-        </p>
-      </section>
-
-      {/* 1. Hero — the case opens. A slate header, the playable Case 001, and a
-          ghosted oversized numeral bleeding off the edge. */}
-      <motion.section
-        initial="hidden"
-        animate="visible"
-        variants={rise}
-        className="relative isolate overflow-hidden"
-      >
-        <span
-          aria-hidden
-          className="font-display text-foreground/[0.03] pointer-events-none absolute -top-24 -right-10 text-[24rem] leading-none italic select-none md:text-[34rem]"
-        >
-          001
-        </span>
-        <div className="mx-auto w-full max-w-6xl px-6 pt-10 md:px-10">
-          <Slate>
-            <span className="text-primary">Case File 001</span>
-            <Tick />
-            <span>ISIC Archive</span>
-            <Tick />
-            <span>Dermoscopy · 20×</span>
-            <span className="ml-auto hidden sm:inline">
-              Melanoma recognition · Live drill
-            </span>
-          </Slate>
-          <div className="border-hairline mt-4 border-t" />
-        </div>
-        <LandingHero
-          primaryCta={primaryCta}
-          onSeeHowItWorks={() => scrollToId('how')}
-          heroCase={heroCase}
-        />
-      </motion.section>
-
-      {/* 2. The breakdown — the cinematic centerpiece. The specimen on its stage,
-          crop-framed, with the diagnosis revealed like a title card. */}
-      <motion.section
-        id="how"
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewportOnce}
-        variants={rise}
-        aria-label="How a Pigmemento case works"
-        className="border-hairline relative isolate border-t"
-      >
-        <AmberGlow
-          size="lg"
-          variant="soft"
-          className="-top-20 left-1/3 -z-10 opacity-40"
-        />
-        <div className="mx-auto w-full max-w-6xl px-6 py-20 md:px-10 md:py-28">
-          <Slate>
-            <span className="text-primary">Exhibit A</span>
-            <Tick />
-            <span>The lesion you just judged</span>
-            <span className="ml-auto hidden sm:inline">Expert read</span>
-          </Slate>
-
-          <div className="mt-10 grid items-start gap-12 md:grid-cols-[1.05fr_0.95fr] md:gap-16">
-            {/* The stage — crop-framed specimen (3D on capable desktops). */}
-            <div className="relative">
-              <CropMarks className="-m-3" />
-              <CaseStage
-                imageSrc={heroCase.imageSrc}
-                imageAlt={heroCase.imageAlt}
-                features={case001Breakdown.features}
-                sourceCredit={case001Breakdown.sourceCredit}
-              />
-            </div>
-
-            {/* The verdict — a title-card reveal. */}
-            <div className="flex flex-col gap-8 md:pt-6">
-              <p className="text-foreground/90 font-display text-3xl leading-[1.15] md:text-4xl">
-                Here&rsquo;s what a trained eye catches in{' '}
-                <span className="text-primary italic">ninety seconds.</span>
-              </p>
-              <div className="border-hairline border-t pt-8">
-                <Slate>
-                  <span>Diagnosis</span>
-                  <Tick />
-                  <span>Confirmed</span>
-                </Slate>
-                <h2 className="font-display text-foreground mt-3 text-6xl leading-[0.95] tracking-tight md:text-8xl">
-                  {case001Breakdown.diagnosis}
-                </h2>
-                <p className="text-muted-foreground mt-6 max-w-md text-base leading-relaxed">
-                  {case001Breakdown.teaching}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* 3. Method — editorial numbered findings, not a card grid. */}
-      <motion.section
-        id="why"
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewportOnce}
-        variants={rise}
-        aria-label="Why Pigmemento"
-        className="border-hairline relative isolate border-t"
-      >
-        <div className="mx-auto w-full max-w-6xl px-6 py-20 md:px-10 md:py-28">
-          <div className="grid gap-10 md:grid-cols-[0.8fr_1.2fr] md:gap-16">
-            <div className="md:sticky md:top-24 md:self-start">
-              <Slate>
-                <span className="text-primary">The method</span>
-              </Slate>
-              <h2 className="font-display text-foreground mt-4 text-4xl leading-[1.02] md:text-6xl">
-                Looking,
-                <br />
-                made <span className="text-primary italic">knowing.</span>
-              </h2>
-              <p className="text-muted-foreground mt-6 max-w-sm text-base leading-relaxed">
-                Four deliberate choices that turn pattern-spotting into a
-                trainable reflex.
-              </p>
-            </div>
-
-            <ul className="flex flex-col">
-              {features.map((feature, i) => (
-                <li
-                  key={feature.title}
-                  className="border-hairline grid grid-cols-[auto_1fr] items-baseline gap-x-6 gap-y-2 border-t py-8 first:border-t-0 first:pt-0 md:gap-x-10"
-                >
-                  <span className="text-primary/30 font-display text-5xl tabular-nums md:text-6xl">
-                    0{i + 1}
-                  </span>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-3">
-                      <span className="text-primary [&_svg]:size-5" aria-hidden>
-                        {feature.icon}
-                      </span>
-                      <h3 className="font-display text-foreground text-2xl">
-                        {feature.title}
-                      </h3>
-                    </div>
-                    <p className="text-muted-foreground max-w-md text-sm leading-relaxed">
-                      {feature.description}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* 4. FAQ */}
-      <motion.section
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewportOnce}
-        variants={rise}
-        className="border-hairline relative isolate border-t"
-      >
-        <div className="mx-auto w-full max-w-6xl px-6 pt-20 md:px-10 md:pt-28">
-          <Slate>
-            <span className="text-primary">Briefing</span>
-            <Tick />
-            <span>Frequently asked</span>
-          </Slate>
-        </div>
-        <FaqAccordion faqs={faqs} />
-      </motion.section>
-
-      {/* 5. Case 002 — the reader is the next case. */}
-      <motion.section
-        id="cta"
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewportOnce}
-        variants={rise}
-        className="border-hairline relative isolate overflow-hidden border-t"
-      >
-        <AmberGlow
-          size="xl"
-          variant="full"
-          className="-bottom-40 left-1/2 -z-10 -translate-x-1/2 opacity-50"
-        />
-        <span
-          aria-hidden
-          className="font-display text-foreground/[0.03] pointer-events-none absolute -bottom-32 -left-10 text-[24rem] leading-none italic select-none md:text-[34rem]"
-        >
-          002
-        </span>
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 px-6 py-28 text-center md:px-10 md:py-36">
-          <Slate>
-            <span className="text-primary">Case 002</span>
-            <Tick />
-            <span>Diagnosis · Awaiting</span>
-            <Tick />
-            <span>Subject · You</span>
-          </Slate>
-          <h2 className="font-display text-foreground max-w-3xl text-6xl leading-[0.98] tracking-tight md:text-8xl">
-            Ready to spot it?
-          </h2>
-          <p className="text-muted-foreground max-w-md text-base leading-relaxed">
-            Real dermoscopic cases. Real feedback. Ninety seconds at a time.
-          </p>
-          <Button asChild size="lg" className="mt-2">
-            <Link
-              to={primaryCta.href}
-              onClick={primaryCta.onClick}
-              onMouseEnter={primaryCta.onMouseEnter}
-              onFocus={primaryCta.onFocus}
-            >
-              Start your first case
-              <ArrowRight />
-            </Link>
-          </Button>
-          <p className="text-muted-foreground/60 font-mono text-[0.62rem] tracking-[0.28em] uppercase">
-            For GPs · For trainees · For OSCE prep · Built with dermatologists
-          </p>
-        </div>
-      </motion.section>
-    </>
-  );
+    },
+  ],
 };
 
-export default LandingRoute;
+/**
+ * The landing page (#149 cutover) — the cinematic "dimensional dermoscopy"
+ * reinvention. A static-first hero + the pinned Act (examine → commit → verdict,
+ * WebGL on capable desktop, a crafted 2D path everywhere else) + the release
+ * act. Self-contained: brings its own dark chrome and the new visual system
+ * (melanin palette, Fraunces × IBM Plex), so it no longer rides PublicLayout.
+ */
+export default function LandingRoute() {
+  useEffect(() => {
+    document.body.classList.add('dark');
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = FONT_HREF;
+    document.head.appendChild(link);
+    return () => {
+      document.body.classList.remove('dark');
+      document.head.removeChild(link);
+    };
+  }, []);
+
+  return (
+    <div className="landing">
+      <Head
+        title="Pigmemento — melanoma recognition, case by case"
+        description="Real dermoscopic cases. Commit to a diagnosis, then see exactly what you missed. Educational use only."
+      />
+      <style>{CSS}</style>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      <a className="ln-skip" href="#start">
+        Skip to start
+      </a>
+
+      <header className="ln-head">
+        <span className="ln-wordmark">Pigmemento</span>
+        <Link className="ln-btn ln-btn--ghost" to={paths.auth.register.path}>
+          Start a case
+        </Link>
+      </header>
+
+      <section className="ln-intro">
+        <p className="ln-eyebrow">Melanoma recognition · case by case</p>
+        <h1 className="ln-display">Make the call.</h1>
+        <p className="ln-lede">
+          Real dermoscopic cases. Commit to a diagnosis, then see exactly what
+          you missed.
+        </p>
+        <div className="ln-actions">
+          <Link className="ln-btn" to={paths.auth.register.path}>
+            Start a case
+          </Link>
+          <span className="ln-scrollcue">Scroll to examine the case ↓</span>
+        </div>
+      </section>
+
+      <Suspense fallback={<div style={{ minHeight: '100dvh' }} />}>
+        <LandingActStage
+          imageSrc={heroCase.imageSrc}
+          features={case001Breakdown.features}
+          correctLabel={heroCase.correctLabel}
+          diagnosis={case001Breakdown.diagnosis}
+        />
+      </Suspense>
+
+      <section className="ln-trust" aria-label="At a glance">
+        <span>2,000+ cases</span>
+        <span>ISIC Archive</span>
+        <span>Built with dermatologists</span>
+        <span>Educational use only</span>
+      </section>
+
+      <section className="ln-method">
+        <h2 className="ln-h2">Looking, made knowing.</h2>
+        <div className="ln-grid">
+          {METHOD.map((m) => (
+            <article key={m.kicker} className="ln-card">
+              <p className="ln-kicker">{m.kicker}</p>
+              <h3 className="ln-card-title">{m.title}</h3>
+              <p className="ln-card-body">{m.body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="ln-faq">
+        <h2 className="ln-h2">Questions, answered.</h2>
+        <div className="ln-faq-list">
+          {faqs.map((f) => (
+            <details key={f.id} className="ln-faq-item">
+              <summary>{f.question}</summary>
+              <p>{f.answer}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <section id="start" className="ln-cta">
+        <p className="ln-eyebrow">For GPs · for trainees · for OSCE prep</p>
+        <h2 className="ln-display ln-cta-title">Ready to make the call?</h2>
+        <Link className="ln-btn ln-btn--lg" to={paths.auth.register.path}>
+          Start your first case
+        </Link>
+      </section>
+
+      <footer className="ln-foot">
+        <span>Pigmemento</span>
+        <span className="ln-disclaimer">
+          Educational use only. Not for diagnosis.
+        </span>
+      </footer>
+    </div>
+  );
+}
+
+const CSS = `
+.landing {
+  --field: #0b0a09;
+  --bone: #ede8df;
+  --umber: #6b4a2f;
+  --veil: #7e94a6;
+  --scale: #9a958c;
+  --hair: rgba(237,232,223,0.1);
+  --serif: 'Fraunces', Georgia, serif;
+  --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  background: var(--field);
+  color: var(--bone);
+  font-family: var(--sans);
+  line-height: 1.6;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+.landing * { box-sizing: border-box; }
+.landing a { text-decoration: none; }
+.ln-skip {
+  position: absolute; left: -9999px; top: 0; z-index: 10;
+  background: var(--bone); color: var(--field); padding: 0.6rem 1rem; border-radius: 8px;
+}
+.ln-skip:focus { left: 1rem; top: 1rem; }
+.ln-eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--scale); margin: 0 0 1.2rem;
+}
+.ln-display {
+  font-family: var(--serif); font-weight: 600; line-height: 0.98;
+  font-size: clamp(52px, 8vw, 104px); letter-spacing: -0.01em; margin: 0;
+}
+.ln-h2 {
+  font-family: var(--serif); font-weight: 400; font-size: clamp(28px, 4vw, 44px);
+  letter-spacing: -0.01em; margin: 0 0 2.4rem;
+}
+.ln-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--sans); font-size: 15px; font-weight: 500;
+  padding: 0.7rem 1.3rem; border-radius: 10px;
+  background: var(--bone); color: var(--field); transition: opacity 0.2s ease;
+}
+.ln-btn:hover { opacity: 0.88; }
+.ln-btn--ghost {
+  background: transparent; color: var(--bone);
+  border: 1px solid var(--hair); padding: 0.5rem 1rem; font-size: 13px;
+}
+.ln-btn--lg { font-size: 17px; padding: 0.9rem 1.7rem; }
+.ln-scrollcue { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; color: var(--scale); }
+
+.ln-head {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: space-between;
+  max-width: 1140px; margin: 0 auto; padding: 1.5rem 2rem;
+}
+.ln-wordmark { font-family: var(--mono); font-size: 14px; letter-spacing: 0.08em; }
+
+.ln-intro {
+  max-width: 1140px; margin: 0 auto; min-height: 100dvh;
+  display: flex; flex-direction: column; justify-content: center; padding: 2rem;
+}
+.ln-lede {
+  font-size: clamp(17px, 1.6vw, 20px); color: rgba(237,232,223,0.78);
+  max-width: 34ch; margin: 1.6rem 0 2.4rem;
+}
+.ln-actions { display: flex; align-items: center; gap: 1.4rem; flex-wrap: wrap; }
+
+.ln-trust {
+  display: flex; flex-wrap: wrap; gap: 1.5rem 2.5rem; justify-content: center;
+  max-width: 1140px; margin: 0 auto; padding: 1.6rem 2rem;
+  border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair);
+  font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.06em; color: var(--scale);
+}
+
+.ln-method { max-width: 1140px; margin: 0 auto; padding: clamp(4rem, 10vh, 8rem) 2rem; }
+.ln-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--hair); border: 1px solid var(--hair); border-radius: 14px; overflow: hidden; }
+.ln-card { background: var(--field); padding: 2rem; }
+.ln-kicker { font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--umber); margin: 0 0 1rem; }
+.ln-card-title { font-family: var(--serif); font-weight: 500; font-size: 22px; margin: 0 0 0.6rem; }
+.ln-card-body { color: rgba(237,232,223,0.72); margin: 0; max-width: 32ch; }
+
+.ln-faq { max-width: 760px; margin: 0 auto; padding: clamp(3rem, 8vh, 6rem) 2rem; }
+.ln-faq-item { border-top: 1px solid var(--hair); padding: 1.1rem 0; }
+.ln-faq-item:last-child { border-bottom: 1px solid var(--hair); }
+.ln-faq-item summary { cursor: pointer; list-style: none; font-size: 17px; color: var(--bone); display: flex; justify-content: space-between; gap: 1rem; }
+.ln-faq-item summary::-webkit-details-marker { display: none; }
+.ln-faq-item summary::after { content: '+'; font-family: var(--mono); color: var(--scale); }
+.ln-faq-item[open] summary::after { content: '–'; }
+.ln-faq-item p { color: rgba(237,232,223,0.72); margin: 0.9rem 0 0; max-width: 60ch; }
+
+.ln-cta { text-align: center; max-width: 1140px; margin: 0 auto; padding: clamp(4rem, 12vh, 9rem) 2rem; }
+.ln-cta-title { margin: 0 0 2.2rem; }
+
+.ln-foot {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+  max-width: 1140px; margin: 0 auto; padding: 2rem; border-top: 1px solid var(--hair);
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; color: var(--scale);
+}
+
+@media (max-width: 800px) {
+  .ln-grid { grid-template-columns: 1fr; }
+}
+`;
