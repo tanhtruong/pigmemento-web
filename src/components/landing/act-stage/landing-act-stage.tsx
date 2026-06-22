@@ -71,18 +71,6 @@ export default function LandingActStage({
   // Reduced-motion never scrubs (no pin), so the prompt is available directly.
   const commitActive = commitReady || reducedMotion;
 
-  // Load Fraunces for the verdict reveal (self-hosted at cutover, #145).
-  useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href =
-      'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,400&display=swap';
-    document.head.appendChild(link);
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, []);
-
   // Keyboard commit — B / M, while the prompt is up.
   useEffect(() => {
     if (!commitActive || choice) return;
