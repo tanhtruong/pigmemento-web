@@ -15,6 +15,11 @@ const LandingActStage = lazy(
  * chrome + release act are #145.
  */
 export default function DevLesionAct() {
+  // ?fallback forces the crafted 2D path even on a capable desktop, for review.
+  const forceFallback =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).has('fallback');
+
   return (
     <div style={{ background: '#0b0a09', color: '#ede8df' }}>
       <Suspense fallback={<div style={{ height: '100dvh' }} />}>
@@ -23,6 +28,7 @@ export default function DevLesionAct() {
           features={case001Breakdown.features}
           correctLabel={heroCase.correctLabel}
           diagnosis={case001Breakdown.diagnosis}
+          forceFallback={forceFallback}
         />
       </Suspense>
       <section

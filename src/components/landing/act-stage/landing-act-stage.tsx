@@ -7,8 +7,10 @@ import {
   useState,
 } from 'react';
 
+import { usePrefersReducedMotion, useShouldRender3D } from '@/lib/render-3d';
 import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
 import { COMMIT_AT } from './act-beats';
+import Crafted2DScene from './crafted-2d-scene';
 import { useActScroll } from './use-act-scroll';
 
 // Lazy so three/r3f/drei stay in the quarantined async `r3f-act-scene` chunk —
@@ -22,6 +24,8 @@ type LandingActStageProps = {
   features: AbcdeFeature[];
   correctLabel: string;
   diagnosis: string;
+  /** Dev override (?fallback) to force the crafted 2D path on capable desktop. */
+  forceFallback?: boolean;
 };
 
 const SCALE = '#9a958c';
@@ -42,17 +46,30 @@ export default function LandingActStage({
   features,
   correctLabel,
   diagnosis,
+  forceFallback = false,
 }: LandingActStageProps) {
   const scrollProgressRef = useRef(0);
   const pinRef = useRef<HTMLDivElement>(null);
   const [commitReady, setCommitReady] = useState(false);
   const [choice, setChoice] = useState<Choice | null>(null);
 
+  // Capability gate: the WebGL take only on a capable desktop; everyone else
+  // (phone / reduced-data / no-WebGL2 / reduced-motion) gets the crafted 2D
+  // path, which carries the same beats + commit + verdict (#148). Reduced-motion
+  // composes the final state instead of scrubbing, so it never pins.
+  const capable = useShouldRender3D();
+  const reducedMotion = usePrefersReducedMotion();
+  const use3D = capable && !forceFallback;
+  const scrub = !reducedMotion;
+
   const onProgress = useCallback((p: number) => {
     setCommitReady((prev) => (prev === p >= COMMIT_AT ? prev : p >= COMMIT_AT));
   }, []);
 
-  useActScroll(scrollProgressRef, pinRef, true, onProgress);
+  useActScroll(scrollProgressRef, pinRef, scrub, onProgress);
+
+  // Reduced-motion never scrubs (no pin), so the prompt is available directly.
+  const commitActive = commitReady || reducedMotion;
 
   // Load Fraunces for the verdict reveal (self-hosted at cutover, #145).
   useEffect(() => {
@@ -68,16 +85,16 @@ export default function LandingActStage({
 
   // Keyboard commit — B / M, while the prompt is up.
   useEffect(() => {
-    if (!commitReady || choice) return;
+    if (!commitActive || choice) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'b' || e.key === 'B') setChoice('benign');
       if (e.key === 'm' || e.key === 'M') setChoice('malignant');
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [commitReady, choice]);
+  }, [commitActive, choice]);
 
-  const showCommit = commitReady && !choice;
+  const showCommit = commitActive && !choice;
   const correct = choice === correctLabel;
 
   return (
@@ -91,18 +108,27 @@ export default function LandingActStage({
       }}
     >
       <div style={{ position: 'absolute', inset: 0 }}>
-        <Suspense fallback={null}>
-          <R3fActScene
+        {use3D ? (
+          <Suspense fallback={null}>
+            <R3fActScene
+              imageSrc={imageSrc}
+              features={features}
+              active
+              scrollProgressRef={scrollProgressRef}
+            />
+          </Suspense>
+        ) : (
+          <Crafted2DScene
             imageSrc={imageSrc}
             features={features}
-            active
             scrollProgressRef={scrollProgressRef}
+            staticMode={reducedMotion}
           />
-        </Suspense>
+        )}
       </div>
 
       <div style={eyebrow}>ISIC_0000022 · 20× · polarized</div>
-      {!commitReady && <div style={hint}>scroll to examine ↓</div>}
+      {!commitActive && <div style={hint}>scroll to examine ↓</div>}
 
       <div
         style={{
