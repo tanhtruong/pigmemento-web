@@ -1,38 +1,23 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { HelmetProvider } from '@dr.pogodin/react-helmet';
 
-// Render the static floor deterministically: reduced motion collapses the
-// hero's ask⇄verdict cross-fade to an instant swap and drops the whileInView
-// reveals, so every section is queryable without animation timing.
-vi.mock('motion/react', async () => {
-  const actual =
-    await vi.importActual<typeof import('motion/react')>('motion/react');
-  return { ...actual, useReducedMotion: vi.fn(() => true) };
-});
-
-vi.mock('framer-motion', async () => {
-  const actual =
-    await vi.importActual<typeof import('framer-motion')>('framer-motion');
-  return { ...actual, useReducedMotion: vi.fn(() => true) };
-});
+// The cinematic Act mounts WebGL + GSAP behind Suspense; stub it so this test
+// covers the static-first landing (hero, method, FAQ, CTA, JSON-LD) that renders
+// without WebGL. The Act's examine→commit→verdict is exercised at /dev/lesion-act.
+vi.mock('@/components/landing/act-stage/landing-act-stage', () => ({
+  default: () => <div data-testid="act-stage" />,
+}));
 
 import LandingRoute from './landing';
-import { TransitionConductor } from '@/components/motion/transition-conductor';
 
-// Mirror production: the route renders inside the conductor shell so the amber
-// CTAs' useAuthEntry gesture has its context.
 const renderLanding = () => {
   const router = createMemoryRouter(
-    [
-      {
-        element: <TransitionConductor />,
-        children: [{ path: '/', element: <LandingRoute /> }],
-      },
-    ],
-    { initialEntries: ['/'] },
+    [{ path: '/', element: <LandingRoute /> }],
+    {
+      initialEntries: ['/'],
+    },
   );
   return render(
     <HelmetProvider>
@@ -42,63 +27,26 @@ const renderLanding = () => {
 };
 
 describe('landing route', () => {
-  it('renders the playable hero headline', () => {
+  it('renders the hero headline', () => {
     renderLanding();
     expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(
-      /Could you\s+spot\s+it\??/,
+      /Make the call\./,
     );
   });
 
-  it('flips the playable rep from question to verdict on answer', async () => {
-    const user = userEvent.setup();
-    renderLanding();
-
-    // Question state.
-    expect(screen.getByText(/your call/i)).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /melanoma/i }));
-
-    // Verdict state — the live region appears with the scored result and the
-    // "See why" nudge into the breakdown.
-    const verdict = await screen.findByRole('status');
-    expect(verdict).toHaveTextContent(/correct\./i);
-    expect(
-      screen.getByRole('button', { name: /see why/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('routes the auth-aware CTA to /auth/login when signed out', () => {
-    renderLanding();
-    const cta = screen.getByRole('link', { name: /start your first case/i });
-    expect(cta.getAttribute('href')).toMatch(/\/auth\/login/);
-  });
-
-  it('shows the static ABCDE breakdown of Case 001 with the diagnosis reveal', () => {
+  it('lists the four method qualities', () => {
     renderLanding();
     expect(
-      screen.getByRole('heading', { name: /^Melanoma$/i }),
+      screen.getByRole('heading', { name: /^Real cases$/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Asymmetric across the long axis/i),
+      screen.getByRole('heading', { name: /teaches, not scores/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Evolving — gradual darkening over months/i),
-    ).toBeInTheDocument();
-  });
-
-  it('lists the four Why value props', () => {
-    renderLanding();
-    expect(
-      screen.getByRole('heading', { name: /^Real dermoscopic cases$/i }),
+      screen.getByRole('heading', { name: /abcde on the lesion/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: /feedback that teaches/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: /abcde-aware/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: /respects your time/i }),
+      screen.getByRole('heading', { name: /built for clinic time/i }),
     ).toBeInTheDocument();
   });
 
@@ -107,11 +55,13 @@ describe('landing route', () => {
     expect(screen.getByText(/Who is Pigmemento for\?/i)).toBeInTheDocument();
   });
 
-  it('closes the loop with the Case 002 CTA band', () => {
+  it('closes with the CTA band and a register link', () => {
     renderLanding();
     expect(
-      screen.getByRole('heading', { name: /ready to spot it\?/i }),
+      screen.getByRole('heading', { name: /ready to make the call\?/i }),
     ).toBeInTheDocument();
+    const cta = screen.getByRole('link', { name: /start your first case/i });
+    expect(cta.getAttribute('href')).toMatch(/register/);
   });
 
   it('embeds FAQPage + Organization JSON-LD', () => {
@@ -119,16 +69,18 @@ describe('landing route', () => {
     const scripts = container.querySelectorAll(
       'script[type="application/ld+json"]',
     );
-    expect(scripts).toHaveLength(2);
-    const payloads = Array.from(scripts).map((s) => s.textContent ?? '');
-    expect(payloads.some((p) => p.includes('"FAQPage"'))).toBe(true);
-    expect(payloads.some((p) => p.includes('"Organization"'))).toBe(true);
+    expect(scripts.length).toBeGreaterThanOrEqual(1);
+    const payload = Array.from(scripts)
+      .map((s) => s.textContent ?? '')
+      .join('');
+    expect(payload).toContain('"FAQPage"');
+    expect(payload).toContain('"Organization"');
   });
 
-  it('includes the sr-only SEO intro', () => {
+  it('renders the educational-use disclaimer', () => {
     renderLanding();
     expect(
-      screen.getByRole('heading', { name: /what is pigmemento\?/i }),
+      screen.getByText(/Educational use only\. Not for diagnosis\./i),
     ).toBeInTheDocument();
   });
 });
