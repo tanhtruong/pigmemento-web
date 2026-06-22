@@ -106,6 +106,11 @@ export const createAppRouter = (queryClient: QueryClient) =>
           lazy: () => import('./routes/dev-motion').then(convert(queryClient)),
         },
         {
+          path: '/dev/lesion-act',
+          lazy: () =>
+            import('./routes/dev-lesion-act').then(convert(queryClient)),
+        },
+        {
           path: '*',
           lazy: () => import('./routes/not-found').then(convert(queryClient)),
         },
