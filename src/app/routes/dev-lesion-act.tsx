@@ -21,6 +21,8 @@ export default function DevLesionAct() {
         <LandingActStage
           imageSrc={heroCase.imageSrc}
           features={case001Breakdown.features}
+          correctLabel={heroCase.correctLabel}
+          diagnosis={case001Breakdown.diagnosis}
         />
       </Suspense>
       <section

@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 
 /**
  * Loads GSAP + ScrollTrigger via a dynamic import. Deliberately NOT the shared
@@ -32,8 +32,15 @@ export const useActScroll = (
   progressRef: RefObject<number>,
   pinRef: RefObject<HTMLElement | null>,
   enabled: boolean,
+  onProgress?: (p: number) => void,
   distance = '+=260%',
 ): void => {
+  // Keep the latest callback in a ref so changing it never re-creates the pin.
+  const onProgressRef = useRef(onProgress);
+  useEffect(() => {
+    onProgressRef.current = onProgress;
+  }, [onProgress]);
+
   useEffect(() => {
     if (!enabled) return;
     const pin = pinRef.current;
@@ -52,6 +59,7 @@ export const useActScroll = (
         scrub: true,
         onUpdate: (self: { progress: number }) => {
           progressRef.current = self.progress;
+          onProgressRef.current?.(self.progress);
         },
       });
       // start/end are measured at creation; fonts + cached images can shift
