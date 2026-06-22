@@ -1,5 +1,3 @@
-import { useEffect } from 'react';
-
 import { faqs } from '@/lib/landing-seed-data';
 
 /**
@@ -33,20 +31,7 @@ const METHOD = [
   },
 ];
 
-const FONT_HREF =
-  'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap';
-
 export default function DevLandingNext() {
-  useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = FONT_HREF;
-    document.head.appendChild(link);
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, []);
-
   return (
     <div className="lnext">
       <style>{CSS}</style>
