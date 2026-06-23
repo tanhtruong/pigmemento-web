@@ -141,11 +141,14 @@ export default function LandingRoute() {
         />
       </Suspense>
 
-      <section className="ln-trust" aria-label="At a glance">
-        <span>2,000+ cases</span>
-        <span>ISIC Archive</span>
-        <span>Built with dermatologists</span>
-        <span>Educational use only</span>
+      <section className="ln-bridge" aria-label="At a glance">
+        <p className="ln-bridge-line">One verdict. Now the archive.</p>
+        <div className="ln-trust">
+          <span>2,000+ cases</span>
+          <span>ISIC Archive</span>
+          <span>Built with dermatologists</span>
+          <span>Educational use only</span>
+        </div>
       </section>
 
       <section className="ln-method">
@@ -259,10 +262,31 @@ const CSS = `
 }
 .ln-actions { display: flex; align-items: center; gap: 1.4rem; flex-wrap: wrap; }
 
+.ln-bridge {
+  max-width: 1140px; margin: 0 auto; padding: clamp(3rem, 9vh, 6rem) 2rem; text-align: center;
+}
+.ln-bridge-line {
+  font-family: var(--serif); font-weight: 400; font-size: clamp(22px, 3.4vw, 38px);
+  letter-spacing: -0.01em; margin: 0 0 2rem; color: var(--bone);
+}
+/* The bridge: the Act's blue-white veil cools to bone as you scroll from the
+   verdict into the archive — the alarm colour spent, handing off one → many. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .ln-bridge-line {
+      animation: ln-bridge-drain linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 45%;
+    }
+    @keyframes ln-bridge-drain {
+      from { color: var(--veil); }
+      to { color: var(--bone); }
+    }
+  }
+}
 .ln-trust {
   display: flex; flex-wrap: wrap; gap: 1.5rem 2.5rem; justify-content: center;
-  max-width: 1140px; margin: 0 auto; padding: 1.6rem 2rem;
-  border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair);
+  padding: 1.6rem 0 0; border-top: 1px solid var(--hair);
   font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.06em; color: var(--scale);
 }
 
