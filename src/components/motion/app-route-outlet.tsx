@@ -7,7 +7,7 @@ import { shouldAnimateRouteTransition } from '@/lib/route-transition';
 import { rememberScroll, scrollTargetFor } from '@/lib/route-scroll';
 import { planInAppTransition } from '@/lib/plan-in-app-transition';
 import { supportsViewTransitions } from '@/lib/view-transitions';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/cn';
 
 /**
  * Per-hop choreography for the View Transitions engine (#63, #102, #103).

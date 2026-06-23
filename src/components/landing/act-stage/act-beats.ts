@@ -1,5 +1,5 @@
 import type { CameraBeat } from '../case-stage/camera-beats';
-import { lerp, smoothstep } from '@/lib/easing';
+import { lerp, smoothstep } from '@/utils/easing';
 
 /**
  * Act I scroll choreography (#146), all driven by one 0–1 pinned-scroll progress:

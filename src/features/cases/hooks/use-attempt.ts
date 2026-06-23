@@ -7,7 +7,7 @@ import { useCaseTimer } from '@/features/cases/hooks/use-case-timer.ts';
 import {
   interpretAttempt,
   type Verdict,
-} from '@/features/cases/lib/interpret-attempt.ts';
+} from '@/features/cases/utils/interpret-attempt.ts';
 
 export type AttemptPhase = 'question' | 'resolved';
 

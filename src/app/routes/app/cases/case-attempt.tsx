@@ -25,7 +25,7 @@ import { queryKeys } from '@/lib/query-keys.ts';
 import { CaseStage } from '@/components/cases/case-stage.tsx';
 import { useInAppNavigate } from '@/components/layouts/use-in-app-navigate.ts';
 import { AnnotatedLesionImage } from '@/components/signature/annotated-lesion-image.tsx';
-import { shortCaseId } from '@/features/cases/lib/case-id.ts';
+import { shortCaseId } from '@/features/cases/utils/case-id.ts';
 import type { AbcdeFeature } from '@/types/abcde-feature';
 import { motionTokens, VERDICT_ENTER_OPACITY } from '@/lib/motion-tokens';
 import { CaseAttemptFlow } from './case-attempt-flow.tsx';

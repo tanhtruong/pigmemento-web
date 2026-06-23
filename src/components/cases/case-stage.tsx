@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 
 import { Hairline } from '@/components/foundation/hairline';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/cn';
 
 type CaseStageProps = {
   /**

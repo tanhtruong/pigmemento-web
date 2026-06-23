@@ -3,7 +3,7 @@ import type { MouseEvent } from 'react';
 import { paths } from '@/config/paths';
 import { isAuthenticated } from '@/lib/session';
 import { useSession } from '@/lib/use-session';
-import { gestureOrigin } from '@/lib/commit-origin';
+import { gestureOrigin } from '@/utils/commit-origin';
 import type { TransitionKind } from '@/lib/transition-conductor';
 import { useTransitionNavigate } from '@/components/motion/transition-conductor';
 import { usePrefetchOnHoverFocus } from '@/hooks/use-prefetch-on-hover-focus';

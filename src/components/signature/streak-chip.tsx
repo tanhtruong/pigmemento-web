@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Flame } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/cn';
 import { motionTokens, STREAK_GLOW_DECAY_MS } from '@/lib/motion-tokens';
 
 type StreakChipProps = {

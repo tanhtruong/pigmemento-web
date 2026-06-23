@@ -10,7 +10,7 @@ import { AmberFAB } from '@/components/signature/amber-fab.tsx';
 import { GrainOverlay } from '@/components/foundation/grain-overlay.tsx';
 import { SkipToContent } from '@/components/foundation/skip-to-content.tsx';
 import { paths } from '@/config/paths.ts';
-import { cn } from '@/lib/utils.ts';
+import { cn } from '@/utils/cn.ts';
 
 /**
  * Routes where the mobile AmberFAB is HIDDEN.

@@ -1,6 +1,6 @@
 import { motion, useReducedMotion } from 'motion/react';
 
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/cn';
 import { Hairline } from '@/components/foundation/hairline';
 import { revealSequence } from '@/lib/motion-tokens';
 

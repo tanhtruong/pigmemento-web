@@ -16,14 +16,14 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { paths } from '@/config/paths';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/cn';
 import { motionTokens, SHAKE_KEYFRAMES_X } from '@/lib/motion-tokens';
 import { LoginDto } from '../types/auth';
 import { loginSchema } from '../schemas/auth';
 import { useAuthRedirectTarget, useLogin } from '../hooks/use-auth';
 import { useTransitionNavigate } from '@/components/motion/transition-conductor';
 import { SubmitRing } from '@/components/motion/submit-ring';
-import { commitOrigin } from '@/lib/commit-origin';
+import { commitOrigin } from '@/utils/commit-origin';
 
 export const LoginForm = ({ className, ...props }: ComponentProps<'div'>) => {
   const form = useForm<LoginDto>({
