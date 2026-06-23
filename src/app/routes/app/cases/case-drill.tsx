@@ -21,11 +21,8 @@ import { Progress } from '@/components/ui/progress.tsx';
 import { CaseAttemptView } from '@/app/routes/app/cases/case-attempt.tsx';
 import { CaseAttemptSkeleton } from '@/components/cases/case-attempt-skeleton.tsx';
 import { type CaseChoice } from '@/components/cases/case-choice-card.tsx';
-import {
-  type CaseChoice,
-  type CaseChoiceOutcome,
-} from '@/components/cases/case-choice-card.tsx';
 import { attemptAffectedKeys, queryKeys } from '@/lib/query-keys.ts';
+import {
   choiceOutcomesOf,
   displayLabel,
   gradedResult,
