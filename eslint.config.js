@@ -26,4 +26,21 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': ['warn'],
     },
   },
+  {
+    // Cache keys live in one collision-checkable index (ADR-0001); call sites
+    // must reference queryKeys, not spell raw arrays. Tests may mock with
+    // literal keys, so they are exempt.
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "Property[key.name='queryKey'] > ArrayExpression",
+          message:
+            'Use a key from queryKeys (src/lib/query-keys.ts), not a raw queryKey array literal — keeps cache keys in one collision-checkable index (ADR-0001).',
+        },
+      ],
+    },
+  },
 );

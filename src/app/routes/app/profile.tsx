@@ -196,7 +196,8 @@ const ProfileScene = () => {
     try {
       await updateProfile({ name });
       toast('Profile updated');
-      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+      // useUpdateProfile already invalidates queryKeys.me on settle; no manual
+      // (and previously mis-keyed) invalidation needed here.
       setIsEditing(false);
     } catch {
       // mutation state holds the error
