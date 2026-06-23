@@ -8,6 +8,8 @@
  * Rhythm: one climax (Features) + three restrained — see CLIMAX_BEAT.
  */
 
+import { lerp, smoothstep } from '@/lib/easing';
+
 const SPACING = 3.2; // must match r3f-library-stage
 const SPECIMEN_COUNT = 24;
 
@@ -53,13 +55,6 @@ export const CLIMAX_BEAT = 2;
 // [at - HOLD, at + HOLD] while the beat reads.
 const AT = [0.12, 0.38, 0.62, 0.86] as const;
 const HOLD = 0.07;
-
-const clamp01 = (x: number): number => Math.max(0, Math.min(1, x));
-const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
-const smoothstep = (edge0: number, edge1: number, x: number): number => {
-  const t = clamp01((x - edge0) / (edge1 - edge0));
-  return t * t * (3 - 2 * t);
-};
 
 /**
  * World-space travel distance at progress p. The strip is positioned at

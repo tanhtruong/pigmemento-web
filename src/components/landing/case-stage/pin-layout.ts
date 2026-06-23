@@ -1,3 +1,5 @@
+import { smoothstep } from '@/lib/easing';
+
 // The lesion plane is 2.1 × 2.6, centred at the origin in the xy-plane (see the
 // Specimen in r3f-scene). Pins float `PIN_Z` off its surface toward the camera
 // so they parallax against the plane as the stage tilts and the camera dollies.
@@ -18,11 +20,6 @@ export const pinPositionFromCenter = (
 ): [number, number, number] => {
   const [cx, cy] = centerPoint;
   return [(cx - 0.5) * planeW, (0.5 - cy) * planeH, z];
-};
-
-const smoothstep = (edge0: number, edge1: number, x: number): number => {
-  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
 };
 
 /**
