@@ -1,8 +1,13 @@
 import { Suspense, lazy, useEffect, useRef } from 'react';
 
-import { useShouldRender3D, usePrefersReducedMotion } from '@/lib/render-3d';
+import {
+  useWebGL2Support,
+  usePrefersReducedMotion,
+  usePrefersReducedData,
+} from '@/lib/render-3d';
 import { useActScroll } from '../landing-scroll';
 import { CLIMAX_BEAT, LIBRARY_BEATS, beatReveal } from './library-beats';
+import LibraryStatic from './library-static';
 
 // The shared landing canvas (#159) — reused so the stage renders into the one
 // page-wide WebGL context, never a second one. Lazy + r3f-* / landing-* named so
@@ -13,38 +18,49 @@ const R3fLibraryStage = lazy(() => import('./r3f-library-stage'));
 const ABCDE = ['A', 'B', 'C', 'D', 'E'];
 
 /**
- * Specimen-stage orchestrator (#161) + the four lock-in beats (#163). Owns the
- * pin + 0→1 progress (the Act's `useActScroll`, reused), mounts the shared
- * canvas, and renders the library scene. As the stage locks at each hero
- * specimen (see library-beats `travelAt`), the matching beat reads in; the
+ * Specimen-stage orchestrator (#161) + the four lock-in beats (#163) + the
+ * fallback (#164). The animated WebGL set-piece runs only on a capable,
+ * motion-OK client; everyone else (no WebGL2 / phone / reduced-data /
+ * reduced-motion) gets the calm static contact-strip — no pin, no scrub.
+ *
+ * When animated: owns the pin + 0→1 progress (the Act's `useActScroll`, reused),
+ * mounts the shared canvas, and renders the library scene. As the stage locks at
+ * each hero specimen (library-beats `travelAt`) the matching beat reads in; the
  * Features beat is the one climax, paired with the A·B·C·D·E margin read over the
- * lens glow. A rAF loop drives the overlay opacities off the scrub ref — no
- * per-frame React renders. Reduced-motion static contact-strip is #164.
+ * lens glow. A rAF loop drives the overlay opacities off the scrub ref.
  */
-export default function LandingLibraryStage() {
+export default function LandingLibraryStage({
+  mountCanvas = true,
+}: {
+  // On `/` the landing route already provides the shared canvas (the Act lives
+  // in it too), so the cutover passes `false` — the library renders into that
+  // one context instead of spinning up a second. On the /dev route it mounts
+  // its own.
+  mountCanvas?: boolean;
+}) {
   const rootRef = useRef<HTMLDivElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef(0);
   const beatRefs = useRef<(HTMLDivElement | null)[]>([]);
   const abcdeRef = useRef<HTMLDivElement>(null);
 
-  const capable = useShouldRender3D();
+  // The library set-piece runs WebGL on phones too — the set-piece's design
+  // choice (one shared context makes it safe), unlike the Act which gates phones
+  // to crafted-2D. Only an absent WebGL2 context, reduced-motion, or a data-saver
+  // falls back to the static strip; a phone with WebGL2 gets the real thing.
+  const hasWebGL2 = useWebGL2Support();
   const reducedMotion = usePrefersReducedMotion();
+  const reducedData = usePrefersReducedData();
+  const animated = hasWebGL2 && !reducedMotion && !reducedData;
 
   // One pin, one 0→1 progress — it drives the lock-in travel in the scene's
-  // useFrame. A long pin distance gives the four beats room to read.
-  useActScroll(
-    progressRef,
-    pinRef,
-    capable && !reducedMotion,
-    undefined,
-    '+=360%',
-  );
+  // useFrame. Disabled (no pin) for the static path.
+  useActScroll(progressRef, pinRef, animated, undefined, '+=360%');
 
   // Reveal the beat overlays off the scrub progress, every frame, via the DOM
   // (no React re-render) — the locked beat fades in, the rest stay hidden.
   useEffect(() => {
-    if (!capable) return;
+    if (!animated) return;
     let raf = 0;
     const tick = () => {
       const p = progressRef.current;
@@ -63,11 +79,19 @@ export default function LandingLibraryStage() {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [capable]);
+  }, [animated]);
+
+  if (!animated) {
+    return (
+      <div style={{ background: '#0b0a09', color: '#ede8df' }}>
+        <LibraryStatic />
+      </div>
+    );
+  }
 
   return (
     <div ref={rootRef} style={{ background: '#0b0a09', color: '#ede8df' }}>
-      {capable && (
+      {mountCanvas && (
         <Suspense fallback={null}>
           <LandingCanvas eventSource={rootRef} />
         </Suspense>
@@ -77,45 +101,37 @@ export default function LandingLibraryStage() {
         ref={pinRef}
         style={{ height: '100dvh', position: 'relative', overflow: 'hidden' }}
       >
-        {capable ? (
-          <Suspense fallback={null}>
-            <R3fLibraryStage progressRef={progressRef} />
-          </Suspense>
-        ) : (
-          <div style={fallback}>This preview needs WebGL.</div>
-        )}
+        <Suspense fallback={null}>
+          <R3fLibraryStage progressRef={progressRef} />
+        </Suspense>
 
         <div style={eyebrow}>the library · 24 real ISIC specimens</div>
 
-        {capable && (
-          <>
-            {/* A·B·C·D·E reading at the reticle margin — the Features climax. */}
-            <div ref={abcdeRef} style={abcdeWrap}>
-              {ABCDE.map((letter) => (
-                <span key={letter} style={abcdeLetter}>
-                  {letter}
-                </span>
-              ))}
-            </div>
+        {/* A·B·C·D·E reading at the reticle margin — the Features climax. */}
+        <div ref={abcdeRef} style={abcdeWrap}>
+          {ABCDE.map((letter) => (
+            <span key={letter} style={abcdeLetter}>
+              {letter}
+            </span>
+          ))}
+        </div>
 
-            {/* The four beat reads — only the locked one is shown (rAF-driven). */}
-            {LIBRARY_BEATS.map((beat, k) => (
-              <div
-                key={beat.kicker}
-                ref={(el) => {
-                  beatRefs.current[k] = el;
-                }}
-                style={k === CLIMAX_BEAT ? beatBlockClimax : beatBlock}
-              >
-                <p style={beatKicker}>{beat.kicker}</p>
-                <p style={k === CLIMAX_BEAT ? beatTitleClimax : beatTitle}>
-                  {beat.title}
-                </p>
-                <p style={beatBody}>{beat.body}</p>
-              </div>
-            ))}
-          </>
-        )}
+        {/* The four beat reads — only the locked one is shown (rAF-driven). */}
+        {LIBRARY_BEATS.map((beat, k) => (
+          <div
+            key={beat.kicker}
+            ref={(el) => {
+              beatRefs.current[k] = el;
+            }}
+            style={k === CLIMAX_BEAT ? beatBlockClimax : beatBlock}
+          >
+            <p style={beatKicker}>{beat.kicker}</p>
+            <p style={k === CLIMAX_BEAT ? beatTitleClimax : beatTitle}>
+              {beat.title}
+            </p>
+            <p style={beatBody}>{beat.body}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -197,15 +213,4 @@ const abcdeLetter: React.CSSProperties = {
   font: '600 14px ui-monospace, "IBM Plex Mono", monospace',
   letterSpacing: '0.1em',
   color: BONE,
-};
-
-const fallback: React.CSSProperties = {
-  position: 'absolute',
-  inset: 0,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  font: '13px ui-monospace, "IBM Plex Mono", monospace',
-  letterSpacing: '0.1em',
-  color: SCALE,
 };

@@ -9,6 +9,11 @@ import { HelmetProvider } from '@dr.pogodin/react-helmet';
 vi.mock('@/components/landing/act-stage/landing-act-stage', () => ({
   default: () => <div data-testid="act-stage" />,
 }));
+// The method section now hosts the WebGL specimen library — stub it too; its
+// four reads + the static fallback are covered in landing-library-stage.test.tsx.
+vi.mock('@/components/landing/library-stage/landing-library-stage', () => ({
+  default: () => <div data-testid="library-stage" />,
+}));
 
 import LandingRoute from './landing';
 
@@ -34,20 +39,15 @@ describe('landing route', () => {
     );
   });
 
-  it('lists the four method qualities', () => {
+  it('mounts the specimen-library set-piece under the method heading', () => {
     renderLanding();
+    // The four reads moved from a static grid into the library set-piece (lazy,
+    // stubbed here; covered in landing-library-stage.test.tsx). The section
+    // heading stays as the accessible landmark.
     expect(
-      screen.getByRole('heading', { name: /^Real cases$/i }),
+      screen.getByRole('heading', { name: /looking, made knowing\./i }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: /teaches, not scores/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: /abcde on the lesion/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: /built for clinic time/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('library-stage')).toBeInTheDocument();
   });
 
   it('renders the FAQ content', () => {
