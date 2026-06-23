@@ -3,7 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 import { cn } from '@/lib/utils';
 import { motionTokens } from '@/lib/motion-tokens';
-import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
+import type { AbcdeFeature } from '@/types/abcde-feature';
 
 type AnnotatedLesionImageProps = {
   src: string;

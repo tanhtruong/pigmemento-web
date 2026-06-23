@@ -1,4 +1,4 @@
-import { DashboardLayout } from '@/components/layouts/dashboard-layout';
+import { DashboardLayout } from '@/app/layouts/dashboard-layout';
 import { AppRouteOutlet } from '@/components/motion/app-route-outlet';
 
 export const ErrorBoundary = () => {

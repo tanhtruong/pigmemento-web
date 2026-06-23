@@ -3,7 +3,7 @@ import { Html, PerspectiveCamera, View, useTexture } from '@react-three/drei';
 import { type RefObject, Suspense, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
-import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
+import type { AbcdeFeature } from '@/types/abcde-feature';
 import { cameraPositionAt } from '../case-stage/camera-beats';
 import { pinPositionFromCenter, pinReveal } from '../case-stage/pin-layout';
 import {

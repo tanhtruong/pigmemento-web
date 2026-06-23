@@ -1,4 +1,4 @@
-import { Label } from '@/features/cases/types/case-label.ts';
+import { Label } from '@/types/case-label.ts';
 
 export type AttemptSummary = {
   correct: boolean;

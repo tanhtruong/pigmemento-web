@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios.ts';
 import { queryKeys } from '@/lib/query-keys.ts';
-import { Label } from '@/features/cases/types/case-label.ts';
+import { Label } from '@/types/case-label.ts';
 import { AttemptResponse } from '@/features/cases/types/attempt-response.ts';
 
 type AttemptRequest = {

@@ -5,7 +5,7 @@ import { motion, useReducedMotion, type Variants } from 'motion/react';
 
 import { paths } from '@/config/paths';
 import { prefetchAppRoute } from '@/app/prefetch-routes';
-import { Head } from '../seo/head';
+import { Head } from '@/components/seo/head';
 import { useSession } from '@/lib/use-session';
 import { GrainOverlay } from '@/components/foundation/grain-overlay';
 import { AmberGlow } from '@/components/foundation/amber-glow';

@@ -7,7 +7,7 @@ import { CaseAttemptView } from './case-attempt.tsx';
 import { useAttempt } from '@/features/cases/hooks/use-attempt.ts';
 import { useCaseAttemptShortcuts } from '@/features/cases/hooks/use-case-attempt-shortcuts.ts';
 import { shortCaseId } from '@/features/cases/lib/case-id.ts';
-import { hasAbcdeFeatures } from '@/features/cases/types/abcde-feature.ts';
+import { hasAbcdeFeatures } from '@/types/abcde-feature.ts';
 import type { CaseDetail } from '@/features/cases/types/case-detail.ts';
 import { RING_FILL_MS, easeOut } from '@/lib/motion-tokens';
 import { useCoarsePointer } from '@/features/cases/hooks/use-coarse-pointer.ts';
