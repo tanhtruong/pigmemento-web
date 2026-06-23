@@ -7,10 +7,10 @@ import { Hairline } from '@/components/foundation/hairline';
 import { CalendarHeatmap } from '@/components/signature/calendar-heatmap';
 import { paths } from '@/config/paths';
 import { useCaseHistory } from '@/features/cases/api/use-case-history.ts';
-import { shortCaseId } from '@/features/cases/lib/case-id.ts';
+import { shortCaseId } from '@/features/cases/utils/case-id.ts';
 import { useProfile } from '@/features/profile/api/use-profile.ts';
 import type { CaseListItem } from '@/features/cases/types/case-list-item.ts';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/cn';
 
 type AttemptedCaseListItem = CaseListItem & {
   lastAttempt: NonNullable<CaseListItem['lastAttempt']>;

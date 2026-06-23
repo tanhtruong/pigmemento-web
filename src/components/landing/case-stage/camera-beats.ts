@@ -1,4 +1,4 @@
-import { lerp } from '@/lib/easing';
+import { lerp } from '@/utils/easing';
 
 export type CameraBeat = {
   /** Scroll progress (0–1) at which the camera reaches `pos`. */

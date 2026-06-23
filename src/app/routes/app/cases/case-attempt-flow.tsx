@@ -6,7 +6,7 @@ import { CaseVerdict } from '@/components/cases/case-verdict.tsx';
 import { CaseAttemptView } from './case-attempt.tsx';
 import { useAttempt } from '@/features/cases/hooks/use-attempt.ts';
 import { useCaseAttemptShortcuts } from '@/features/cases/hooks/use-case-attempt-shortcuts.ts';
-import { shortCaseId } from '@/features/cases/lib/case-id.ts';
+import { shortCaseId } from '@/features/cases/utils/case-id.ts';
 import { hasAbcdeFeatures } from '@/types/abcde-feature.ts';
 import type { CaseDetail } from '@/features/cases/types/case-detail.ts';
 import { RING_FILL_MS, easeOut } from '@/lib/motion-tokens';
@@ -14,7 +14,7 @@ import { useCoarsePointer } from '@/features/cases/hooks/use-coarse-pointer.ts';
 import {
   type Outcome,
   displayLabel,
-} from '@/features/cases/lib/interpret-attempt.ts';
+} from '@/features/cases/utils/interpret-attempt.ts';
 
 const formatMs = (ms: number): string => {
   if (!ms || ms < 0) return '—';

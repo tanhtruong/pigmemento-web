@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/cn';
 
 type GrainOverlayProps = {
   /** Opacity 0-100. Dark landing wants ~1.5; light app paper wants ~1. */

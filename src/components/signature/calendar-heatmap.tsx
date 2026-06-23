@@ -9,7 +9,7 @@ import {
   subWeeks,
 } from 'date-fns';
 
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/cn';
 
 type CalendarHeatmapProps = {
   /** Activity counts keyed by ISO date (YYYY-MM-DD). Missing = 0. */

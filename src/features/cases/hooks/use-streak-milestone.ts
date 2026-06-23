@@ -4,7 +4,7 @@ import {
   milestoneFor,
   shouldFireMilestoneCelebration,
   type Milestone,
-} from '@/lib/streak-milestone';
+} from '@/utils/streak-milestone';
 
 const STORAGE_KEY = 'pigmemento.streakMilestone.lastSeen';
 const CELEBRATION_MS = 2000;

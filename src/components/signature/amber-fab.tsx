@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Plus } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/cn';
 
 type AmberFABProps = React.ComponentProps<'button'> & {
   label?: string;

@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router';
 
 import { paths } from '@/config/paths.ts';
-import { cn } from '@/lib/utils.ts';
+import { cn } from '@/utils/cn.ts';
 import { AppAvatarMenu } from '@/app/layouts/app-avatar-menu.tsx';
 import { AppTabLink } from '@/components/layouts/app-tab-link.tsx';
 

@@ -35,7 +35,7 @@ import {
 } from '@/lib/motion-tokens';
 import type { RouteTransitionVariant } from '@/lib/route-transition';
 import { useTransitionNavigate } from '@/components/motion/transition-conductor';
-import { commitOrigin } from '@/lib/commit-origin';
+import { commitOrigin } from '@/utils/commit-origin';
 
 const SHOWCASE_IMAGE = '/dashboard-drill-mock.png';
 const LESION_IMAGE = '/ISIC_0000022.jpg';

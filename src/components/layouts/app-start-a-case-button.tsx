@@ -21,7 +21,7 @@ import {
   type StartACaseOption,
 } from '@/components/signature/start-a-case-picker.tsx';
 import { paths } from '@/config/paths.ts';
-import { cn } from '@/lib/utils.ts';
+import { cn } from '@/utils/cn.ts';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 type AppStartACaseButtonProps = {

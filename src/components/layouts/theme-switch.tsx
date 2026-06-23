@@ -1,7 +1,7 @@
 import { useTheme } from 'next-themes';
 import { Monitor, MoonStar, Sun } from 'lucide-react';
 
-import { cn } from '@/lib/utils.ts';
+import { cn } from '@/utils/cn.ts';
 
 type ThemeKey = 'system' | 'light' | 'dark';
 

@@ -2,7 +2,7 @@ import { useLocation } from 'react-router';
 import { GraduationCap, LayoutDashboard, Library, User2 } from 'lucide-react';
 
 import { paths } from '@/config/paths.ts';
-import { cn } from '@/lib/utils.ts';
+import { cn } from '@/utils/cn.ts';
 import { AppTabLink } from '@/components/layouts/app-tab-link.tsx';
 
 type Tab = {

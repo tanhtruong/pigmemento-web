@@ -17,9 +17,9 @@ import { Badge } from '@/components/ui/badge';
 import { paths } from '@/config/paths';
 import type { CaseListItem } from '@/features/cases/types/case-list-item.ts';
 import { useCases } from '@/features/cases/api/use-cases.ts';
-import { shortCaseId } from '@/features/cases/lib/case-id.ts';
+import { shortCaseId } from '@/features/cases/utils/case-id.ts';
 import { AppTabLink } from '@/components/layouts/app-tab-link.tsx';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/cn';
 
 type Difficulty = 'all' | 'easy' | 'medium' | 'hard';
 type Attempted = 'all' | 'attempted' | 'unattempted';

@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/cn';
 
 /**
  * Hairline-outlined skeleton with opacity pulse. No shimmer (reads 2018-SaaS).
