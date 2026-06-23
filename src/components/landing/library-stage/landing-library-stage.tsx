@@ -29,7 +29,15 @@ const ABCDE = ['A', 'B', 'C', 'D', 'E'];
  * Features beat is the one climax, paired with the A·B·C·D·E margin read over the
  * lens glow. A rAF loop drives the overlay opacities off the scrub ref.
  */
-export default function LandingLibraryStage() {
+export default function LandingLibraryStage({
+  mountCanvas = true,
+}: {
+  // On `/` the landing route already provides the shared canvas (the Act lives
+  // in it too), so the cutover passes `false` — the library renders into that
+  // one context instead of spinning up a second. On the /dev route it mounts
+  // its own.
+  mountCanvas?: boolean;
+}) {
   const rootRef = useRef<HTMLDivElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef(0);
@@ -83,9 +91,11 @@ export default function LandingLibraryStage() {
 
   return (
     <div ref={rootRef} style={{ background: '#0b0a09', color: '#ede8df' }}>
-      <Suspense fallback={null}>
-        <LandingCanvas eventSource={rootRef} />
-      </Suspense>
+      {mountCanvas && (
+        <Suspense fallback={null}>
+          <LandingCanvas eventSource={rootRef} />
+        </Suspense>
+      )}
 
       <div
         ref={pinRef}
