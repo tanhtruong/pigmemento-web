@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 
-import { interpretAttempt } from './interpret-attempt';
+import {
+  choiceOutcomesOf,
+  displayLabel,
+  gradedResult,
+  interpretAttempt,
+} from './interpret-attempt';
 import type { ResolvedAttempt } from '@/features/cases/types/attempt-response.ts';
 
 const resolved = (over: Partial<ResolvedAttempt> = {}): ResolvedAttempt => ({
@@ -66,5 +71,93 @@ describe('interpretAttempt', () => {
     expect(
       interpretAttempt(resolved({ teachingPoints: [] })).teaching,
     ).toContain('ABCDE');
+  });
+});
+
+describe('displayLabel', () => {
+  it('presents the malignancy labels and skip', () => {
+    expect(displayLabel('benign')).toBe('Benign');
+    expect(displayLabel('malignant')).toBe('Malignant');
+    expect(displayLabel('skipped')).toBe('Skip');
+  });
+
+  it('title-cases any other label defensively', () => {
+    expect(displayLabel('other')).toBe('Other');
+  });
+});
+
+describe('choiceOutcomesOf', () => {
+  it('marks the chosen card correct and reveals nothing when right', () => {
+    const verdict = interpretAttempt(
+      resolved({
+        correct: true,
+        chosenLabel: 'malignant',
+        correctLabel: 'malignant',
+      }),
+    );
+    expect(choiceOutcomesOf(verdict)).toEqual({ malignant: 'correct' });
+  });
+
+  it('marks the chosen card incorrect and reveals the correct one when wrong', () => {
+    const verdict = interpretAttempt(
+      resolved({
+        correct: false,
+        chosenLabel: 'benign',
+        correctLabel: 'malignant',
+      }),
+    );
+    expect(choiceOutcomesOf(verdict)).toEqual({
+      benign: 'incorrect',
+      malignant: 'reveal-correct',
+    });
+  });
+
+  it('returns undefined for a skip (nothing to highlight)', () => {
+    const verdict = interpretAttempt(
+      resolved({ chosenLabel: 'skipped', correct: false }),
+    );
+    expect(choiceOutcomesOf(verdict)).toBeUndefined();
+  });
+});
+
+describe('gradedResult', () => {
+  it('reports correctness and the correct label for a graded answer', () => {
+    const right = interpretAttempt(
+      resolved({
+        correct: true,
+        chosenLabel: 'malignant',
+        correctLabel: 'malignant',
+      }),
+    );
+    expect(gradedResult(right)).toEqual({
+      isCorrect: true,
+      correctLabel: 'malignant',
+    });
+
+    const wrong = interpretAttempt(
+      resolved({
+        correct: false,
+        chosenLabel: 'benign',
+        correctLabel: 'malignant',
+      }),
+    );
+    expect(gradedResult(wrong)).toEqual({
+      isCorrect: false,
+      correctLabel: 'malignant',
+    });
+  });
+
+  it('keeps the correct label on a skip but is not correct', () => {
+    const verdict = interpretAttempt(
+      resolved({
+        chosenLabel: 'skipped',
+        correct: false,
+        correctLabel: 'benign',
+      }),
+    );
+    expect(gradedResult(verdict)).toEqual({
+      isCorrect: false,
+      correctLabel: 'benign',
+    });
   });
 });

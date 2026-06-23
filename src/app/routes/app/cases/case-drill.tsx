@@ -20,10 +20,12 @@ import { CheckCircle2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress.tsx';
 import { CaseAttemptView } from '@/app/routes/app/cases/case-attempt.tsx';
 import { CaseAttemptSkeleton } from '@/components/cases/case-attempt-skeleton.tsx';
+import { type CaseChoice } from '@/components/cases/case-choice-card.tsx';
 import {
-  type CaseChoice,
-  type CaseChoiceOutcome,
-} from '@/components/cases/case-choice-card.tsx';
+  choiceOutcomesOf,
+  displayLabel,
+  gradedResult,
+} from '@/features/cases/lib/interpret-attempt.ts';
 import { developVariants, RING_FILL_MS } from '@/lib/motion-tokens.ts';
 import { cn } from '@/lib/utils.ts';
 
@@ -227,12 +229,7 @@ const CaseDrillScene = () => {
         caseId: currentCaseId,
         chosenLabel: gradedChoice ?? 'skipped',
         timeToAnswerMs: timeToAnswerMs ?? 0,
-        isCorrect: verdict.outcome === 'correct',
-        correctLabel:
-          verdict.correctLabel === 'benign' ||
-          verdict.correctLabel === 'malignant'
-            ? verdict.correctLabel
-            : undefined,
+        ...gradedResult(verdict),
       },
     ]);
     scheduleAdvance(REVEAL_HOLD_MS);
@@ -637,24 +634,7 @@ const CaseDrillScene = () => {
   // Running — the same attempt surface as a single/random case (#61). The only
   // difference is the outcome: commit reveals inline on the chosen card and the
   // drill advances, rather than resolving the full verdict in place.
-  const labelOf = (c?: string) =>
-    c === 'benign' ? 'Benign' : c === 'malignant' ? 'Malignant' : 'Skip';
-
-  let choiceOutcomes:
-    | Partial<Record<CaseChoice, CaseChoiceOutcome>>
-    | undefined;
-  if (verdict && gradedChoice && gradedChoice !== 'skipped') {
-    const oc: Partial<Record<CaseChoice, CaseChoiceOutcome>> = {};
-    oc[gradedChoice] = verdict.outcome === 'correct' ? 'correct' : 'incorrect';
-    if (
-      verdict.outcome !== 'correct' &&
-      (verdict.correctLabel === 'benign' ||
-        verdict.correctLabel === 'malignant')
-    ) {
-      oc[verdict.correctLabel] = 'reveal-correct';
-    }
-    choiceOutcomes = oc;
-  }
+  const choiceOutcomes = verdict ? choiceOutcomesOf(verdict) : undefined;
 
   const revealNode =
     verdict && gradedChoice && gradedChoice !== 'skipped' ? (
@@ -666,9 +646,9 @@ const CaseDrillScene = () => {
         )}
       >
         {verdict.outcome === 'correct'
-          ? `Correct — ${labelOf(gradedChoice)}`
+          ? `Correct — ${displayLabel(gradedChoice)}`
           : verdict.correctLabel
-            ? `Incorrect — answer: ${labelOf(verdict.correctLabel)}`
+            ? `Incorrect — answer: ${displayLabel(verdict.correctLabel)}`
             : 'Incorrect'}
       </p>
     ) : undefined;
