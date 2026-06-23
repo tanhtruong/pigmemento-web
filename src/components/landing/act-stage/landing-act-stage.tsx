@@ -88,10 +88,13 @@ export default function LandingActStage({
   return (
     <div
       ref={pinRef}
+      // No background: the shared WebGL canvas (PIG-159) sits *behind* the page
+      // and the views show through this section. An opaque fill here would bury
+      // the lesion; the dark field comes from the landing root instead. (The
+      // crafted-2D fallback brings its own background.)
       style={{
         height: '100dvh',
         position: 'relative',
-        background: '#0b0a09',
         overflow: 'hidden',
       }}
     >

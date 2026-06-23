@@ -24,12 +24,14 @@ export default function LandingCanvas({
     <Canvas
       aria-hidden
       eventSource={eventSource as RefObject<HTMLElement>}
-      // `zIndex: 1` lifts the fixed canvas above the page's opaque section
-      // fields (z-index auto) so the views actually show — without it the later
-      // sections paint over it in tree order. It stays below every foreground
-      // overlay (Act/library chrome at z≥2, header 5, skip 10), so text and the
-      // commit/verdict UI still render on top of the lesion.
-      style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1 }}
+      // No z-index — the canvas must stay BEHIND the page (it is the landing
+      // root's first child, so it paints first in tree order). Each stage's
+      // pinned section is transparent, so the views show through from behind
+      // while that section's own overlay text/chrome still paints on top.
+      // Do NOT give this a z-index: GSAP pins each stage, and pinning makes the
+      // section its own stacking context — a positive z-index here would lift
+      // the whole canvas above those sections and bury their overlay text.
+      style={{ position: 'fixed', inset: 0, pointerEvents: 'none' }}
       dpr={[1, 1.75]}
       gl={{ antialias: true }}
     >
