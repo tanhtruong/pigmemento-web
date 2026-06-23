@@ -3,7 +3,11 @@ import { Link } from 'react-router';
 
 import { Head } from '@/components/seo/head.tsx';
 import { paths } from '@/config/paths';
-import { useShouldRender3D } from '@/lib/render-3d';
+import {
+  useWebGL2Support,
+  usePrefersReducedMotion,
+  usePrefersReducedData,
+} from '@/lib/render-3d';
 import { case001Breakdown, faqs, heroCase } from '@/lib/landing-seed-data.tsx';
 
 // Lazy so the GSAP-driven Act + its three/r3f scene stay out of the landing
@@ -13,38 +17,16 @@ const LandingActStage = lazy(
   () => import('@/components/landing/act-stage/landing-act-stage'),
 );
 // The single shared WebGL context for the whole landing (PIG-159) — the Act and
-// (later) the specimen library render into it as drei <View>s. Lazy + r3f-* so
+// the specimen library both render into it as drei <View>s. Lazy + r3f-* so
 // three/r3f/drei stay quarantined out of the first-paint chunk.
 const LandingCanvas = lazy(
   () => import('@/components/landing/r3f-landing-canvas'),
 );
-// Dev-only: proves a second scene shares the one canvas (slice-0 go/no-go).
-const PlaceholderView = lazy(
-  () => import('@/components/landing/r3f-placeholder-view'),
+// The specimen-library set-piece (PIG-165 cutover) — replaces the old static
+// method grid; renders into the shared canvas above via mountCanvas={false}.
+const LandingLibraryStage = lazy(
+  () => import('@/components/landing/library-stage/landing-library-stage'),
 );
-
-const METHOD = [
-  {
-    kicker: 'Source',
-    title: 'Real cases',
-    body: 'From the ISIC Archive — the image a clinician actually sees, not the textbook ideal.',
-  },
-  {
-    kicker: 'Feedback',
-    title: 'Teaches, not scores',
-    body: 'The pattern reasoning behind every call. Not just right or wrong.',
-  },
-  {
-    kicker: 'Features',
-    title: 'ABCDE on the lesion',
-    body: 'The decision-driving features, marked where they sit.',
-  },
-  {
-    kicker: 'Format',
-    title: 'Built for clinic time',
-    body: 'Ninety-second drills. A session fits a coffee break.',
-  },
-];
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -80,12 +62,16 @@ export default function LandingRoute() {
     };
   }, []);
 
-  // One WebGL context for the whole page: mount the shared canvas only for
-  // capable clients (the same gate the Act uses), and use the landing root as
-  // its pointer event source. Incapable / reduced-motion clients never mount it
-  // and get the Act's crafted-2D path, exactly as before.
+  // One WebGL context for the whole page. Mount it whenever any view needs it:
+  // the broad library gate (WebGL2, motion + data OK, phones included) is a
+  // superset of the Act's, so it covers both. Each view then decides whether to
+  // draw — the Act falls back to crafted-2D on phones, the library to its static
+  // strip when this gate is false.
   const rootRef = useRef<HTMLDivElement>(null);
-  const capable = useShouldRender3D();
+  const hasWebGL2 = useWebGL2Support();
+  const reducedMotion = usePrefersReducedMotion();
+  const reducedData = usePrefersReducedData();
+  const canvasNeeded = hasWebGL2 && !reducedMotion && !reducedData;
 
   return (
     <div className="landing" ref={rootRef}>
@@ -103,10 +89,9 @@ export default function LandingRoute() {
         Skip to start
       </a>
 
-      {capable && (
+      {canvasNeeded && (
         <Suspense fallback={null}>
           <LandingCanvas eventSource={rootRef} />
-          {import.meta.env.DEV && <PlaceholderView />}
         </Suspense>
       )}
 
@@ -151,17 +136,11 @@ export default function LandingRoute() {
         </div>
       </section>
 
-      <section className="ln-method">
-        <h2 className="ln-h2">Looking, made knowing.</h2>
-        <div className="ln-grid">
-          {METHOD.map((m) => (
-            <article key={m.kicker} className="ln-card">
-              <p className="ln-kicker">{m.kicker}</p>
-              <h3 className="ln-card-title">{m.title}</h3>
-              <p className="ln-card-body">{m.body}</p>
-            </article>
-          ))}
-        </div>
+      <section className="ln-method" aria-label="Looking, made knowing">
+        <h2 className="ln-h2 ln-method-h">Looking, made knowing.</h2>
+        <Suspense fallback={<div style={{ minHeight: '100dvh' }} />}>
+          <LandingLibraryStage mountCanvas={false} />
+        </Suspense>
       </section>
 
       <section className="ln-faq">
@@ -290,12 +269,8 @@ const CSS = `
   font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.06em; color: var(--scale);
 }
 
-.ln-method { max-width: 1140px; margin: 0 auto; padding: clamp(4rem, 10vh, 8rem) 2rem; }
-.ln-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--hair); border: 1px solid var(--hair); border-radius: 14px; overflow: hidden; }
-.ln-card { background: var(--field); padding: 2rem; }
-.ln-kicker { font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--umber); margin: 0 0 1rem; }
-.ln-card-title { font-family: var(--serif); font-weight: 500; font-size: 22px; margin: 0 0 0.6rem; }
-.ln-card-body { color: rgba(237,232,223,0.72); margin: 0; max-width: 32ch; }
+.ln-method { padding: clamp(4rem, 10vh, 7rem) 0 0; }
+.ln-method-h { text-align: center; max-width: 1140px; margin: 0 auto clamp(1.5rem, 5vh, 3rem); padding: 0 2rem; }
 
 .ln-faq { max-width: 760px; margin: 0 auto; padding: clamp(3rem, 8vh, 6rem) 2rem; }
 .ln-faq-item { border-top: 1px solid var(--hair); padding: 1.1rem 0; }
@@ -313,9 +288,5 @@ const CSS = `
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
   max-width: 1140px; margin: 0 auto; padding: 2rem; border-top: 1px solid var(--hair);
   font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; color: var(--scale);
-}
-
-@media (max-width: 800px) {
-  .ln-grid { grid-template-columns: 1fr; }
 }
 `;
