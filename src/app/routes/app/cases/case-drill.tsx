@@ -24,6 +24,7 @@ import {
   type CaseChoice,
   type CaseChoiceOutcome,
 } from '@/components/cases/case-choice-card.tsx';
+import { attemptAffectedKeys, queryKeys } from '@/lib/query-keys.ts';
 import { developVariants, RING_FILL_MS } from '@/lib/motion-tokens.ts';
 import { cn } from '@/lib/utils.ts';
 
@@ -131,22 +132,12 @@ const CaseDrillScene = () => {
 
   const finishDrill = () => {
     setPhase('finished');
-    // Invalidate case-related caches so dashboard/history updates
-    queryClient.invalidateQueries({
-      predicate: (q) => {
-        const key = q.queryKey;
-        if (!Array.isArray(key) || key.length === 0) return false;
-        const head = key[0];
-        return (
-          typeof head === 'string' &&
-          (head.includes('case') ||
-            head.includes('attempt') ||
-            head.includes('history') ||
-            head.includes('cases') ||
-            head.includes('random'))
-        );
-      },
-    });
+    // Refresh everything an answered Attempt can change (history, the library,
+    // the next random draw, and progress stats) so the dashboard and history
+    // reflect the drill's results — the named set, not substring-sniffing.
+    for (const queryKey of attemptAffectedKeys) {
+      queryClient.invalidateQueries({ queryKey });
+    }
   };
 
   const advance = useCallback(() => {
@@ -157,7 +148,7 @@ const CaseDrillScene = () => {
         return prev;
       }
 
-      queryClient.invalidateQueries({ queryKey: ['random-case'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys['random-case'] });
       refetch();
 
       return nextIndex;
@@ -615,7 +606,9 @@ const CaseDrillScene = () => {
                   setIndex(0);
                   setSkipped(false);
                   setPhase('running');
-                  queryClient.invalidateQueries({ queryKey: ['random-case'] });
+                  queryClient.invalidateQueries({
+                    queryKey: queryKeys['random-case'],
+                  });
                   refetch();
                 }}
               >
@@ -697,7 +690,9 @@ const CaseDrillScene = () => {
           <p className="text-muted-foreground text-sm">Please try again.</p>
           <Button
             onClick={() => {
-              queryClient.invalidateQueries({ queryKey: ['random-case'] });
+              queryClient.invalidateQueries({
+                queryKey: queryKeys['random-case'],
+              });
               refetch();
             }}
           >
