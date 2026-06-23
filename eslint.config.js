@@ -6,7 +6,7 @@ import importX from 'eslint-plugin-import-x';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist'] },
+  { ignores: ['dist', 'public/mockServiceWorker.js'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
@@ -103,5 +103,12 @@ export default tseslint.config(
         },
       ],
     },
+  },
+  {
+    // Test utilities re-export their @testing-library surface and are never part
+    // of the app's fast-refresh graph, so the component-only-export rule doesn't
+    // apply.
+    files: ['src/testing/**/*.{ts,tsx}'],
+    rules: { 'react-refresh/only-export-components': 'off' },
   },
 );

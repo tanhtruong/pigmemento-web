@@ -12,7 +12,7 @@ import {
 const originalMatchMedia = window.matchMedia;
 
 // Make `window.matchMedia` report `matches: true` for any query the predicate
-// accepts. The default jsdom stub (src/test/setup.ts) reports everything false.
+// accepts. The default jsdom stub (src/testing/setup.ts) reports everything false.
 const mockMatchMedia = (matches: (query: string) => boolean) => {
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
     matches: matches(query),
