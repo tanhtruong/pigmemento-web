@@ -11,9 +11,10 @@ import { hasAbcdeFeatures } from '@/features/cases/types/abcde-feature.ts';
 import type { CaseDetail } from '@/features/cases/types/case-detail.ts';
 import { RING_FILL_MS, easeOut } from '@/lib/motion-tokens';
 import { useCoarsePointer } from '@/features/cases/hooks/use-coarse-pointer.ts';
-import { type Outcome } from '@/features/cases/lib/interpret-attempt.ts';
-
-const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+import {
+  type Outcome,
+  displayLabel,
+} from '@/features/cases/lib/interpret-attempt.ts';
 
 const formatMs = (ms: number): string => {
   if (!ms || ms < 0) return '—';
@@ -170,7 +171,7 @@ export const CaseAttemptFlow = ({
         outcome={verdict.outcome}
         outcomeCopy={outcomeCopy(
           verdict.outcome,
-          titleCase(verdict.chosenLabel),
+          displayLabel(verdict.chosenLabel),
           verdict.diagnosis,
         )}
         teaching={verdict.teaching}

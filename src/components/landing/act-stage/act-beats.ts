@@ -1,4 +1,5 @@
 import type { CameraBeat } from '../case-stage/camera-beats';
+import { lerp, smoothstep } from '@/lib/easing';
 
 /**
  * Act I scroll choreography (#146), all driven by one 0–1 pinned-scroll progress:
@@ -28,13 +29,6 @@ export const READING_END = 0.8;
  * the scroll-hold + Benign/Malignant prompt take over the 0.8–1.0 tail.
  */
 export const COMMIT_AT = 0.82;
-
-const clamp01 = (x: number): number => Math.max(0, Math.min(1, x));
-const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
-const smoothstep = (edge0: number, edge1: number, x: number): number => {
-  const t = clamp01((x - edge0) / (edge1 - edge0));
-  return t * t * (3 - 2 * t);
-};
 
 /**
  * Raking-light control in the shader's uLight space (x: azimuth −1..1, y:

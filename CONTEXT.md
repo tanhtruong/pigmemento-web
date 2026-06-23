@@ -41,6 +41,9 @@ _Avoid_: answer, guess, submission, try.
 **Verdict**:
 The resolved meaning of an answered **Attempt** — its **outcome** (correct,
 incorrect, or skipped), the correct diagnosis, and the teaching that explains it.
+It also reads each **Choice** on the board — the chosen card as correct or
+incorrect, and (when wrong) the actually-correct card as a reveal — so every
+surface paints from one resolved meaning rather than re-deriving it.
 _Avoid_: result, grade, score, feedback.
 
 **Drill**:

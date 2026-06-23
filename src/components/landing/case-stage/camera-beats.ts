@@ -1,3 +1,5 @@
+import { lerp } from '@/lib/easing';
+
 export type CameraBeat = {
   /** Scroll progress (0–1) at which the camera reaches `pos`. */
   at: number;
@@ -18,8 +20,6 @@ export const CAMERA_BEATS: CameraBeat[] = [
   { at: 0.75, pos: [0, 0.05, 2.25] },
   { at: 1.0, pos: [0, 0.7, 4.4] },
 ];
-
-const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
 /**
  * Camera position for scroll progress `p` (0–1), linearly interpolated across
