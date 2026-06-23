@@ -4,6 +4,7 @@ import { type RefObject, Suspense, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 import { LIBRARY_SPECIMENS } from '@/lib/library-specimens';
+import { travelAt } from './library-beats';
 
 /**
  * The specimen stage (#161) + the lens (#162). The 24 ISIC specimens are a
@@ -22,7 +23,6 @@ import { LIBRARY_SPECIMENS } from '@/lib/library-specimens';
 const PLANE_H = 1.8;
 const PLANE_W = 2.4; // ~4:3, matching the source specimens
 const SPACING = 3.2;
-const TRAVEL = (LIBRARY_SPECIMENS.length - 1) * SPACING;
 const FOCUS_FALLOFF = 4.2;
 const LINE = '#9a958c';
 
@@ -135,7 +135,7 @@ function Specimen({
   );
 
   useFrame(() => {
-    const x = index * SPACING - progressRef.current * TRAVEL;
+    const x = index * SPACING - travelAt(progressRef.current);
     const focus = Math.max(0, 1 - Math.abs(x) / FOCUS_FALLOFF);
     const mesh = meshRef.current;
     if (mesh) {
