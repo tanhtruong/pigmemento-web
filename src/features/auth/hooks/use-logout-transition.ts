@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { paths } from '@/config/paths';
 import { useTransitionNavigate } from '@/components/motion/transition-conductor';
-import { performLogout } from './use-auth';
+import { endSession } from '@/lib/end-session';
 
 /**
  * Sign-out as a commit gesture: tear the session down, then let the
@@ -18,7 +18,7 @@ export const useLogoutTransition = () => {
   const startTransition = useTransitionNavigate();
 
   return (origin: { x: number; y: number }) => {
-    performLogout(queryClient);
+    endSession(queryClient);
     startTransition({
       kind: 'exit-app',
       origin,

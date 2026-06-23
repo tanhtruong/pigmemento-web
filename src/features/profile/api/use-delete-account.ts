@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios.ts';
-import { clearToken } from '@/lib/session';
+import { endSession } from '@/lib/end-session';
 import { toast } from 'sonner';
 
 export const useDeleteAccount = () => {
@@ -11,9 +11,8 @@ export const useDeleteAccount = () => {
       await api.delete('/me');
     },
     onSuccess: () => {
-      // Clear auth + cached data after account deletion
-      clearToken();
-      queryClient.clear();
+      // Tear the session down (token, scroll, cache) after deletion.
+      endSession(queryClient);
       toast('Account deleted', {
         description:
           'Your account and all associated data have been permanently removed',
