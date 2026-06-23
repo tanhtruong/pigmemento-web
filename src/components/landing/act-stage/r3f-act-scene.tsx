@@ -125,23 +125,21 @@ const fragmentShader = /* glsl */ `
 type SceneProps = {
   imageSrc: string;
   features: AbcdeFeature[];
-  /** The DOM box this scene renders into, via the shared landing canvas. */
-  trackRef: RefObject<HTMLDivElement | null>;
   scrollProgressRef: RefObject<number>;
 };
 
 export default function R3fActScene({
   imageSrc,
   features,
-  trackRef,
   scrollProgressRef,
 }: SceneProps) {
   // The Act now renders into the page-wide shared canvas (PIG-159) as a drei
-  // <View> scissored to its pinned section, instead of owning its own <Canvas>.
+  // <View> filling its pinned section, instead of owning its own <Canvas>.
   // Background, fog, and camera move onto this view's scene so the take is
-  // visually unchanged.
+  // visually unchanged. The View self-tracks (its own absolutely-positioned div)
+  // — `track`-an-external-ref mode renders nothing in this shared-canvas setup.
   return (
-    <View track={trackRef as RefObject<HTMLElement>}>
+    <View style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
       <PerspectiveCamera
         makeDefault
         fov={38}
