@@ -1,14 +1,10 @@
 import { paths } from '@/config/paths';
-import {
-  useMutation,
-  useQueryClient,
-  type QueryClient,
-} from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router';
 import { AuthResponse, LoginDto, RegisterPayload } from '../types/auth';
 import api from '@/lib/axios';
-import { setToken, clearToken } from '@/lib/session';
-import { clearScrollMemory } from '@/lib/route-scroll';
+import { setToken } from '@/lib/session';
+import { endSession } from '@/lib/end-session';
 
 /**
  * Login + register mutations.
@@ -61,20 +57,9 @@ export const useLogout = () => {
   const navigate = useNavigate();
 
   const logout = () => {
-    performLogout(queryClient);
+    endSession(queryClient);
     navigate(paths.home.getHref(), { replace: true });
   };
 
   return logout;
-};
-
-/**
- * Session teardown only — token + query cache. Deliberately does NOT
- * navigate or toast: the caller owns the exit (the avatar menu drives the
- * conductor's exit-app bloom; the bloom is the goodbye).
- */
-export const performLogout = (queryClient: QueryClient): void => {
-  clearToken();
-  clearScrollMemory();
-  queryClient.clear();
 };

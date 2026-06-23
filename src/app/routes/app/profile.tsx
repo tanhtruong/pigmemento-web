@@ -38,7 +38,7 @@ import { useProfile } from '@/features/profile/api/use-profile.ts';
 import { useStats } from '@/features/profile/api/use-stats.ts';
 import { useUpdateProfile } from '@/features/profile/api/use-update-profile';
 import { useDeleteAccount } from '@/features/profile/api/use-delete-account.ts';
-import { clearToken } from '@/lib/session';
+import { endSession } from '@/lib/end-session';
 
 const useCoarsePointer = () => {
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
@@ -174,8 +174,7 @@ const ProfileScene = () => {
       .join('') || 'U';
 
   const onSignOut = () => {
-    clearToken();
-    queryClient.clear();
+    endSession(queryClient);
     toast('Signed out');
     navigate('/', { replace: true });
   };
@@ -207,7 +206,6 @@ const ProfileScene = () => {
     resetDelete();
     try {
       await deleteAccount();
-      queryClient.clear();
       navigate('/', { replace: true });
     } catch {
       // mutation state holds the error
