@@ -123,6 +123,11 @@ export const createAppRouter = (queryClient: QueryClient) =>
             import('./routes/dev-landing-next').then(convert(queryClient)),
         },
         {
+          path: '/dev/library-act',
+          lazy: () =>
+            import('./routes/dev-library-act').then(convert(queryClient)),
+        },
+        {
           path: '*',
           lazy: () => import('./routes/not-found').then(convert(queryClient)),
         },
