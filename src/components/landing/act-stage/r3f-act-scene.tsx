@@ -1,5 +1,5 @@
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Html, useTexture } from '@react-three/drei';
+import { useFrame, useThree } from '@react-three/fiber';
+import { Html, PerspectiveCamera, View, useTexture } from '@react-three/drei';
 import { type RefObject, Suspense, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
@@ -125,24 +125,26 @@ const fragmentShader = /* glsl */ `
 type SceneProps = {
   imageSrc: string;
   features: AbcdeFeature[];
-  active: boolean;
   scrollProgressRef: RefObject<number>;
 };
 
 export default function R3fActScene({
   imageSrc,
   features,
-  active,
   scrollProgressRef,
 }: SceneProps) {
+  // The Act now renders into the page-wide shared canvas (PIG-159) as a drei
+  // <View> filling its pinned section, instead of owning its own <Canvas>.
+  // Background, fog, and camera move onto this view's scene so the take is
+  // visually unchanged. The View self-tracks (its own absolutely-positioned div)
+  // — `track`-an-external-ref mode renders nothing in this shared-canvas setup.
   return (
-    <Canvas
-      aria-hidden
-      frameloop={active ? 'always' : 'never'}
-      dpr={[1, 1.75]}
-      camera={{ position: cameraPositionAt(0, ACT_CAMERA_BEATS), fov: 38 }}
-      gl={{ antialias: true }}
-    >
+    <View style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+      <PerspectiveCamera
+        makeDefault
+        fov={38}
+        position={cameraPositionAt(0, ACT_CAMERA_BEATS)}
+      />
       <color attach="background" args={['#0b0a09']} />
       <fog attach="fog" args={['#0b0a09', 4.0, 8.5]} />
       <CameraRig scrollProgressRef={scrollProgressRef} />
@@ -153,7 +155,7 @@ export default function R3fActScene({
           scrollProgressRef={scrollProgressRef}
         />
       </Suspense>
-    </Canvas>
+    </View>
   );
 }
 
