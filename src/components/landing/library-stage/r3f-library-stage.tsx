@@ -1,20 +1,22 @@
 import { useFrame } from '@react-three/fiber';
 import { PerspectiveCamera, View, useTexture } from '@react-three/drei';
-import { type RefObject, Suspense, useRef } from 'react';
+import { type RefObject, Suspense, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 import { LIBRARY_SPECIMENS } from '@/lib/library-specimens';
 
 /**
- * The specimen stage (#161) — the core mechanic of the library set-piece. The 24
- * ISIC specimens are a single horizontal strip that slides behind a fixed
- * dermatoscope reticle as the page scrolls (0→1 progress from the pin scrub,
- * read here in useFrame). The specimen under the lens is in focus; the rest dim
- * and shrink into out-of-focus volume. Real lens optics — refraction, depth of
- * field — are #162; the four lock-in beats are #163.
+ * The specimen stage (#161) + the lens (#162). The 24 ISIC specimens are a
+ * horizontal strip that slides behind a fixed dermatoscope reticle as the page
+ * scrolls (0→1 progress from the pin scrub, read in useFrame). Each specimen
+ * carries the lens shader: out of focus it softens (depth of field); under the
+ * lens it sharpens and its real edges + colour variance are lifted off the image
+ * as a FLAT bone glow — the image-derived feature read (PRD §6).
  *
- * Renders as a drei <View> into the one shared landing canvas (#159), so there
- * is no second WebGL context. `r3f-*` named to stay in the quarantined chunk.
+ * Anti-rhyme contract (§12): the glow is flat and bone-toned — never the Act's
+ * relief/raking-light, and never the blue-white veil (spent once, at the Act's
+ * verdict). Renders as a drei <View> into the one shared landing canvas (#159).
+ * `r3f-*` named to stay in the quarantined chunk.
  */
 
 const PLANE_H = 1.8;
@@ -23,6 +25,53 @@ const SPACING = 3.2;
 const TRAVEL = (LIBRARY_SPECIMENS.length - 1) * SPACING;
 const FOCUS_FALLOFF = 4.2;
 const LINE = '#9a958c';
+
+const vertexShader = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const fragmentShader = /* glsl */ `
+  uniform sampler2D uTex;
+  uniform vec2 uTexel;
+  uniform float uFocus; // 0 far .. 1 under the lens
+  varying vec2 vUv;
+
+  float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
+
+  void main() {
+    vec3 sharp = texture2D(uTex, vUv).rgb;
+
+    // Depth of field — a cheap 4-tap blur whose radius shrinks into focus.
+    float br = mix(2.6, 0.0, uFocus);
+    vec3 blur = (
+      texture2D(uTex, vUv + uTexel * vec2( br, 0.0)).rgb +
+      texture2D(uTex, vUv + uTexel * vec2(-br, 0.0)).rgb +
+      texture2D(uTex, vUv + uTexel * vec2(0.0,  br)).rgb +
+      texture2D(uTex, vUv + uTexel * vec2(0.0, -br)).rgb
+    ) * 0.25;
+    vec3 col = mix(blur, sharp, smoothstep(0.0, 0.6, uFocus));
+
+    // Image-derived feature lift — edges + local colour variance, FLAT (no
+    // normals, no lighting): the lens reads what's there, it doesn't sculpt it.
+    float e = 1.5;
+    float gx = luma(texture2D(uTex, vUv + uTexel * vec2(e, 0.0)).rgb)
+             - luma(texture2D(uTex, vUv - uTexel * vec2(e, 0.0)).rgb);
+    float gy = luma(texture2D(uTex, vUv + uTexel * vec2(0.0, e)).rgb)
+             - luma(texture2D(uTex, vUv - uTexel * vec2(0.0, e)).rgb);
+    float edge = clamp(length(vec2(gx, gy)) * 6.0, 0.0, 1.0);
+    float chroma = length(sharp - vec3(luma(sharp))); // colour spread = pigment variance
+    float feature = max(edge, chroma * 1.6);
+
+    float lift = smoothstep(0.55, 1.0, uFocus); // only under the lens — the climax
+    col += feature * lift * 0.6 * vec3(0.93, 0.91, 0.87); // flat bone glow
+
+    gl_FragColor = vec4(col, 0.16 + uFocus * 0.84);
+  }
+`;
 
 type Props = {
   progressRef: RefObject<number>;
@@ -44,41 +93,70 @@ export default function R3fLibraryStage({ progressRef }: Props) {
 
 function Strip({ progressRef }: { progressRef: RefObject<number> }) {
   const textures = useTexture(LIBRARY_SPECIMENS as string[]);
-  const groupRef = useRef<THREE.Group>(null);
-  const meshRefs = useRef<(THREE.Mesh | null)[]>([]);
+  return (
+    <>
+      {textures.map((texture, i) => (
+        <Specimen
+          key={LIBRARY_SPECIMENS[i]}
+          texture={texture}
+          index={i}
+          progressRef={progressRef}
+        />
+      ))}
+    </>
+  );
+}
+
+function Specimen({
+  texture,
+  index,
+  progressRef,
+}: {
+  texture: THREE.Texture;
+  index: number;
+  progressRef: RefObject<number>;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const materialRef = useRef<THREE.ShaderMaterial>(null);
+
+  const img = texture.image as { width?: number; height?: number } | undefined;
+  const uniforms = useMemo(
+    () => ({
+      uTex: { value: texture },
+      uTexel: {
+        value: new THREE.Vector2(
+          1 / (img?.width ?? 1504),
+          1 / (img?.height ?? 1129),
+        ),
+      },
+      uFocus: { value: 0 },
+    }),
+    [texture, img?.width, img?.height],
+  );
 
   useFrame(() => {
-    const group = groupRef.current;
-    if (!group) return;
-    const x = -progressRef.current * TRAVEL;
-    group.position.x = x;
-    // Focus falls off with distance from the centre lens — the specimen under
-    // the reticle is sharp and full, the rest dim and shrink into volume.
-    for (let i = 0; i < meshRefs.current.length; i++) {
-      const mesh = meshRefs.current[i];
-      if (!mesh) continue;
-      const distance = Math.abs(i * SPACING + x);
-      const focus = Math.max(0, 1 - distance / FOCUS_FALLOFF);
+    const x = index * SPACING - progressRef.current * TRAVEL;
+    const focus = Math.max(0, 1 - Math.abs(x) / FOCUS_FALLOFF);
+    const mesh = meshRef.current;
+    if (mesh) {
+      mesh.position.x = x;
       mesh.scale.setScalar(0.9 + focus * 0.1);
-      (mesh.material as THREE.MeshBasicMaterial).opacity = 0.16 + focus * 0.84;
     }
+    if (materialRef.current) materialRef.current.uniforms.uFocus.value = focus;
   });
 
   return (
-    <group ref={groupRef}>
-      {textures.map((texture, i) => (
-        <mesh
-          key={LIBRARY_SPECIMENS[i]}
-          position={[i * SPACING, 0, 0]}
-          ref={(el) => {
-            meshRefs.current[i] = el;
-          }}
-        >
-          <planeGeometry args={[PLANE_W, PLANE_H]} />
-          <meshBasicMaterial map={texture} transparent toneMapped={false} />
-        </mesh>
-      ))}
-    </group>
+    <mesh ref={meshRef} position={[index * SPACING, 0, 0]}>
+      <planeGeometry args={[PLANE_W, PLANE_H]} />
+      <shaderMaterial
+        ref={materialRef}
+        uniforms={uniforms}
+        vertexShader={vertexShader}
+        fragmentShader={fragmentShader}
+        transparent
+        depthWrite={false}
+      />
+    </mesh>
   );
 }
 
