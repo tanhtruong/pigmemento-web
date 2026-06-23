@@ -11,7 +11,7 @@ import { usePrefersReducedMotion, useShouldRender3D } from '@/lib/render-3d';
 import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
 import { COMMIT_AT } from './act-beats';
 import Crafted2DScene from './crafted-2d-scene';
-import { useActScroll } from './use-act-scroll';
+import { useActScroll } from '../landing-scroll';
 
 // Lazy so three/r3f/drei stay in the quarantined async `r3f-act-scene` chunk —
 // this stage holds only the GSAP scroll engine (allowed in a `landing-*` chunk).
