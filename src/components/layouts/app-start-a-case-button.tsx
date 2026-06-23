@@ -22,7 +22,7 @@ import {
 } from '@/components/signature/start-a-case-picker.tsx';
 import { paths } from '@/config/paths.ts';
 import { cn } from '@/lib/utils.ts';
-import { useIsMobile } from '@/hooks/use-is-mobile.ts';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type AppStartACaseButtonProps = {
   /** External open state (e.g. opened from CommandPalette). */
