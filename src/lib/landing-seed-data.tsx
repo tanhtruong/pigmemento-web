@@ -2,7 +2,7 @@ import { FAQ } from '@/types/faq';
 import { Feature } from '@/types/feature';
 import { Stat } from '@/types/stat';
 import { HeroCase } from '@/types/hero-case';
-import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
+import type { AbcdeFeature } from '@/types/abcde-feature';
 import { Microscope, MessageSquareText, Crosshair, Timer } from 'lucide-react';
 
 /**

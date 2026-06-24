@@ -1,4 +1,4 @@
-import type { AbcdeFeature } from './abcde-feature';
+import type { AbcdeFeature } from '@/types/abcde-feature';
 
 export interface CaseDetail {
   id: string;

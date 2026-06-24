@@ -5,7 +5,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 // The avatar menu fetches the profile and reaches for the transition
 // conductor — collaborators with their own tests. Stub it so these specs stay
 // about the top bar's own composition.
-vi.mock('@/components/layouts/app-avatar-menu.tsx', () => ({
+vi.mock('@/app/layouts/app-avatar-menu.tsx', () => ({
   AppAvatarMenu: () => <button aria-label="Account menu">avatar</button>,
 }));
 

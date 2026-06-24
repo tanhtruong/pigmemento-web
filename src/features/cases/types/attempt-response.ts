@@ -1,4 +1,4 @@
-import { Label } from '@/features/cases/types/case-label.ts';
+import { Label } from '@/types/case-label.ts';
 
 /**
  * The server's grading of an Attempt — returned by `POST /cases/:id/answer`,

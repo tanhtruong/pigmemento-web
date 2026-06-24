@@ -1,6 +1,6 @@
 import { type RefObject, useEffect, useRef } from 'react';
 
-import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
+import type { AbcdeFeature } from '@/types/abcde-feature';
 import {
   exposureAt,
   rakeLightAt,

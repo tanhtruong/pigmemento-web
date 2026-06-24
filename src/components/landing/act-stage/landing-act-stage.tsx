@@ -8,7 +8,7 @@ import {
 } from 'react';
 
 import { usePrefersReducedMotion, useShouldRender3D } from '@/lib/render-3d';
-import type { AbcdeFeature } from '@/features/cases/types/abcde-feature';
+import type { AbcdeFeature } from '@/types/abcde-feature';
 import { COMMIT_AT } from './act-beats';
 import Crafted2DScene from './crafted-2d-scene';
 import { useActScroll } from '../landing-scroll';

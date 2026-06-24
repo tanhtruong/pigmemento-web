@@ -2,9 +2,9 @@ import { Helmet } from '@dr.pogodin/react-helmet';
 import { useLocation } from 'react-router';
 import { ReactNode, useState } from 'react';
 
-import AppTopBar from '@/components/layouts/app-topbar.tsx';
+import AppTopBar from '@/app/layouts/app-topbar.tsx';
 import { AppBottomTabs } from '@/components/layouts/app-bottom-tabs.tsx';
-import { AppCommandPalette } from '@/components/layouts/app-command-palette.tsx';
+import { AppCommandPalette } from '@/app/layouts/app-command-palette.tsx';
 import { AppStartACaseButton } from '@/components/layouts/app-start-a-case-button.tsx';
 import { AmberFAB } from '@/components/signature/amber-fab.tsx';
 import { GrainOverlay } from '@/components/foundation/grain-overlay.tsx';

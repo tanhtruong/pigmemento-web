@@ -1,4 +1,4 @@
-import type { Label } from '@/features/cases/types/case-label.ts';
+import type { Label } from '@/types/case-label.ts';
 
 /**
  * The single playable case embedded in the landing hero. A new user judges it
