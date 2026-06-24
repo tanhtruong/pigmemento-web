@@ -8,7 +8,7 @@
  * Rhythm: one climax (Features) + three restrained — see CLIMAX_BEAT.
  */
 
-import { lerp, smoothstep } from '@/lib/easing';
+import { lerp, smoothstep } from '@/utils/easing';
 
 const SPACING = 3.2; // must match r3f-library-stage
 const SPECIMEN_COUNT = 24;

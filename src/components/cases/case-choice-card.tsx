@@ -1,6 +1,6 @@
 import { motion, useReducedMotion } from 'motion/react';
 
-import { cn } from '@/lib/utils.ts';
+import { cn } from '@/utils/cn.ts';
 import { motionTokens, RING_FILL_MS } from '@/lib/motion-tokens.ts';
 
 export type CaseChoice = 'benign' | 'malignant' | 'skipped';

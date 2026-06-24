@@ -1,4 +1,4 @@
-import { smoothstep } from '@/lib/easing';
+import { smoothstep } from '@/utils/easing';
 
 // The lesion plane is 2.1 × 2.6, centred at the origin in the xy-plane (see the
 // Specimen in r3f-scene). Pins float `PIN_Z` off its surface toward the camera

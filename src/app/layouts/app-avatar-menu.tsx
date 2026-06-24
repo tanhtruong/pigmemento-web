@@ -20,9 +20,9 @@ import { ThemeSwitch } from '@/components/layouts/theme-switch.tsx';
 import { useProfile } from '@/features/profile/api/use-profile.ts';
 import { useLogoutTransition } from '@/features/auth/hooks/use-logout-transition.ts';
 import { prefetchLandingRoute } from '@/app/prefetch-routes.ts';
-import { commitOrigin } from '@/lib/commit-origin.ts';
+import { commitOrigin } from '@/utils/commit-origin.ts';
 import { paths } from '@/config/paths.ts';
-import { cn } from '@/lib/utils.ts';
+import { cn } from '@/utils/cn.ts';
 
 type AppAvatarMenuProps = {
   className?: string;

@@ -26,7 +26,7 @@ import { paths } from '@/config/paths.ts';
 import { useInAppNavigate } from '@/components/layouts/use-in-app-navigate.ts';
 import { useLogoutTransition } from '@/features/auth/hooks/use-logout-transition.ts';
 import { prefetchLandingRoute } from '@/app/prefetch-routes.ts';
-import { commitOrigin } from '@/lib/commit-origin.ts';
+import { commitOrigin } from '@/utils/commit-origin.ts';
 
 type AppCommandPaletteProps = {
   open: boolean;

@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/cn';
 
 type AmberGlowProps = {
   /** soft = trust-strip / card. full = hero headline backdrop. */

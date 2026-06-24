@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ArrowRight } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/cn';
 import { Hairline } from '@/components/foundation/hairline';
 
 export type StartACaseOption = {

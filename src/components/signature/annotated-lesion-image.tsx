@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/cn';
 import { motionTokens } from '@/lib/motion-tokens';
 import type { AbcdeFeature } from '@/types/abcde-feature';
 

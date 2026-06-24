@@ -26,9 +26,9 @@ import {
   choiceOutcomesOf,
   displayLabel,
   gradedResult,
-} from '@/features/cases/lib/interpret-attempt.ts';
+} from '@/features/cases/utils/interpret-attempt.ts';
 import { developVariants, RING_FILL_MS } from '@/lib/motion-tokens.ts';
-import { cn } from '@/lib/utils.ts';
+import { cn } from '@/utils/cn.ts';
 
 type Label = 'benign' | 'malignant' | 'skipped';
 
