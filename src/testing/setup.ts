@@ -1,6 +1,16 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, vi } from 'vitest';
+
+import { server } from './mocks/server';
+
+// Mock Service Worker: intercept network in tests. Unhandled requests pass
+// through ('bypass') so the many tests that mock @/lib/axios directly are
+// unaffected; opt in per test via server.use(...) or by adding handlers in
+// testing/mocks/handlers.ts.
+beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
 
 // GSAP is lazy-loaded (src/lib/lazy-gsap.ts) from landing-route modules via
 // dynamic import(). In jsdom those imports can resolve after the test
